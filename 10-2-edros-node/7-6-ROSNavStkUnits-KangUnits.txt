@@ -1,0 +1,242 @@
+BKM Kangaroo Motion Controller Startup/Init Seq
+=================================================
+root@stkww4214:~/7-4-ed-kangroo-test# python 7-4-edpyserial.py
+Enter your commands below.
+Insert "exit" to leave the application.       BKM, startup sequence that seems to work all the time
+
+16:27:18>> d,start                         \  1. Issue start commands 2x
+16:27:21>> d,start
+16:27:25>> t,start                          > 
+16:27:29>> d,s0                               1.1 Issue s0 command 1x
+16:27:39>> t,s0                            /
+
+16:27:42>> d,s128        2. then start issuing drive/turn cmds as rqd          drive fwd@s128 lines/sec  both wheels turn=
+
+16:27:51>> t,s64            Note1 : in mixed mode, the command persist till    turn while driving fwd, L whl turns slower
+                                    explictly canceled.                        L                       R whl turns faster
+
+16:28:01>> t,s0                     cancels turn,previous drive cmd persists   still driving fwd @ s128  both whls turn=
+
+16:28:06>> t,s-64                                                              turn while driving fwd, L whl turns faster
+                                                                               R                       R whl turns slower
+
+16:28:16>> t,s0                     cancels turn,previous drive cmd persists   still driving fwd @ s128  both whls turn=
+
+16:28:23>> d,s0                     cancels last drive cmd                     all stop
+
+17:02:29>> t,s128                                                              turn CCW  Both whls turn=  L whl rev dir
+                                                                               L                          R whl fwd dir
+17:02:50>> t,s0
+
+17:05:08>> t,s-128                                                             turn CC   Both whls turn=  L whl fwd dir
+                                                                               R                          R whl rev dir
+17:05:39>> t,s0
+
+18:22:58>> 1,getp       In mixed-mode, you can't read each wheel encoder, kangaroo just ignores the command
+18:24:18>> 2,getp	and doesn't respond to it with anything
+
+18:24:22>> d, getp      In mixed-mode, it seems to keep track of total avg fwd/rev movement in terms of encoder counts
+18:26:47>> D,P14                       have no idea what the units are ? defaults to lines ?
+
+18:26:47>> t, getp      total avg rotational movements in terms of encoder counts
+18:26:53>> T,P-87	have no idea what the units are, ? default to lines ?
+
+
+17:06:50>> exit     	< just to exit the app                
+
+
+root@stkww4214:~/7-4-ed-kangroo-test# python 7-4-edpyserial.py
+Enter your commands below.
+Insert "exit" to leave the application.
+17:11:03>> d,getp
+17:11:16>> D,E6      < somehow (serial timeout?) kangaroo knows last serial session ended
+                                exit ?  must be 'exit' cuz you can let it sit forever and it still responds to cmd
+17:11:16>> t,getp
+17:11:21>> T,E6
+
+17:11:21>> d,start  \
+17:11:31>> d,start   
+17:11:34>> t,start   > you have to send the start cmd sequence again otherwise it won't work
+17:11:36>> t,start  /
+
+17:11:38>> d,s128   < nothing
+
+17:11:43>> d,s0     \
+17:12:02>> t,s0     /  you have to send the d,s0 & t,s0 after the starts
+
+17:12:05>> d,s128   < works
+17:12:10>> d,s0
+17:12:22>> t,s128
+17:12:33>> t,s0
+17:12:39>>
+
+>>> THIS IS A LOT NICER THAN HAVING TO DEAL WITH LOW LEVEL MOTOR CONTROL SPEED/CURRENT CONTROL LOOPS !!!! <<<
+    + IT OFFLOADS ALL THE 'REALTIME' Motor control to the Kangaroo x2 + SBT 2x12  ($100.00 for both)
+    + nice serial i/f ... all you gota do is send serial command to DRIVE and TURN
+    + velocity control mode matches ROS navigation stack cmds to base controller
+    + units command
+      + nice online calculator for translating wheel dia/track width/enc res to real world units
+
+2 Kangaroo <D_units> & <T_units> Vs ROS units
+--------------------------------------------
+    
+    Kangaroo              ROS Navigation Stack
+Drive      d,sCV          CV = Commanded Velocity            meters/sec     REF: See ROS book timed out & back script
+Turn       t,sCAV         CAV= Commanded Angular Velocity    radians/sec         below
+
+
+2.1 Robot Parameters
+---------------------------
+wheel_dia     :	  9.75" = .247m
+track_width   :  18.00" = .4572m
+
+cntsPerRev    :           4096    = 4(mech gearing)*256(base encoder) * 4(quad decode)  << raw units = quadrature counts
+	      		  2048    = 4              *256               * 2(2x decode)
+	      		  1024    = 4              *256               * 1(1x decode)    << 1024 lines/1 Rev of Motor Shaft
+
+**In KangarooPacketSerialRef.pdf, the flags for all Motion Commands:
+  Move.flags &   Get.flags
+  ...
+  32 to use raw units. For analog, raw units are millivolts. For quadrature, 4 raw units equal 1 line.
+
+
+2.1.1 http://www.dimensionengineering.com/encoders
+
+ mixed-mode diff drive
+
+             7-6-xxx.png    7-6-yyyy.png
+wheel_dia     :	247mm        247mm
+track_width   : 457mm        457mm
+Enc Res       : 1024         256
+Gear Ratio    : 1:1          4:1           output teeth : motor teeth  (enc is typ on the motor shaft)
+                                                                       except in our JoeMagoo case
+Both Result in same units
+
+Simplified Serial
+D, UNITS 776 mm = 1024 lines
+T, UNITS 360 degrees = 1895 lines
+
+
+ ROS Navigation Stack
+       \/
+     CV,CAV          <- CV meters/sec      CAV radians/degree
+       \/
+   kCV = CV*1000     <- 1 m/s = 1000 mm/s
+  kCAV = CAV*57.296  <- 1 rad/s = (180/pi) deg/sec = 57.296 deg/sec
+       \/
+  Base Controller
+    d, s<kCV>     
+    t, s<kCAV>   
+
+
+2 Base needs to publish odometry based on wheel encoders
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+REF[2]
+
+ROS by Example Book
+
+Remember also that ROS uses the metric system so that linear velocities are always
+specified in meters per second (m/s) and angular velocities are given in radians per
+second (rad/s). A linear velocity of 0.5 m/s is actually quite fast for an indoor robot
+(about 1.1 mph) while an angular speed of 1.0 rad/s is equivalent to about one rotation in
+6 seconds or 10 RPM. When in doubt, start slowly and gradually increase speed. For an
+indoor robot, I tend to keep the maximum linear speed at or below 0.2 m/s
+
+Navigation stack -> Publishes -> cmd_vel msg
+Base controller  <- subscribes <- /
+      |
+  converts  x (linear)       vel +/- m/sec    ->  +/- DRIVE CMD   
+            theta (angulatr) vel +/- rad/sec  ->  +/- TURN  CMD     
+
+
+7.6.3 Timed Out-and-Back script ... 
+
+publishes /cmd_vel topic to base controller to make robot
+- move fwd 1m @ 0.2 m/s
+- rotate 180 degrees @ 1.0 radians/sec
+- move fwd 1m @ 0.2 m/s
+
+class OutAndBack():
+      def __init__(self):
+
+      rospy.init_node('out_and_back', anonymous=Falsh)
+      rospy.on_shutdown(self.shutdown)
+      self.cmd_vel = rospy.Publisher('/cmd_vel', Twist)
+
+      rate         = 50    # (hz)       how fast will we update robot's movements?
+      linear_speed = 0.2   # (m/s)      how fast we want to drive
+      goal_dist    = 1.0   # (m)        how far we want to drive
+      goal_ang     = 3.14  # (rad)      how far we want to turn   3.14 rad   = 180   deg
+      ang_speed    = 1.0   # (rad/sec)	how fast we want to turn  1 rad/sec  = 57.32 deg/sec
+
+
+      r = rospy.Rate(rate)
+
+      linear_duration = goal_dist/linear_speed    # 1 meter / 0.2 m/s = 5 sec
+      lin_ticks = int(linear_duration*rate)       # 5sec * 50 (ticks/sec) = 250 ticks
+
+      angular_duration = goal_ang/ang_speed  # (3.14 radians) / (1 rad/sec) = 3.14 sec
+      a_ticks = int(angular_duration*rate)   # 3.14 sec * 50 (ticks/sec)  = 157 ticks
+
+      for i in range(2):
+                                            #                           m/s        rad/s
+                                            #                          x y z       z y z
+      	  move_cmd = Twist()                # init Twist cmd = linear:{0,0,0} ang:{0,0,0}
+	  move_cmd.linear.s = linear_speed                             .2,0,0      0,0,0
+
+	  # move forward 1 meter
+
+	  for t in range(lin_ticks): # --- sends move cmd_vel msg 250x, for 5s every 20ms
+	      self.cmd_vel.publish(move_cmd) # sends cmd_vel msg = {.2,0,0}{0,0,0}
+	      r.sleep()                      # wake up every 20ms (50hz) for 5 sec (250 times)
+	  
+	  # stop the robot before rotation
+
+          move_cmd = Twist()        # --- sends stop cmd_vel msg   1x, then nothing 1sec
+	  self.cmd_vel(publish(move_cmd)     # set cmd_vel msg = {0,0,0}
+	  rospy.sleep(1)                     # hold cmd_vel at {0,0,0} for 1 sec
+
+	  # rotate left ~180 degrees
+
+	  move_cmd.angular.z = ang_speed     # {0,0,0} {0,0,1}  x,y,z m/s  & x,y,z rad/s
+
+	  for t in range(a_ticks):  # --- sends rotate cmd_vel   157x, for 3.14sec every 20ms
+	      self.cmd_vel.publish(move_cmd) # send rotate cmd_vel msg
+	      r.sleep()                      # wake up every 20ms (50hz) for 3.14 sec 
+
+          # stop the robot before the next leg
+
+	  move_cmd = Twist()        # --- sends stop cmd_vel msg 1x & then nada for 1sec
+	  self_cmd_vel.publish(move_cmd)    
+	  rospy.sleep(1)
+
+      # stop the robot
+      self.cmd_vel.publish(Twist()) # --- sends stop cmd_vel msg 1x 
+
+===========

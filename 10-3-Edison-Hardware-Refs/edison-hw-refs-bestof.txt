@@ -1,0 +1,36 @@
+Edision Hardware Refs (Best Of)
+
+[0] Edison Arduino GPIO Mappings
+
+http://www.emutexlabs.com/project/215-intel-edison-gpio-pin-multiplexing-guide
+
+[1] simple gpio with python using libmraa
+
+https://github.com/intel-iot-devkit/mraa/tree/master/examples/python
+
+NOTE: libmraa using sysfs and is slow as molasis, but it does have the option to configure
+      and use gpio's using memory-mapped io instead of sysfs  < Rainy day excercise
+
+2. http://www.i-programmer.info/ebooks/exploring-edison.html
+
+   Best book about how to work around all the pathetic system design issues with the
+   Intel Edison board:
+	1. super slow gpio cuz they are using sysfs and no real drivers
+    2. spi doesn't work worth a shit so you have to bit bang it
+    3. pathetic documentation of all the quirks and issue you can run into
+       when trying to do the simplest of things
+
+EX: lets write a python script that monitors a gpio pin connected to a push button
+
+a) figure out which gpio pin to us based on ref [0]
+
+Shield	Linux   Muxed
+IO14	44	 	AIN0
+
+This table is a synopsis of the more detailed tables below, which contain extra information such as schematic pin numbers. For most needs, this synopsized table should suffice. 
+
+ 	  Linux	    -------- Pin Mux---------   -SoC Pin Modes	Output Enable 	Pull-up Enable**
+ 	  GPIO      Linux                       --------------  * hi = output   
+      Pin 	    GPIO	0 (low)	  1 (high)	0		  1			Linux			Linux
+IO14  (A0)44	200		GPIO	  A0		GPIO	  na 		232				208
+

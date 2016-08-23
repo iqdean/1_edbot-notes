@@ -1,0 +1,27 @@
+/home/iqdean/u1404/nodeprojs/4-2-node-joystick:
+  total used in directory 21 available 437740708
+  drwxrwxrwx 1 root root 4096 Jul  7 23:56 .
+  drwxrwxrwx 1 root root 4096 Jul  6 21:38 ..
+  drwxrwxrwx 1 root root 4096 Jul  8 00:00 .git
+  -rwxrwxrwx 1 root root 3082 Jul  7 18:56 joystick.js      4-1
+  -rwxrwxrwx 1 root root  237 Jul  6 21:41 joystick.js~
+  drwxrwxrwx 1 root root    0 Jul  7 20:34 node_modules
+  -rwxrwxrwx 1 root root 3846 Jul  7 23:56 roslibjoy.js     4-2
+
+9-1 modify joystick.js (from $ npm install joystick) to add code to filter
+    out only the 2 xbox360 button & stick inputs we need to generate
+    scaled (-1  0  +1) CV/CAV values 
+
+    REF: gitk to see changes
+
+9-2 roslibjoy.js = integ roslib w joystick to publish /cmd_vel based on
+    scaled (-1 0 +1) CV/CAV values read in from the joystick
+
+    REF: gitk to see code
+
+==== now we need ros node to input /cmd_vel and translate to
+     kangaroo2 simplified serial output
+
+
+
+

@@ -1,0 +1,89 @@
+Summary:
+
+A) Command Control Center (C3) side		Ubuntu 14.04 HP Notebook 
+-----------------------------------
+
+1 node-simple.js	<- modified to publish /cmd_vel every 1 sec
+-----------------          using function loop()
+
+#!/usr/bin/env node
+
+//  simple command line example of how to write a node app using roslibjs:
+//  https://github.com/RobotWebTools/roslibjs
+//  https://github.com/RobotWebTools/roslibjs/blob/develop/examples/node_simple.js
+
+//  Synopisis: this node app will publish 1 /cmd_vel message into ROS network
+//             each time you run it
+
+// Connecting to ROS 
+var ROSLIB = require('roslib');
+
+var ros = new ROSLIB.Ros({
+    url : 'ws://localhost:9090'           <--- UPDATE THIS WITH IP OF ROBOT
+});
+
+ros.on('connection', function() {
+console.log('Connected to websocket server.');
+});
+
+ros.on('error', function(error) {
+console.log('Error connecting to websocket server: ', error);
+});
+
+ros.on('close', function() {
+console.log('Connection to websocket server closed.');
+});
+
+// Publishing a Topic
+// ------------------
+
+var cmdVel = new ROSLIB.Topic({
+  ros : ros,
+  name : '/cmd_vel',
+  messageType : 'geometry_msgs/Twist'
+});
+
+var twist = new ROSLIB.Message({
+linear : {
+  x : 0.1,
+  y : 0.2,
+  z : 0.3
+},
+angular : {
+  x : -0.1,
+  y : -0.2,
+  z : -0.3
+}
+});
+
+function loop() {
+    console.log("Publishing cmd_vel");
+    cmdVel.publish(twist);
+}
+
+setInverval(loop, 1000);
+
+
+2. $ npm install roslib      <-- install roslib needed to i/f to rosbridge-server 
+     	 	 	     	 over websocket
+
+B) Robot Side    Edision side
+
+ON Edison:
+
+$ roscore							< starts up w: ROS_MASTER_URI=http://ubilinux:11311/
+$ roslaunch rosbridge_server rosbridge_websocket.launch		< ok
+
+A) Ubu 14.04 side
+
+$ node node-simple.js	< start node-simple
+
+B) Robot side
+
+$ rostopic list			< should show /cmd_vel as a topic
+$ rostopic echo /cmd_vel	< should see it update every 1 sec
+
+--- once all of above works, then we can work on simple-gamepad.js node code to
+    console.log(axis-xyz) ... as you move the stick, you see the changes in the
+    console.log() spew
+

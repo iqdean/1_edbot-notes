@@ -1,0 +1,450 @@
+Get SSH network connection between edison and ubuntu 14.04 machine:
+-------------------------------------------------------------------
+
+-------
+BKM   Edison J16 <--usb-eth cable ---> Ubuntu
+-------
+On Edison Side:
+
+/etc/network/interfaces
+...
+auto usb0
+iface usb0 inet static
+    address 192.168.2.15
+    netmask 255.255.255.0
+...
+
+
+On Ubuntu Side:
+
+	DON'T MESS with /etc/network/interfaces, leave it as is
+        and as long as you plug the edision usb-eth into the same
+        usb port, it always ends up with the same ip address
+
+	> NOTE, the IP Address of the ubuntu side doesn't really
+	  matter much as long as it's on the same network as the
+	  edison.
+
+	> What matters is the IP Address of the Edison board
+	  which appears to be ALWAYS 192.168.2.15 due to the 
+	  modifications made to the edison's /etc/network/interfaces
+	  file
+
+
+===========================================================================
+
+WASTED A WHOLE DAY TRYING TO GET Edison connected to Yuba City WIFI
+> TODO: ORDER Raspberry PI and screw this Intel Edison crap
+ 
+--- screw wifi it, figure out how to connect over usb-ethernet
+
+1. thru usb 2.0 hub
+
+ Edison Serial Console J3 <------>| usb |
+				  | 2.0 | <---> Ubuntu 14.04
+ Edison USB Ethernet   J16 <----->| hub |
+
+On Ubuntu 14.04, as soon as you connect to J16 on edison:
+
+a) ubuntu thinks you connected a usb storage device called Edison but when you open it you see nothing
+
+b) $ ifconfig
+
+usb0      Link encap:Ethernet  HWaddr 72:71:8f:e2:18:a2  
+          inet addr:192.168.2.75  Bcast:192.168.2.255  Mask:255.255.255.0
+          inet6 addr: fe80::7071:8fff:fee2:18a2/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:97 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:200 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:13212 (13.2 KB)  TX bytes:27230 (27.2 KB)
+
+... auto-magically you get IP 192.168.2.75 assigned to ubuntu side
+     > with default setting   192.168.2.32 it seems to change ea time u plug it it
+
+    and from all of above  IP 192.168.2.15 gets assigned to edison side
+
+iqdean@hpdm4:~$ ping 192.168.2.15
+PING 192.168.2.15 (192.168.2.15) 56(84) bytes of data.
+64 bytes from 192.168.2.15: icmp_seq=1 ttl=64 time=0.615 ms
+64 bytes from 192.168.2.15: icmp_seq=2 ttl=64 time=0.768 ms
+
+1.2 ssh to edision from ubu14.04 over cabled usb-ethernet connection
+--------------------------------------------------------------------
+
+iqdean@hpdm4:~$ ssh iqdean@192.168.2.15
+iqdean@192.168.2.15's password: 
+Linux ubilinux 3.10.17-yocto-standard-r2 #7 SMP PREEMPT Thu Feb 26 09:57:06 UTC 2015 i686
+...
+iqdean@ubilinux:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+usb0      Link encap:Ethernet  HWaddr 02:00:86:aa:b1:95  
+          inet addr:192.168.2.15  Bcast:192.168.2.255  Mask:255.255.255.0
+          inet6 addr: fe80::86ff:feaa:b195/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:313 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:162 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:39933 (38.9 KiB)  TX bytes:23581 (23.0 KiB)
+
+
+
+1.3 see if serial console works 
+
+ $ screen /dev/ttyUBS0 115200    < This doesn't work worth a shit now! 
+                                   what a piece of crap this edison is!!
+
+
+OK, we got network connection between edison and ubuntu,
+after this day long distraction, we can get on with the project at hand
+which was to figure out how to interface our node based app to ros-based robot
+using rosbridge-server
+
+=== to make usb0 automatically get the same static ip address
+
+REF:
+http://askubuntu.com/questions/470237/assigning-a-static-ip-to-ubuntu-server-14-04-lts
+
+1. update /etc/network/interfaces
+
+auto usb0
+iface usb0 inet static
+    address 192.168.2.32
+    netmask 255.255.255.0
+
+2. restart networking or reboot
+
+sudo service networking restart
+
+WELL, that don't work worth a shit:
+-----------------------------------
+
+iqdean@hpdm4:~$ cat /etc/network/interfaces
+
+# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+# WITHOUT auto usb0 ... 
+#  > NOT: you have to do $ sudo ifup usb0 to 
+#         get usb0 working without the auto
+
+# WITH auto usb0
+# > IF DON'T HAVE IT PLUGGED IN, fails to boot due to
+#   "waiting for network interface"
+
+#So, if leave default then somehow it auto magically 
+# gets a IP when you plug it in
+
+#auto usb0
+#iface usb0 inet static
+#    address 192.168.2.32
+#    netmask 255.255.255.0
+
+======== BACKUP TECHNOBABLE BEYOND HERE =====================
+
+Connect to Edison Serial Console from Ubuntu 14.04
+
+With ROBOT OFF, plug usb cable b/t ed & hp
+
+Edison J3 <---------> Ubu 14.04 on HP Notebook
+
+$ dmesg
+...
+
+[ 8573.628078] usb 2-1.1: new full-speed USB device number 5 using ehci-pci
+[ 8573.727847] usb 2-1.1: New USB device found, idVendor=0403, idProduct=6001
+[ 8573.727857] usb 2-1.1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[ 8573.727863] usb 2-1.1: Product: FT232R USB UART
+[ 8573.727867] usb 2-1.1: Manufacturer: FTDI
+[ 8573.727871] usb 2-1.1: SerialNumber: A103KK64
+[ 8573.824475] usbcore: registered new interface driver usbserial
+[ 8573.824533] usbcore: registered new interface driver usbserial_generic
+[ 8573.824583] usbserial: USB Serial support registered for generic
+[ 8573.848051] usbcore: registered new interface driver ftdi_sio
+[ 8573.848089] usbserial: USB Serial support registered for FTDI USB Serial Device
+[ 8573.848321] ftdi_sio 2-1.1:1.0: FTDI USB Serial Device converter detected
+[ 8573.848456] usb 2-1.1: Detected FT232RL
+[ 8573.848888] usb 2-1.1: FTDI USB Serial Device converter now attached to ttyUSB0
+[ 8582.128176] usb 2-1.1: USB disconnect, device number 5
+[ 8582.128648] ftdi_sio ttyUSB0: FTDI USB Serial Device converter now disconnected from ttyUSB0
+[ 8582.128697] ftdi_sio 2-1.1:1.0: device disconnected
+[ 8585.398066] usb 2-1.1: new full-speed USB device number 6 using ehci-pci
+[ 8585.497747] usb 2-1.1: New USB device found, idVendor=0403, idProduct=6001
+[ 8585.497758] usb 2-1.1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[ 8585.497763] usb 2-1.1: Product: FT232R USB UART
+[ 8585.497768] usb 2-1.1: Manufacturer: FTDI
+[ 8585.497772] usb 2-1.1: SerialNumber: A103KK64
+[ 8585.501193] ftdi_sio 2-1.1:1.0: FTDI USB Serial Device converter detected
+[ 8585.501311] usb 2-1.1: Detected FT232RL
+[ 8585.501857] usb 2-1.1: FTDI USB Serial Device converter now attached to ttyUSB0
+
+> above means the FTDI USB Serial Port drivers are already installed
+
+$ ls -al /dev/ttyUSB*
+
+iqdean@hpdm4:~$ ls -al /dev/ttyUSB*
+crw-rw---- 1 root dialout 188, 0 Jul  5 13:46 /dev/ttyUSB0
+
+> we got /dev/ttyUSB0 and it's accessible by root and the 'dialout' group
+
+--- see what groups user iqdean belongs to? ---
+iqdean@hpdm4:~$ groups
+iqdean adm cdrom sudo dip plugdev lpadmin sambashare	< no dialout
+
+--- add user iqdean to dialout, otherwise u can only access the serial port with sudo
+Google says: $ sudo usermod -a -G dialout $USER
+so do:
+
+$ sudo usermod -a -G dialout iqdean
+logout/login
+
+iqdean@hpdm4:~$ groups
+iqdean adm dialout cdrom sudo dip plugdev lpadmin sambashare
+
+--- ok, now user iqdean should be able to access /dev/ttyUSB0 without sudo
+
+$ screen /dev/ttyUSB0 115200
+
+Power on robot, see kernel boot log spew forth till you get to login prompt:
+
+Debian GNU/Linux 7 ubilinux ttyMFD2
+
+ubilinux login:
+ 
+un: iqdean
+pw: csolinux
+
+iqdean@ubilinux:~$ ls -l
+total 52
+drwxr-xr-x  2 iqdean iqdean 4096 Dec  7  2015 bash101
+drwxr-xr-x  3 iqdean iqdean 4096 Dec  8  2015 bkup
+drwxr-xr-x  6 iqdean iqdean 4096 Jun 30  2016 catkin_ws
+drwxr-xr-x  2 iqdean iqdean 4096 Dec  7  2015 clkres
+drwxr-xr-x  4 iqdean iqdean 4096 Jun 29  2016 Downloads
+drwxr-xr-x  4 iqdean iqdean 4096 Dec 27  2015 encoders
+drwxr-xr-x  2 iqdean iqdean 4096 Jun 19  2016 motors
+drwxr-xr-x 12 root   root   4096 Dec  8  2015 mraa
+drwxr-xr-x  2 iqdean iqdean 4096 Dec  7  2015 ncurses
+drwxr-xr-x  8 iqdean iqdean 4096 Dec 12  2015 ptask
+drwxr-xr-x  2 iqdean iqdean 4096 Dec 24  2015 pycurses
+drwxr-xr-x  6 iqdean iqdean 4096 Jun 30  2016 ros_catkin_ws
+drwxr-xr-x  2 iqdean iqdean 4096 Jun 28  2016 ros-install
+
+--- ok, now get wifi working so we don't have to use the usb serial cable ---
+
+Google: edison ubilinux wifi setup
+
+REF
+https://learn.sparkfun.com/tutorials/loading-debian-ubilinux-on-the-edison#enable-wifi
+
+nano /etc/network/interfaces
+
+--- check connection wifi config settings on hp notebook
+iqdean@hpdm4:~$ sudo cat /etc/NetworkManager/system-connections/The\ Dean\ Farm\ 2.4 
+[connection]
+id=The Dean Farm 2.4
+uuid=81e3ca7a-e390-4916-a70e-21ea9f9ac1f3
+type=802-11-wireless
+
+[802-11-wireless]
+ssid=The Dean Farm 2.4
+mode=infrastructure
+mac-address=8C:A9:82:9F:0B:20
+security=802-11-wireless-security
+
+[802-11-wireless-security]
+key-mgmt=wpa-psk
+auth-alg=open
+psk=20lexie16
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+
+---- On Edison: $ nano /etc/network/interfaces
+
+
+https://wiki.debian.org/WiFi/HowToUse#wpa_supplicant
+
+iqdean@ubilinux:~$ sudo wpa_passphrase 'The Dean Farm 2.4' 20lexie16
+network={
+        ssid="The Dean Farm 2.4"
+        #psk="20lexie16"
+        psk=8555ae7e4915ba9ffd74b84d6f16232568f696bb0e0c64c0874179e039bf5457
+}
+
+$ sudo nano /etc/network/interfaces
+
+--- fucking Intel Edison is a piece of crap when it comes to simple things like
+    connecting to wifi... it connects fine to home network, but in yuba city, with
+    a wpa network, it won't connect... wasted hours trying different options in the
+    file below, none of which connect
+
+# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+auto usb0
+iface usb0 inet static
+    address 192.168.2.15
+    netmask 255.255.255.0
+
+auto wlan0
+iface wlan0 inet dhcp
+
+    # For WPA
+    # wpa-ssid Emutex
+    # wpa-psk passphrase
+    # For WEP
+    #wireless-essid Emutex
+    #wireless-mode Managed
+    #wireless-key s:password
+
+#HOME is WEP
+#wireless-essid Cisco21076
+#wireless-key 23780e7adc
+
+#YC is ?
+# wpa-ssid 'The Dean Farm 2.4'
+# wpa-psk 20lexie16
+
+# https://learn.sparkfun.com/tutorials/loading-debian-ubilinux-on-the-edison#enable-wifi
+# https://wiki.debian.org/WiFi/HowToUse#wpa_supplicant
+#wpa-ssid 'The Dean Farm 2.4'
+#wpa-psk 8555ae7e4915ba9ffd74b84d6f16232568f696bb0e0c64c0874179e039bf5457
+
+#wireless-essid 'The Dean Farm 2.4'
+#wireless-mode infrastructure
+#wireless-key s:20lexie16
+
+# And the following 4 lines are for when using hostapd...
+#auto wlan0
+#iface wlan0 inet static
+#    address 192.168.42.1
+#    netmask 255.255.255.0
+
+--- google it and see 1 potential solution using wpa_supplicant
+    lets try that before we give up
+
+https://labby.co.uk/ubilinux-intel-edison-set-up-autostarting-roaming-wifi/
+
+1.
+iqdean@ubilinux:~$ cat /etc/wpa_supplicant/wpa_supplicant.conf 
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+
+# Yuba Duba
+network={
+ssid="The Dean Farm 2.4"
+scan_ssid=1
+key_mgmt=WPA-PSK
+psk="20lexie16"
+id_str="YubaCity"
+}
+
+2
+iqdean@ubilinux:~/bkup$ cat /etc/network/interfaces
+
+# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+auto usb0
+iface usb0 inet static
+    address 192.168.2.15
+    netmask 255.255.255.0
+
+auto wlan0
+iface wlan0 inet dhcp
+
+wpa-roam /etc/wpa_suplicant/wpa_supplicant.conf
+
+> It still won't connect... Intel Edison can be a real piece of crap ...
+> I've wasted all day on just trying to get wifi working on this piece of shit!
+
+> TODO: 
+  ORDER latest/greatest Raspberry PI and screw this Intel Crap!
+
+FOR NOW, use wired usb-ethernet i/f to edison and then SSH to it
+
+--- screw it, figure out how to connect over usb-ethernet
+
+1. thru usb 2.0 hub
+
+ Edison Serial Console J3 <------>| usb |
+				  | 2.0 | <---> Ubuntu 14.04
+ Edison USB Ethernet   J16 <----->| hub |
+
+On Ubuntu 14.04, as soon as you connect to J16 on edison:
+
+a) ubuntu thinks you connected a usb storage device called Edison but when you open it you see nothing
+
+b) $ ifconfig
+
+usb0      Link encap:Ethernet  HWaddr 72:71:8f:e2:18:a2  
+          inet addr:192.168.2.75  Bcast:192.168.2.255  Mask:255.255.255.0
+          inet6 addr: fe80::7071:8fff:fee2:18a2/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:97 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:200 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:13212 (13.2 KB)  TX bytes:27230 (27.2 KB)
+
+... auto-magically you get IP 192.168.2.75 assigned to ubuntu side
+    and from all of above  IP 192.168.2.15 gets assigned to edison side
+
+iqdean@hpdm4:~$ ping 192.168.2.15
+PING 192.168.2.15 (192.168.2.15) 56(84) bytes of data.
+64 bytes from 192.168.2.15: icmp_seq=1 ttl=64 time=0.615 ms
+64 bytes from 192.168.2.15: icmp_seq=2 ttl=64 time=0.768 ms
+
+1.2 ssh to edision from ubu14.04 over cabled usb-ethernet connection
+--------------------------------------------------------------------
+
+iqdean@hpdm4:~$ ssh iqdean@192.168.2.15
+iqdean@192.168.2.15's password: 
+Linux ubilinux 3.10.17-yocto-standard-r2 #7 SMP PREEMPT Thu Feb 26 09:57:06 UTC 2015 i686
+...
+iqdean@ubilinux:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+usb0      Link encap:Ethernet  HWaddr 02:00:86:aa:b1:95  
+          inet addr:192.168.2.15  Bcast:192.168.2.255  Mask:255.255.255.0
+          inet6 addr: fe80::86ff:feaa:b195/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:313 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:162 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:39933 (38.9 KiB)  TX bytes:23581 (23.0 KiB)
+
+
+
+1.3 see if serial console works 
+
+ $ screen /dev/ttyUBS0 115200    < This doesn't work worth a shit now! 
+                                   what a piece of crap this edison is!!
+
+
+OK, we got network connection between edison and ubuntu,
+after this day long distraction, we can get on with the project at hand
+which was to figure out how to interface our node based app to ros-based robot
+using rosbridge-server
+

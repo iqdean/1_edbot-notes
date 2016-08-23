@@ -1,0 +1,372 @@
+Install ROS On Edision
+----------------------
+
+iqdean@ubilinux:~$ df -h
+Filesystem       Size  Used Avail Use% Mounted on
+rootfs            15G  908M   13G   7% /
+/dev/root         15G  908M   13G   7% /
+devtmpfs         480M     0  480M   0% /dev
+tmpfs             97M  304K   96M   1% /run
+tmpfs            5.0M     0  5.0M   0% /run/lock
+tmpfs            193M     0  193M   0% /run/shm
+tmpfs            481M     0  481M   0% /tmp
+/dev/mmcblk0p7    32M  5.3M   27M  17% /boot
+/dev/mmcblk0p10  1.3G   13M  1.3G   1% /home
+
+
+REF: http://wiki.ros.org/ROSberryPi/Installing%20ROS%20Indigo%20on%20Raspberry%20Pi
+
+2. Prereqs
+
+As user iqdean:
+
+2.0 update .profile 
+----------------------
+iqdean@ubilinux:~$ cat .profile                             < cp this file from /root to /home/iqdean
+
+# ~/.profile: executed by Bourne-compatible login shells.
+PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
+           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\________________ < add this & save it
+if [ "$BASH" ]; then
+  if [ -f ~/.bashrc ]; then
+    . ~/.bashrc
+  fi
+fi
+
+mesg n
+
+PYTHONPATH=$PYTHONPATH:$(dirname $(find /usr/local -name mraa.py))
+export PYTHONPATH
+
+NODE_PATH=$NODE_PATH:/usr/local/lib/node_modules
+export NODE_PATH
+
+=== logout iqdean / login iqdean ===
+
+2.1 add Wheezy repo
+-------------------
+
+Raspbian Wheezy
+
+$ sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu wheezy main" > /etc/apt/sources.list.d/ros-latest.list'         ok
+$ wget https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -O - | sudo apt-key add -                            ok
+
+do apt-get update
+
+$ sudo apt-get update       ok
+$ sudo apt-get upgrade      ok
+
+2.2 Install Bootstrap depends
+------------------------------
+
+Raspbian Wheezy
+
+$ sudo apt-get install python-pip python-setuptools python-yaml python-argparse python-distribute python-docutils python-dateutil python-six
+  > OK
+  
+$ sudo pip install rosdep rosinstall_generator wstool rosinstall	ok
+
+$ sudo apt-get install liblz4-dev	       ok
+
+2.3 Initializing rosdep	
+
+$ sudo rosdep init		ok
+$ rosdep update			ok
+
+reading in sources list data from /etc/ros/rosdep/sources.list.d
+Hit https://raw.githubusercontent.com/ros/rosdistro/master/rosdep/osx-homebrew.yaml
+Hit https://raw.githubusercontent.com/ros/rosdistro/master/rosdep/base.yaml
+Hit https://raw.githubusercontent.com/ros/rosdistro/master/rosdep/python.yaml
+Hit https://raw.githubusercontent.com/ros/rosdistro/master/rosdep/ruby.yaml
+Hit https://raw.githubusercontent.com/ros/rosdistro/master/releases/fuerte.yaml
+Query rosdistro index https://raw.githubusercontent.com/ros/rosdistro/master/index.yaml
+Add distro "groovy"
+Add distro "hydro"
+Add distro "indigo"
+Add distro "jade"
+Add distro "kinetic"
+updated cache in /home/iqdean/.ros/rosdep/sources.cache
+
+3.1 Create a catkin Workspace
+
+$ mkdir ~/ros_catkin_ws
+$ cd ~/ros_catkin_ws
+
+3.1.1 Fetch ROS packages using wtool so we can build them
+      cfg build to build ROS-Common
+--------------------------------------------------------------------------------------
+ROS-Comm: (recommended) ROS package, build, and communication libraries. No GUI tools.
+--------------------------------------------------------------------------------------
+
+$ rosinstall_generator ros_comm --rosdistro indigo --deps --wet-only --exclude roslisp --tar > indigo-ros_comm-wet.rosinstall
+  > OK
+$ wstool init src indigo-ros_comm-wet.rosinstall
+  > starts downloading src tarballs of various ros components... update complete    OK
+
+3.2 ==== Resolve Dependencies ====
+
+3.2.1 Unavailable Dependencies
+
+Following packages are not available for Raspbian:
+                                -----------------------------------
+Raspbian Wheezy: 		external_srcs dir from last install 
+                                -----------------------------------
+
+libconsole-bridge-dev, 		libconsole-bridge-blah-blah.deb   	3 of em
+
+liburdfdom-headers-dev,   \__   liburdfdom-headers-dev_blah-blah.deb   	1
+liburdfdom-dev,           /
+liblz4-dev, 			
+collada-dom-dev			collada-dom-dev_2.4.0_i386.deb		1
+
+The following packages are 
+needed for each ROS variant:
+
+Ros_Comm: 
+libconsole-bridge-dev, 		see above  Ok
+liblz4-dev			ok
+
+
+				empy-3.3.2.tar.gz  
+
+iqdean@ubilinux:~/external_src$ wget https://pypi.python.org/packages/source/E/EmPy/empy-3.3.2.tar.gz
+iqdean@ubilinux:~/external_src$ sudo pip install empy-3.3.2.tar.gz
+
+--- start: resolve deps ----
+1. copy external_src dir to here:
+                                  \
+iqdean@ubilinux:~/ros_catkin_ws/external_src$ ls -al
+total 5640
+drwxr-xr-x 2 iqdean iqdean    4096 Jun 28 01:36 .
+drwxr-xr-x 4 iqdean iqdean    4096 Jun 28 02:27 ..
+-rw-r--r-- 1 iqdean iqdean 5263272 Aug 21  2015 collada-dom-dev_2.4.0-1_i386.deb
+-rw-r--r-- 1 iqdean iqdean  138168 May 14  2015 empy-3.3.2.tar.gz
+-rw-r--r-- 1 iqdean iqdean   12764 Aug 20  2015 libconsole-bridge0.2_0.2.5-2_i386.deb
+-rw-r--r-- 1 iqdean iqdean   56508 Aug 20  2015 libconsole-bridge0.2-dbg_0.2.5-2_i386.deb
+-rw-r--r-- 1 iqdean iqdean    5492 Aug 20  2015 libconsole-bridge-dev_0.2.5-2_i386.deb
+-rw-r--r-- 1 iqdean iqdean  266254 Aug 21  2015 liburdfdom-dev_20150820-1_i386.deb
+-rw-r--r-- 1 iqdean iqdean    9414 Aug 20  2015 liburdfdom-headers-dev_20150820-1_i386.deb
+
+1.1 install dependent libs for console-bridge stuff:
+
+$ sudo apt-get install debhelper gettext gettext-base html2text intltool-debian libasprintf0c2 libboost-date-time1.49-dev libboost-date-time1.49.0 libboost-serialization1.49-dev libboost-serialization1.49.0 libboost-system-dev libboost-system1.49-dev libboost-system1.49.0 libboost-thread-dev libboost-thread1.49-dev libboost-thread1.49.0 libboost1.49-dev libcroco3 libgettextpo0 libicu48 libunistring0 po-debconf
+> Ok
+
+1.1.1 install libconsole-bridge*
+
+$ sudo dpkg -i libconsole-bridge0.2_*.deb libconsole-bridge-dev_*.deb
+> Ok
+
+1.2 install empy
+
+$ sudo pip install empy-3.3.2.tar.gz			ok
+
+1.3 install  collada-dom-dev_2.4.0-1_i386.deb
+sudo apt-get install libboost-filesystem-dev libxml2-dev	ok
+sudo dpkg -i collada-dom-dev_2.4.0-1_i386.deb			ok
+
+1.4 install liburdfdom-*
+
+$ sudo dpkg -i liburdfdom-*
+
+1.5 install bunch of deps needed for the ROS build
+
+sudo apt-get install libboost-filesystem-dev libxml2-dev libboost-program-options-dev libboost-regex-dev libbz2-dev libboost-signals-dev
+
+1.6 install bunch more deps needed for the ROS build
+
+rosdep install --from-paths src --ignore-src --rosdistro indigo -y -r --os=debian:wheezy
+...
+ERROR: the following rosdeps failed to install
+  apt: command [sudo -H apt-get install -y python-rospkg] failed
+  apt: command [sudo -H apt-get install -y python-catkin-pkg] failed
+  apt: command [sudo -H apt-get install -y python-rosdep] failed
+  apt: Failed to detect successful installation of [python-rospkg]
+  apt: Failed to detect successful installation of [python-catkin-pkg]
+  apt: Failed to detect successful installation of [python-rosdep]
+
+
+--- end: deps ---
+
+4 Build and install ROS                                             you can change install path here if u want
+iqdean@ubilinux:~/ros_catkin_ws$                                                                 -----\/-------
+sudo ./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space /opt/ros/indigo
+
+... after about an hour ...
+
+<== Finished processing package [48 of 48]: 'rosbag'
+
+4.1 See what we got
+
+iqdean@ubilinux:~$ tree -L 2 -p /opt/ros/indigo/
+/opt/ros/indigo/
+├── [drwxr-xr-x]  bin
+│   ├── [-rwxr-xr-x]  catkin_find
+│   ├── [-rwxr-xr-x]  catkin_init_workspace
+│   ├── [-rwxr-xr-x]  catkin_make
+│   ├── [-rwxr-xr-x]  catkin_make_isolated
+│   ├── [-rwxr-xr-x]  catkin_package_version
+│   ├── [-rwxr-xr-x]  catkin_prepare_release
+│   ├── [-rwxr-xr-x]  catkin_test_results
+│   ├── [-rwxr-xr-x]  catkin_topological_order
+│   ├── [-rwxr-xr-x]  rosbag
+│   ├── [-rwxr-xr-x]  rosboost-cfg
+│   ├── [-rwxr-xr-x]  rosclean
+│   ├── [-rwxr-xr-x]  rosconsole
+│   ├── [-rwxr-xr-x]  roscore
+│   ├── [-rwxr-xr-x]  roscreate-pkg
+│   ├── [-rwxr-xr-x]  rosgraph
+│   ├── [-rwxr-xr-x]  roslaunch
+│   ├── [-rwxr-xr-x]  roslaunch-complete
+│   ├── [-rwxr-xr-x]  roslaunch-deps
+│   ├── [-rwxr-xr-x]  roslaunch-logs
+│   ├── [-rwxr-xr-x]  rosmake
+│   ├── [-rwxr-xr-x]  rosmaster
+│   ├── [-rwxr-xr-x]  rosmsg
+│   ├── [-rwxr-xr-x]  rosmsg-proto
+│   ├── [-rwxr-xr-x]  rosnode
+│   ├── [-rwxr-xr-x]  rospack
+│   ├── [-rwxr-xr-x]  rosparam
+│   ├── [-rwxr-xr-x]  rosrun
+│   ├── [-rwxr-xr-x]  rosservice
+│   ├── [-rwxr-xr-x]  rossrv
+│   ├── [-rwxr-xr-x]  rosstack
+│   ├── [-rwxr-xr-x]  rostest
+│   ├── [-rwxr-xr-x]  rostopic
+│   ├── [-rwxr-xr-x]  rosunit
+│   └── [-rwxr-xr-x]  roswtf
+├── [-rwxr-xr-x]  env.sh
+├── [drwxr-xr-x]  etc
+│   ├── [drwxr-xr-x]  catkin
+│   └── [drwxr-xr-x]  ros
+├── [drwxr-xr-x]  include
+│   ├── [-rw-r--r--]  base64.h
+│   ├── [drwxr-xr-x]  message_filters
+│   ├── [drwxr-xr-x]  ros
+│   ├── [drwxr-xr-x]  rosbag
+│   ├── [drwxr-xr-x]  rosconsole
+│   ├── [drwxr-xr-x]  roscpp
+│   ├── [drwxr-xr-x]  rosgraph_msgs
+│   ├── [drwxr-xr-x]  roslz4
+│   ├── [drwxr-xr-x]  rospack
+│   ├── [drwxr-xr-x]  rostest
+│   ├── [drwxr-xr-x]  std_msgs
+│   ├── [drwxr-xr-x]  std_srvs
+│   ├── [drwxr-xr-x]  topic_tools
+│   ├── [-rw-r--r--]  XmlRpcClient.h
+│   ├── [-rw-r--r--]  XmlRpcDecl.h
+│   ├── [-rw-r--r--]  XmlRpcDispatch.h
+│   ├── [-rw-r--r--]  XmlRpcException.h
+│   ├── [-rw-r--r--]  XmlRpc.h
+│   ├── [-rw-r--r--]  XmlRpcServerConnection.h
+│   ├── [-rw-r--r--]  XmlRpcServer.h
+│   ├── [-rw-r--r--]  XmlRpcServerMethod.h
+│   ├── [-rw-r--r--]  XmlRpcSocket.h
+│   ├── [-rw-r--r--]  XmlRpcSource.h
+│   ├── [-rw-r--r--]  XmlRpcUtil.h
+│   └── [-rw-r--r--]  XmlRpcValue.h
+├── [drwxr-xr-x]  lib
+│   ├── [drwxr-xr-x]  gencpp
+│   ├── [drwxr-xr-x]  genlisp
+│   ├── [drwxr-xr-x]  genmsg
+│   ├── [drwxr-xr-x]  genpy
+│   ├── [-rw-r--r--]  libcpp_common.so
+│   ├── [-rw-r--r--]  libmessage_filters.so
+│   ├── [-rw-r--r--]  librosbag.so
+│   ├── [-rw-r--r--]  librosbag_storage.so
+│   ├── [-rw-r--r--]  librosconsole_backend_interface.so
+│   ├── [-rw-r--r--]  librosconsole_log4cxx.so
+│   ├── [-rw-r--r--]  librosconsole.so
+│   ├── [-rw-r--r--]  libroscpp_serialization.so
+│   ├── [-rw-r--r--]  libroscpp.so
+│   ├── [-rw-r--r--]  libroslib.so
+│   ├── [-rw-r--r--]  libroslz4.so
+│   ├── [-rw-r--r--]  librospack.so
+│   ├── [-rw-r--r--]  librostime.so
+│   ├── [-rw-r--r--]  libtopic_tools.so
+│   ├── [-rw-r--r--]  libxmlrpcpp.so
+│   ├── [drwxr-xr-x]  pkgconfig
+│   ├── [drwxr-xr-x]  python2.7
+│   ├── [drwxr-xr-x]  rosbag
+│   ├── [drwxr-xr-x]  rosgraph
+│   ├── [drwxr-xr-x]  roslib
+│   ├── [drwxr-xr-x]  rosout
+│   ├── [drwxr-xr-x]  rosservice
+│   ├── [drwxr-xr-x]  rostopic
+│   └── [drwxr-xr-x]  topic_tools
+├── [-rw-r--r--]  setup.bash
+├── [-rw-r--r--]  setup.sh
+├── [-rwxr-xr-x]  _setup_util.py
+├── [-rw-r--r--]  setup.zsh
+└── [drwxr-xr-x]  share
+    ├── [drwxr-xr-x]  catkin
+    ├── [drwxr-xr-x]  cmake_modules
+    ├── [drwxr-xr-x]  common-lisp
+    ├── [drwxr-xr-x]  cpp_common
+    ├── [drwxr-xr-x]  gencpp
+    ├── [drwxr-xr-x]  genlisp
+    ├── [drwxr-xr-x]  genmsg
+    ├── [drwxr-xr-x]  genpy
+    ├── [drwxr-xr-x]  message_filters
+    ├── [drwxr-xr-x]  message_generation
+    ├── [drwxr-xr-x]  message_runtime
+    ├── [drwxr-xr-x]  mk
+    ├── [drwxr-xr-x]  ros
+    ├── [drwxr-xr-x]  rosbag
+    ├── [drwxr-xr-x]  rosbag_storage
+    ├── [drwxr-xr-x]  rosbash
+    ├── [drwxr-xr-x]  rosboost_cfg
+    ├── [drwxr-xr-x]  rosbuild
+    ├── [drwxr-xr-x]  rosclean
+    ├── [drwxr-xr-x]  ros_comm
+    ├── [drwxr-xr-x]  rosconsole
+    ├── [drwxr-xr-x]  roscpp
+    ├── [drwxr-xr-x]  roscpp_serialization
+    ├── [drwxr-xr-x]  roscpp_traits
+    ├── [drwxr-xr-x]  roscreate
+    ├── [drwxr-xr-x]  rosgraph
+    ├── [drwxr-xr-x]  rosgraph_msgs
+    ├── [drwxr-xr-x]  roslang
+    ├── [drwxr-xr-x]  roslaunch
+    ├── [drwxr-xr-x]  roslib
+    ├── [drwxr-xr-x]  roslz4
+    ├── [drwxr-xr-x]  rosmake
+    ├── [drwxr-xr-x]  rosmaster
+    ├── [drwxr-xr-x]  rosmsg
+    ├── [drwxr-xr-x]  rosnode
+    ├── [drwxr-xr-x]  rosout
+    ├── [drwxr-xr-x]  rospack
+    ├── [drwxr-xr-x]  rosparam
+    ├── [drwxr-xr-x]  rospy
+    ├── [drwxr-xr-x]  rosservice
+    ├── [drwxr-xr-x]  rostest
+    ├── [drwxr-xr-x]  rostime
+    ├── [drwxr-xr-x]  rostopic
+    ├── [drwxr-xr-x]  rosunit
+    ├── [drwxr-xr-x]  roswtf
+    ├── [drwxr-xr-x]  std_msgs
+    ├── [drwxr-xr-x]  std_srvs
+    ├── [drwxr-xr-x]  topic_tools
+    └── [drwxr-xr-x]  xmlrpcpp
+
+81 directories, 67 files
+
+5. see how much space got used:
+
+iqdean@ubilinux:~/ros_catkin_ws$ sudo apt-get clean
+[sudo] password for iqdean:
+iqdean@ubilinux:~/ros_catkin_ws$ df -h
+Filesystem       Size  Used Avail Use% Mounted on
+rootfs            15G  1.3G   13G  10% /
+/dev/root         15G  1.3G   13G  10% /
+devtmpfs         480M     0  480M   0% /dev
+tmpfs             97M  304K   96M   1% /run
+tmpfs            5.0M     0  5.0M   0% /run/lock
+tmpfs            193M     0  193M   0% /run/shm
+tmpfs            481M  1.5M  479M   1% /tmp
+/dev/mmcblk0p7    32M  5.3M   27M  17% /boot
+/dev/mmcblk0p10  1.3G  101M  1.2G   8% /home
+
+
+
+

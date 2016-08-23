@@ -1,0 +1,89 @@
+--- install ide for nodejs ----
+$ sudo apt-get install codelite codelite-plugins
+
+> Log out and Log back in
+  then see Codelite IDE icon on the desktop
+
+--- see if codelite can highlite nodejs code ----
+codelite crashes and the highliting for *.js sucks
+
+--- uninstall codelite ----
+$ sudo apt-get purge codelite codelite-plugs
+$ sudo apt-get autoremove   <-- this removed joystick and jstest since these were part of
+                                the xboxdrv package which got purged a while back... 
+				so, you might have to reinstall these if needed
+
+--- install netbeans ide --- has javascript support since ver 8.01 and supports nodejs express 
+                             see video bookmarked under PostIntel-> SW Programming > nodejs
+
+iqdean@hpdm4:~/Downloads$ chmod +x netbeans-8.1-linux.sh 
+
+iqdean@hpdm4:~/Downloads$ ./netbeans-8.1-linux.sh 
+Configuring the installer...
+Searching for JVM on the system...
+Java SE Development Kit (JDK) was not found on this computer
+JDK 7 is required for installing the NetBeans IDE. Make sure that the JDK is properly installed and run installer again.
+You can specify valid JDK location using --javahome installer argument.
+
+To download the JDK, visit http://www.oracle.com/technetwork/java/javase/downloads
+
+--- install JAVA JDK 7
+
+1. download jdk-blah-blah.tar.gz
+2. unpack it
+3. The Java Development Kit files are installed in a directory 
+   called jdk1.8.0_version in the current directory.
+
+4. Set JAVA_HOME.
+
+    Add following to .bashrc file:
+
+    export JAVA_HOME=jdk-install-dir
+    export PATH=$JAVA_HOME/bin:$PATH
+
+    logout and logback in
+
+    iqdean@hpdm4:~$ which java
+    /home/iqdean/jdk1.8.0_91/bin/java
+
+    iqdean@hpdm4:~$ java -version
+    java version "1.8.0_91"
+    Java(TM) SE Runtime Environment (build 1.8.0_91-b14)
+    Java HotSpot(TM) 64-Bit Server VM (build 25.91-b14, mixed mode)
+
+--- retry install of netbeans ide ---
+
+Configure Netbeans IDE
+Tools > Options > Appearance > Look and Feel > Preferred look and feel: Metal  (needs restart)
+Screenshot from 2016-07-04 19:20:45.png
+
+https://jaxenter.com/netbeans/the-complete-guide-to-tuning-the-appearance-of-netbeans
+
+Tools > PlugIns > Available PlugIns > [x] Dark Look And Feel
+Plugin Description
+Installing this plugin automatically activates Dark Metal look and feel theme in your IDE. 
+You can also choose Dark Nimbus look and feel in Tools - Options - Miscellaneous - Windows. 
+Both dark themes are designed to match Norway Today editor color profile. Use menu Tools - 
+Options to switch back to the default look and feel or simply deactivate this plugin.
+
+Restart
+
+KEWL! It works... we got a dark theme with code highlighting
+
+--- looking thru the list of plugins, theres one for python ... 
+    since ros uses python and c/c++, we should be able to all 3
+    with netbeans ide
+
+install python plugin for netbeans
+----------------------------------
+
+After restart, Tools > Options  shows Python
+
+Activate C/C++ 
+-------------
+Tools > Options > C/C++ > Activate
+
+Ok, now we should have JavaScript/Nodejs, Python, and C/C++ support 
+all thru 1 IDE!!
+
+

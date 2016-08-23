@@ -1,0 +1,181 @@
+11-x-clean-shutdown.txt
+
+Need power on and off logic to make sure we do a clean shutdown
+otherwise we are going to eventually crash the edison sdcard
+due to filesystem corruption ... this already happened once we
+dont want to go thru it again
+
+1st step 
+in gaurding againest this would be to create backup copy of
+the working sdcard every so often
+
+Ultimately, we need to add a ECU controlled soft-latch like the one
+described here:
+http://www.instructables.com/id/Soft-Latch-Power-Switch-Ardweeny/
+which is based on this basic ckt
+EEVblog #262 - World's Simplest Soft Latching Power Switch Circuit
+https://www.youtube.com/watch?v=Foc9R0dC2iI
+
+> when OFF
+  push button -> powers on the ECU
+				 & ECU Latches the power switch ON (via A0 output)
+> when ON
+  push button -> signals ECU (via D0 input)
+				& ECU can beep/flash/do something to indicate that its powering down
+				  ECU can run script to do clean shutdown:  'sudo shutdown -h now'
+
+                     Momentary SW
+                           -
+                          | |
+ Vbat ___Fuse____/ ___|SoftLatchPS |___ +Vmcu ____> mcu powers on
+                                   |
+                                   |<___ A0 pwrLatch__ mcu latches pwr sw on (gpio w pulldown
+                                   |                                       mcu sets it 1 to latch)
+                                   |
+                                   |_____D0 pwrDwn____>mcu monitors pwrDwn sig 
+                                   |                   when pwrDwn request is detected
+                                   |                   a) mcu does clean shutdown of filesystems
+                                   |<____A0 pwrLatch___b) mcu sets pwrLatch = 0 to power off
+
+
+--- how to automate: $ sudo shutdown -h now ---
+
+1. shutdown from kernel space
+
+http://stackoverflow.com/questions/18296686/shutdown-embedded-linux-from-kernel-space
+
+The most general way would be for your driver to invoke shutdown as a userspace helper:
+
+static const char * const shutdown_argv[] = 
+    { "/sbin/shutdown", "-h", "-P", "now", NULL };
+
+call_usermodehelper(shutdown_argv[0], shutdown_argv, NULL, UMH_NO_WAIT);
+
+(Presuming you have a /sbin/shutdown binary installed). This will shut userspace down cleanly, unmount filesystems and then request the kernel shutdown and power off.
+
+However, you may be able to do better than this - for example if you can guarantee that there's no disk filesystems mounted read/write, you could tell a kernel thread to invoke the kernel_power_off() function (it shouldn't be done from interrupt context).
+
+shareimprove this answer
+edited Aug 18 '13 at 9:43
+answered Aug 18 '13 at 7:53
+
+caf
+151k12183317
+  	 	
+That works beautifully. I hoped there would be a solution that did't involve calling userspace, but I guess there's a lot of userspace stuff that needs to be done... Just a detail: shutdown_argv should be const char * const * or []. – pcarranzav Aug 18 '13 at 8:34
+  	 	
+@pcarranzav: Ahh yes, fixed that typo, thanks. – caf Aug 18 '13 at 9:51
+
+----
+
+2. shutdown via cron job + bash script
+ 
+Make sure the cron script is run as root, and replace shutdown by its full path given to you by:
+
+command -v shutdown
+On Ubuntu GNU/Linux (and GNU/Linux in general), it should be /sbin/shutdown :
+
+#!/bin/bash
+/sbin/shutdown -h now
+Note that adding a file named like /etc/cron.d/midnight-shutdown and containing:
+
+59 23   * * *   root    test -x /sbin/shutdown && /sbin/shutdown -h now
+should do what you want without the overhead of a full bash script. Here is the code to install this quickly:
+
+echo '59 23 * * *   root    test -x /sbin/shutdown && /sbin/shutdown -h now' \
+    | sudo tee '/etc/cron.d/midnight-shutdow'
+sudo service cron reload
+EDIT: To reply to your comment, another possibility of setting is:
+
+echo '59 23 * * *   test -x /sbin/shutdown && /sbin/shutdown -h now' \
+    | sudo tee '/etc/cron.d/midnight-shutdow'
+sudo service cron reload
+It is quite strange that cron print you this error message.
+
+3 --- copy some files before each shutdown event ----
+
+https://www.howtoforge.com/community/threads/how-to-to-run-script-at-shutdown-event.38481/
+
+4 --- BINGO, we have WINNER 
+https://www.element14.com/community/docs/DOC-78055/l/adding-a-shutdown-button-to-the-raspberry-pi-b
+
+4.1 
+push button --> GPIO -> shutdown_pi.py    <- python script that monitors gpio and uses
+                                             os.system('shutdown -h now') to run shutdown command
+4.2 shutdown_pi.py
+    --------------
+
+#!/bin/python
+# Simple script for shutting down the raspberry Pi at the press of a button.
+# by Inderpreet Singh
+
+import RPi.GPIO as GPIO
+import time
+import os
+
+# Use the Broadcom SOC Pin numbers
+# Setup the Pin with Internal pullups enabled and PIN in reading mode.
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(18, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+
+# Our function on what to do when the button is pressed
+
+def Shutdown(channel):
+    os.system("sudo shutdown -h now")
+
+# Add our function to execute when the button pressed event happens
+
+GPIO.add_event_detect(18, GPIO.FALLING, callback = Shutdown, bouncetime = 2000)
+
+# Now wait!
+
+while 1:
+    time.sleep(1)
+
+4.3 Step 4. Adding it to startup
+ 
+We need our python script to run automatically every time the RPi starts. 
+For this we need to do a little manual editing of the RPI generated files. 
+Run the following command
+ 
+sudo nano /etc/rc.local  
+ 
+This file is what gets executed everytime your RPi boots up. We need to add 
+our python command before the last line which closes the if loop. Therefore, 
+add the following line before the #fi at the end of the file.
+
+sudo python /home/pi/Scripts/shutdown_pi.py &  
+
+5 --- how to shutdown ros ----
+
+http://answers.ros.org/question/12751/kill-roscore-and-all-nodes-when-rosbag-play-finishes/
+
+If you want to kill everything related to ros just use:
+
+pkill -f ros
+But careful this matches on the command lines use to start all user processes. If a not ros related process contains "ros" this will also get killed. A safer way would be to use:
+
+pkill -f /opt/ros
+pkill -f /<path to your workspace>
+
+
+
+6 --- variation on above, but using avr tiny and a relay
+      interesting but an overkill... mcu + a relay ??
+
+http://www.instructables.com/id/Raspberry-Pi-Shutdown-Button/?ALLSTEPS
+
+The Raspberry Pi Shutdown Button provides a small circuit that includes the features:
+
+sending a shutdown signal to the Raspberry if the Shutdown Button is pressed
+waiting for the Raspberry to shut down
+Powering off the Raspberry after save shutdown
+Powering on the Raspberry after the Button is pressed again
+LED light indicating the current state: On / Shutdown / Off
+
+
+
+
+
+
+

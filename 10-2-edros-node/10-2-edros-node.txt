@@ -1,0 +1,127 @@
+10-2-edros-node.txt
+
+Recap:  see 10-1-rbc-node.txt
+
+C3 - Command Control Center
+     Web Based Interface using rosbridge
+
+	 REF: ROS Indigo By Example Vol 1/2  - has example of how to
+          use rosbridge_server, rosbridge_websocket, & roslibjs to
+          a) display video stream from robot in web browser
+          b) have web-based controls to drive the robot
+
+EC - embedded controller
+EC2 (HPDM4    ): Vision (R200 Depth), Mapping, Navigation
+EC1 (Acer C720): Low Level Controls for Motors, Arms, and other onboard manipulators
+
+MC - motion controller
+MD - motor driver
+
+------ OFFBOARD --------------------------------------------------------
+ C3
+ U1404
+ roslibjoy.js <-- node app to process xbox360 controller inputs and publish /cmd_vel
+
+  |
+ wifi
+  |
+--|---------------------- ONBOARD THE ROBOT ----------------------------
+ EC2                   EC1                 MC      MD
+U1404 <--usb0 eth -->  Edison ----uart---> Kang -> SBT -> Motors(M1 & M2)
+acer     cable
+  |      9600
+  |
+rosbridge_websocket(ec2_IP:9090)
+rosbridge_server
+  |
+ relay
+ node
+  \____ /cmd_vel --> rosbridge_websocket (ec1_IP:9090)
+                     rosbridge_server
+                         |
+                     edros node > Kangaroo
+                                  Simplified
+                                  Serial
+                                  Protocol
+                                     |
+                              Ref:
+                              On u1404: ./KangarooMC/
+                                        KanagrooManual.pdf
+                                        KangarooMC.odp
+                              onEdision: ~/motors/
+                                        7-4-pyserial.py   <-- have to start w sudo
+
+Since we have to run python progams that integ w libmraa w sudo
+EX: $ sudo 7-4-pyserial.py
+
+When we integ this into edision.py node start it with sudo:
+REF: http://answers.ros.org/question/165246/launch-node-with-root-permissions/
+
+$ sudo rosrun edros edison.py
+                \       \___ node name
+                 \__________ pkg  name
+
+
+OR, we have to write a little program to cfg edison gpio pins for /dev/ttyMFD1
+    using libmraa and run it using sudo in the ros launch file
+
+OR, we can write a bash script to cfg edison gpio's pins to use /dev/ttyMFD1
+    serial port using sysfs i/f and run that via ros launch file
+
+http://evolutek.org/howto-activate-arduino-serial-on-intel-edison.html
+
+----------------------- cfgttyMFD1.sh --------------------------------------
+#!/bin/sh
+
+# Ref:
+# http://evolutek.org/howto-activate-arduino-serial-on-intel-edison.html
+
+# export all useful gpio
+echo 130 > /sys/class/gpio/export
+echo 248 > /sys/class/gpio/export
+echo 216 > /sys/class/gpio/export
+echo 131 > /sys/class/gpio/export
+echo 249 > /sys/class/gpio/export
+echo 217 > /sys/class/gpio/export
+echo 214 > /sys/class/gpio/export
+
+# Disable tri-stat
+echo low > /sys/class/gpio/gpio214/direction
+
+# Set direction
+echo low  > /sys/class/gpio/gpio248/direction
+echo high > /sys/class/gpio/gpio249/direction
+
+echo in > /sys/class/gpio/gpio216/direction
+echo in > /sys/class/gpio/gpio217/direction
+
+# Set Mode1
+echo mode1 > /sys/kernel/debug/gpio_debug/gpio130/current_pinmux
+echo mode1 > /sys/kernel/debug/gpio_debug/gpio131/current_pinmux
+
+# Activate tri-state
+echo high > /sys/class/gpio/gpio214/direction
+
+-----------------------------------------------------------------------
+See if
+
+cfgttyMFD1.sh              < this configures gpio mux to enable /dev/ttyMFLD1.sh
+                             Q1: will it run as normal user?
+                             A1: No, you have to be sudo to run it
++
+
+7-4a-pyserial.py  works    < thus eliminating having to screw with libmraa in the python code
+
+
+On Edison
+/home/iqdean/catkin_ws/src/edros/    < this where master copy of edros node lives
+                                       & runs
+& Copied/Backed up to u1404:
+
+/home/iqdean/u1404/intel-edison/10-1-edros/edros/nodes:
+  -rwxrwxrwx 1 root root 3656 Jul 16 12:16 edison.py
+  -rwxrwxrwx 1 root root 1764 Jul 11 16:13 SerialDataGateway.py
+
+
+
+Next:   look at how to translate the /cmd_vel cv cav to kangaroo messages

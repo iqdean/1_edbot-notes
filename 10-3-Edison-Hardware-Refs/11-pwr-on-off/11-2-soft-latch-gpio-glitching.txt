@@ -1,0 +1,67 @@
+Soft-Latch Power Switch GPIO Usage investigation
+-------------------------------------------------
+
+Intel Edison is a really pathetic design, but I got too much time invested in it now to 
+switch to something else, so I endup working around all the stupid issues presented by the
+edison board at every step of the design!!
+
+Here's Example of the bullshit you have to put up with if you us Intel Edison Board:
+
+Intel Arduino board
+
+The Edison used with the Arduino board has the following limitations in libmraa:
+
+1 Do not use the 'reset' button on the arduino shields, there is a hardware bug and the platform will likely not come back up correctly
+
+2 I2C is exposed on i2c-6, therefore you must use bus 6 and not bus 0
+
+3 PWM available on default swizzler positions. (3,5,6,9)
+
+4 SPI exposed is also used for the ADC. Try not to use your own CS.
+
+5 Max SPI speed is 25Mhz/4 ~6.25Mhz
+
+6 SPI PM can sometimes do weird things you can disable it with: echo on > /sys/devices/pci0000\:00/0000\:00\:07.1/power/control
+
+7 ADC kernel module will return 16bit number but the ADC itself only has an accuracy of maximum 12bits and in MRAA it's limited to 10bits by default. Use mraa_aio_set_bit(12) to switch to the maximum resolution mode. This ADC is only included on the Arduino board.
+
+8 AIO pins are treated as 0-5 in mraa_aio_init() but as 14-19 for everything else. Therefore use mraa_gpio_init(14) to use A0 as a GPIO
+
+9 Arduino pin 7 can sometimes negatively impact the WiFi capability, if using WiFi avoid using this pin
+
+10 Edison's i2c-1 can be used using for example the sparkfun i2c breakout ontop of the Arduino breakout board, this is not supported officially so asking for mraa_i2c_init(1) will result in getting i2c bus 6 (the default one). However using raw mode (mraa_i2c_init_raw(1)) this bus is fully usable
+
+11 If you want to use /dev/ttyMFD2 you have to use the raw uart mode passing a std::string or char* argument of "/dev/ttyMFD2" to mraa:Uart() or mraa_uart_init_raw. By default there is a getty running on that interface so you will need to disable that first
+
+12 Because of the way IO is setup with the tristate on the Arduino breakout board IO will be flipped as it is setup. It's recommended to setup IO pins & direction before using them in a setup() method or similar. It's impossible on this platform to avoid some GPIOs flipping on setup.
+
+Give me a F-ing break, this is turning into a real pain in the ass and a waste of my valuable time!!
+
+Note 7:
+
+	Make sure we not using Arduino pin 7
+
+Note 12:
+
+> if the gpio pin controlling the soft-latch power switch glitche's that's going to
+  cause power to be switched off !!!
+
+	Q0: What is the power on default state of IO19 (A0) pin
+	A0: REF: https://theiotlearninginitiative.gitbooks.io/inteledison/content/documentation/PinMultiplexor.html
+		Per Table 1, the IO19 mux ctrl signal is pulled up at power, so it's setup as an ADC INPUT
+
+	Q1: What happens on IO19 (A0) when you "Tristate_all" while configuring the GPIO pin?
+	A1: IO19(A0) is isolated and floats
+	Q2: Will having a external pull-down/pull-up help?
+	A2: if IO19(A0) has a external pull-down, then when it floats, it will remain low
+
+Setup IO pins and direction before using them a setup() method
+
+
+
+
+NOTE2:
+Arduino pin 7 can sometimes negatively impact the WiFi capability, if using WiFi avoid using this pin
+
+
+

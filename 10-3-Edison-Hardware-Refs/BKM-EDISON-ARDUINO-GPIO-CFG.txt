@@ -1,0 +1,68 @@
+bkm-edison-gpio-cfg.txt
+-------------------------
+
+Summary of a 2 day excercise to figure out how to configure a gpio pin on edison and
+determine if it's gonna glitch or not during power on and during setup/config by the sw. 
+
+It's not a simple matter to configure the gpio pins on Arduino Edison board 
+> you really have to know what your doing cuz the info is scatterred all over the place
+  and looking at it any one of the items in isolation makes no freaking since
+
+In order to understand how to configure and make use of arduino edsion board gpio pins, see following refs:
+
+1. file:///home/iqdean/u1404/intel-edison/Edison-Hardware-Refs/IntelAcademic_IoT-Edison_04_GPIO_on_Edison.pdf
+2. file:///home/iqdean/u1404/intel-edison/Edison-Hardware-Refs/edison_arduino_hvm_8_26.pdf
+3. https://theiotlearninginitiative.gitbooks.io/inteledison/content/documentation/PinMultiplexor.html
+4. file:///home/iqdean/u1404/intel-edison/Edison-Hardware-Refs/PCAL9535A.pdf
+
+5. http://iotdk.intel.com/docs/master/mraa/python/		< fuck heads... so you have to use sysfs call to cfg the gpio pin
+
+How do you change the pullup strength in libmraa?
+4. Re: GPIO pullup/pulldowns
+ mhahn
+mhahn Oct 25, 2014 6:07 AM (in response to faceplant)
+I checked - it's indeed currently not supported by mraa. Sorry
+
+6. http://www.i-programmer.info/programming/hardware/8744-exploring-edison-mraa-gpio.html?start=1
+
+Pin Numbering
+
+The one thing that drives the Edison programmer mad is the different pin numberings in use. 
+Basically there are three different pin numberings in use - Arduino, mraa and SYSFS. 
+Of these the SYSFS number can be considered the "native" Edison GPIO numbering.  
+
+Arduino
+The Arduino pin numbering corresponds to standard Arduino shield pins. This is not in any way directly connected to the Edison GPIO numbering because multiple physical pins are used for different purposes on the Arduino breakout board. If you are using the min-breakout or anything that is closer to the real Edison hardware you can mostly ignore Ardunio pin numbering. The only time that it might be of concern is if you are trying to convert an Arduino sketch into C when you can look up which SYSFS number the pin corresponds to and then use the table given later to look up the corresponding mraa number.
+
+SYSFS
+The SYSFS pin numbers are the raw hardware defined GPIO lines that the Edison provides. In many ways you can consider these numbers to be reality. Linux exposes almost all external hardware as if it was a file system - character oriented like a terminal or block oriented like a disk. The GPIO lines are also provided to the user and programmer alike as a file system with each pin corresponding to an I/O stream. You can work directly with the GPIO by using Linux file commands and the pin numbering used is the standard hardware derived numbering. 
+
+MRAA
+Finally we have the mraa numbering which has nothing to do with anything as it is intended to provide a numbering that is independent of device and breakout board. Why this is an advantage is no entirely clear as most embedded programs target a specific platform and usually define things like pin numbers as constants at the start of the program. However if you are going to use mraa it is mraa's numbering you need to also use.  
+
+
+Output
+
+The mraa functions that you need to make use of a pin in output mode are very simple. 
+You need
+mraa_gpio_init (mraa_pin)
+mraa_gpio_init_raw (SYSFS_gpiopin)
+To set the pin up using either mraa number or SYSFS number. 
+You also need
+mraa_gpio_dir (pin,dir)
+to see the pin to output. 
+At its simplest direction is 0 for output and 1 for input but there is an enumeration you can use:
+MRAA_GPIO_OUT = 0 
+MRAA_GPIO_IN = 1
+MRAA_GPIO_OUT_HIGH = 2
+MRAA_GPIO_OUT_LOW = 3
+The last two, dir=2 and dir=3 set the line to output and initially high or low use if you need the line to be in a given state from the start. 
+The only other function that is specifically concerned with output is:
+mraa_gpio_mode (pin, mode)
+The output mode can be any of:
+MRAA_GPIO_STRONG = 0
+MRAA_GPIO_PULLUP = 1
+MRAA_GPIO_PULLDOWN = 2
+MRAA_GPIO_HIZ = 3 
+This works with the Arduino breakout board but not with the mini breakout. 
+

@@ -1,0 +1,127 @@
+Now that we gotta plan:
+
+package name:	  edros		< this will be the robot base controller package name
+node name:	  edision.py
+
+iqdean@ubilinux:~/catkin_ws/src$ catkin_create_pkg edros std_msgs rospy roscpp
+$ cd ~/catkin_ws
+iqdean@ubilinux:~/catkin_ws$ catkin_make -DCATKIN_WHITELIST_PACKAGES="edros"
+$ roscd edros
+iqdean@ubilinux:~/catkin_ws/src/edros$ mkdir nodes
+iqdean@ubilinux:~/catkin_ws/src/edros$ cd nodes
+
+--- install filezilla and xfer ardros files over to edision ----
+
+iqdean@ubilinux:~/catkin_ws/src/edros/nodes$ ls -al
+total 28
+drwxr-xr-x 2 iqdean iqdean  4096 Jan  1 03:36 .
+drwxr-xr-x 5 iqdean iqdean  4096 Jan  1 03:28 ..
+-rw-r--r-- 1 iqdean iqdean 15219 Jan  1 03:36 arduino.py
+-rw-r--r-- 1 iqdean iqdean  1880 Jan  1 03:36 SerialDataGateway.py
+
+iqdean@ubilinux:~/catkin_ws/src/edros/nodes$ mv arduino.py edison.py
+
+iqdean@ubilinux:~/catkin_ws/src/edros/nodes$ ls -al
+total 28
+drwxr-xr-x 2 iqdean iqdean  4096 Jan  1 03:59 .
+drwxr-xr-x 5 iqdean iqdean  4096 Jan  1 03:28 ..
+-rw-r--r-- 1 iqdean iqdean 15219 Jan  1 03:36 edison.py
+-rw-r--r-- 1 iqdean iqdean  1880 Jan  1 03:36 SerialDataGateway.py
+
+=== NOW, modify edision.py to make ours ====
+
+iqdean@ubilinux:~/catkin_ws/src/edros/nodes$ ls -al
+total 16
+drwxr-xr-x 2 iqdean iqdean 4096 Jan  1 03:59 .
+drwxr-xr-x 5 iqdean iqdean 4096 Jan  1 03:28 ..
+-rw-r--r-- 1 iqdean iqdean 3978 Jan  1 04:53 edison.py
+-rw-r--r-- 1 iqdean iqdean 1689 Jan  1 05:02 SerialDataGateway.py
+
+iqdean@ubilinux:~/catkin_ws/src/edros/nodes$ chmod +x edison.py 
+iqdean@ubilinux:~/catkin_ws/src/edros/nodes$ chmod +x SerialDataGateway.py 
+
+=== right now, edison.py 
+
+rcvs /cmd_vel
+formats a serial msg:  "s CV CAV /r/n" msg
+wr serial msg to rospy.logdebug 			< wr's to log file intead of serial port
+
+	def _HandleVelocityCommand(self, twistCommand):
+		""" Handle movement requests. """
+		v = twistCommand.linear.x           # m/s
+		omega = twistCommand.angular.z      # rad/s
+		rospy.logwarn("Handling twist command: " + str(v) + "," + str(omega))
+
+		message = 's %.2f %.2f\r' % (v, omega)
+		rospy.logdebug("Sending speed command message: " + message)
+		'''self._WriteSerial(message)'''
+
+=== build our node code
+
+$ cd ~/catkin_ws
+
+iqdean@ubilinux:~/catkin_ws$ catkin_make -DCATKIN_WHITELIST_PACKAGES="edros"
+...
+-- Build files have been written to: /home/iqdean/catkin_ws/build
+
+=== see if edros edsion.py runs
+
+t1:
+$ roscore
+
+t2:
+iqdean@ubilinux:~$ rosrun edros edison.py 
+[INFO] [WallTime: 946709170.475527] Starting with serial port: /dev/ttyMFD1, baud rate: 9600
+[INFO] [WallTime: 946709170.499513] Starting serial gateway
+
+=== update edison.py and SerialDataGateway.py 
+
+iqdean@ubilinux:~/.ros/log/latest$ cat rosout.log
+
+
+946707832.958760983  Node Startup
+946709170.500120043 INFO [SerialDataGateway.py:33(Start) [topics: /rosout, /cmd_vel] Starting serial gateway
+
+?? can't figure out where the rospy.logdebug("messages") endup ???
+   and trying to set the log levels using rospy seems to
+   be overly complicated
+   & the rospy.debuginfo("messages")  show up fine in the ros logs @ ~/.ros/log/latest/rosout.log
+
+SO, in edison.py, change all the rospy.logdebug() _TO_  rospy.loginfo()
+
+=== run it again:
+t1:
+$ roscore
+
+t2:
+iqdean@ubilinux:~$ rosrun edros edison.py 
+[INFO] [WallTime: 946712226.426822] ed._init_: Starting with serial port: /dev/ttyMFD1, baud rate: 9600
+[INFO] [WallTime: 946712226.449894] sdg._init_
+[INFO] [WallTime: 946712226.451731] ed.Start: Starting
+[INFO] [WallTime: 946712226.453255] sdg.Start: Starting serial gateway
+
+=== use rostopic to publish some /cmd_vel messages to see if the rest of the scaffolding works ? ===
+t3:
+iqdean@ubilinux:~$ rostopic pub -r 1 /cmd_vel geometry_msgs/Twist '{linear: {x: 0.2, y: 0, z: 0}, angular: {x: 0, y: 0, z: 0.5}}'
+
+t2: start seeing following in the logs... kewl, it works!!!
+
+[INFO] [WallTime: 946712580.089675] ed.hvc: Input ( /cmd_vel msg from ROS) : 0.2,0.5
+[INFO] [WallTime: 946712580.091765] ed.hvc: Output > Msg to Kanagroo : s 0.20 0.50
+[INFO] [WallTime: 946712581.089813] ed.hvc: Input ( /cmd_vel msg from ROS) : 0.2,0.5
+[INFO] [WallTime: 946712581.092301] ed.hvc: Output > Msg to Kanagroo : s 0.20 0.50
+...
+
+t3: ^C: when you kill the /cmd_vel publisher in t3
+
+t2: the node subscribing node stops rcving /cmd_vel messages in t2
+    ^C: stop the edison node
+
+t1: ^C: stop roscore
+
+=== ok, now we need to get off our ass and get some excercise
+
+after words, we can look at how to translate the /cmd_vel cv cav to kangaroo messages
+
+
+

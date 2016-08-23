@@ -1,0 +1,77 @@
+13-edbot-diffdrv-node.txt
+-------------------------
+Recap: 
+
+Preq: assume you've already created a catkin_ws
+
+Create a catkin workspace
+
+$ cd ~/catkin_ws
+$ mkdir -p ~/catkin_ws/src                  \  because of these, the catkin_ws becomes
+$ cd ~/catkin_ws/src                         > ~/catkin_ws/src  & not ~/catkin_ws which i guess
+~/catkin_ws/src$ catkin_init_workspace      /  is ok, that way ~/catkin_ws doesn't get cluttered
+
+
+1. Create a ROS Pkg named edbot in your catkin_ws
+----------------------------------------------
+
+1.1 iqdean@ubilinux:~/catkin_ws/src$ catkin_create_pkg edbot std_msgs rospy roscpp
+1.2 $ cd ..
+1.2 iqdean@ubilinux:~/catkin_ws$ catkin_make -DCATKIN_WHITELIST_PACKAGES="edbot"
+
+2. Add source code for nodes associated with edbot package.
+   Start off by adding sources for the "diffdrv" node
+
+iqdean@ubilinux:~/catkin_ws$ tree src/edbot
+src/edbot
+├── CMakeLists.txt
+├── include
+│   └── edbot
+├── package.xml
+└── src
+    ├── diffdrv.py
+    └── SerialDataGateway.py
+
+2.1 make python files executable
+
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ chmod +x diffdrv.py
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ chmod +x SerialDataGateway.py 
+
+3. build diffdrv node
+
+$ cd <path_to>/catkin_ws 
+
+iqdean@ubilinux:~/catkin_ws$ catkin_make -DCATKIN_WHITELIST_PACKAGES="edbot"
+
+
+3.1 verify rospack can find the edbot package
+
+iqdean@ubilinux:~/catkin_ws$ rospack find edbot
+/home/iqdean/catkin_ws/src/edbot
+
+
+4. to run the edbot diffdrv node:
+
+t1: $ roscore
+
+t2:
+iqdean@ubilinux:~/catkin_ws$ rosrun edbot src/diffdrv.py
+[INFO] [WallTime: 1471971514.261541] DiffDrv _init_: Starting with serial port: /dev/ttyMFD1, baud rate: 9600
+[INFO] [WallTime: 1471971514.285857] sdg._init_
+[INFO] [WallTime: 1471971514.287623] DiffDrv.Start: Starting
+[INFO] [WallTime: 1471971514.289174] sdg.Start: Starting serial gateway
+
+t3:
+$ rostopic pub -r 1 /cmd_vel geometry_msgs/Twist '{linear: {x: 0.1, y: 0, z: 0}, angular: {x: 0, y: 0, z: -0.5}}'
+
+t2:
+[INFO] [WallTime: 1471971816.490334] DiffDrv.hvc: Input ( /cmd_vel msg from ROS) : 0.1,-0.5
+[INFO] [WallTime: 1471971816.492955] DiffDrv.hvc: Output > Msg to Kanagroo : s 0.10 -0.50
+[INFO] [WallTime: 1471971817.490465] DiffDrv.hvc: Input ( /cmd_vel msg from ROS) : 0.1,-0.5
+[INFO] [WallTime: 1471971817.493394] DiffDrv.hvc: Output > Msg to Kanagroo : s 0.10 -0.50
+[INFO] [WallTime: 1471971818.490487] DiffDrv.hvc: Input ( /cmd_vel msg from ROS) : 0.1,-0.5
+[INFO] [WallTime: 1471971818.493061] DiffDrv.hvc: Output > Msg to Kanagroo : s 0.10 -0.50
+[INFO] [WallTime: 1471971819.490328] DiffDrv.hvc: Input ( /cmd_vel msg from ROS) : 0.1,-0.5
+[INFO] [WallTime: 1471971819.492778] DiffDrv.hvc: Output > Msg to Kanagroo : s 0.10 -0.50
+...
+

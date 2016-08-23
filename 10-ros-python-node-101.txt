@@ -1,0 +1,937 @@
+Summary - how to create a ros node
+
+1 Create package
+---------------
+~/catkin_ws/src$ catkin_create_pkg robot_base_controller std_msgs rospy roscpp
+
+2 Build the package
+-------------------
+cd ~/catkin_ws
+$ catkin_make -DCATKIN_WHITELIST_PACKAGES="robot_base_controller"
+
+3 Write python source code for simple subscriber and publisher
+-----------------------------
+Create your nodes in <pkg_name>/scripts/<node_name>.py
+
+:~/catkin_ws$ roscd robot_base_controller/
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ mkdir scripts
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ cd scripts
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ vim talker.py
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ cat talker.py
+#!/usr/bin/env python
+# license removed for brevity
+import rospy
+from std_msgs.msg import String
+
+def talker():
+    pub = rospy.Publisher('chatter', String, queue_size=10)
+    rospy.init_node('talker', anonymous=True)
+    rate = rospy.Rate(10) # 10hz
+    while not rospy.is_shutdown():
+        hello_str = "hello world %s" % rospy.get_time()
+        rospy.loginfo(hello_str)
+        pub.publish(hello_str)
+        rate.sleep()
+
+if __name__ == '__main__':
+    try:
+        talker()
+    except rospy.ROSInterruptException:
+        pass
+
+$ chmod +x talker.py
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ vim listener.py
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ cat listener.py
+#!/usr/bin/env python
+import rospy
+from std_msgs.msg import String
+
+def callback(data):
+    rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
+
+def listener():
+
+    # In ROS, nodes are uniquely named. If two nodes with the same
+    # node are launched, the previous one is kicked off. The
+    # anonymous=True flag means that rospy will choose a unique
+    # name for our 'listener' node so that multiple listeners can
+    # run simultaneously.
+    rospy.init_node('listener', anonymous=True)
+
+    rospy.Subscriber("chatter", String, callback)
+
+    # spin() simply keeps python from exiting until this node is stopped
+    rospy.spin()
+
+if __name__ == '__main__':
+    listener()
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ chmod +x listener.py
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ ls -l
+total 8
+-rwxr-xr-x 1 iqdean iqdean 695 Jan  1 01:20 listener.py   /__ NOW WE GOT 2
+-rwxr-xr-x 1 iqdean iqdean 535 Jan  1 01:07 talker.py	    \   PYTHON NODES
+
+4 Build your Nodes
+------------------
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ cd ~/catkin_ws
+iqdean@ubilinux:~/catkin_ws$ catkin_make -DCATKIN_WHITELIST_PACKAGES="robot_base_controller"
+
+5 Run your Nodes:
+------------------
+
+t1 ~$ roscore
+t2 ~$ rosrun robot_base_controller talker.py
+t3 ~$ rosrun robot_base_controller listner.py
+
+6 Create a Service/Client -- See below, adding here would just duplicate
+-------------------------
+
+7 Make listner.py read in some parameters from a yaml file
+----------------------------------------------------------
+
+< with at least $ roscore running >
+
+Manually set some parameters:            rosparam set /namespace/param_name param_value
+-----------------------------
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ rosparam set /listener/port ttyMFLD2
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ rosparam set /listener/baud 9600
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ rosparam get /listener
+{baud: 9600, port: ttyMFLD2}
+
+Dump parameters to listener.yaml file
+------------------------------------
+$
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ rosparam dump listener.yaml /listener
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ ls -al *.yaml
+-rw-r--r-- 1 iqdean iqdean 29 Jan  1 01:26 listener.yaml
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ cat listener.yaml
+
+{baud: 9600, port: ttyMFLD2}
+
+robot_base_controller$ mkdir info                 \ put all the parameter files in
+robot_base_controller$ cd info; mv ../*.yaml .	  / robot_base_controller/info dir
+
+8 Create Launch File to start up roscore and load *.yaml parameter files
+------------------------------------------------------------------------
+
+Create launch file that will
+a) use rosparam to load the listener.yaml file
+b) launch the listner.py node
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/launch$ vim listener.launch
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/launch$ cat listener.launch
+
+<launch>
+	<node name="listener" pkg="robot_base_controller" type="listener.py">
+		<rosparam file="$(find robot_base_controller)/info/listener.yaml" command="load"/>
+	</node>
+</launch>
+
+8.1 USE roslaunch to start up the listener.py node & load info/listener.yaml file
+----------------------------------------------------------------------------------
+
+t1:
+$ roscd robot_base_controller
+                                          NOTE:
+$ roslaunch ./launch/listener.launch	< no console output, instead it ends up in
+  	    				  ~/.ros/log/latest/listener-2-stdout.log
+
+started roslaunch server http://ubilinux:52810/
+
+SUMMARY
+========
+
+PARAMETERS
+ * /listener/baud: 9600		  /__ here be our parameters that got loaded from
+ * /listener/port: ttyMFLD2	\   ./info/listener.yaml file
+ * /rosdistro: indigo
+ * /rosversion: 1.11.20
+
+NODES
+  /
+    listener (robot_base_controller/listener.py)
+
+
+t2:
+$ rosrun robot_base_controller talker.py
+
+
+8.2. Log files will eat up ur disk over time:
+
+iqdean@ubilinux:~$ rosclean check
+6.7M ROS node logs
+iqdean@ubilinux:~$ rosclean purge
+Purging ROS node logs.
+PLEASE BE CAREFUL TO VERIFY THE COMMAND BELOW!
+Okay to execute:
+
+rm -rf /home/iqdean/.ros/log
+(y/n)?
+y
+iqdean@ubilinux:~$ rosclean check
+iqdean@ubilinux:~$
+
+
+8.3 Modify listener.py node source to read parameter and log it to the console
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ cat listener.py
+#!/usr/bin/env python
+import rospy
+from std_msgs.msg import String
+
+def callback(data):
+    rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
+
+def listener():
+
+    # In ROS, nodes are uniquely named. If two nodes with the same
+    # node are launched, the previous one is kicked off. The
+    # anonymous=True flag means that rospy will choose a unique
+    # name for our 'listener' node so that multiple listeners can
+    # run simultaneously.
+    rospy.init_node('listener', anonymous=True)
+
+    rospy.Subscriber("chatter", String, callback)
+
+    myPort = rospy.get_param("/listener/port")			        \
+    myBaud = rospy.get_param("/listener/baud")			         > add this to read
+    rospy.loginfo("myPort: %s  myBaud: %s", myPort, myBaud)	/  parameters from yaml file
+
+    # spin() simply keeps python from exiting until this node is stopped
+    rospy.spin()
+
+if __name__ == '__main__':
+    listener()
+
+8.4 $ roscd robot_base_controller
+    $ roslaunch ./launch/listener.launch
+
+t2:
+iqdean@ubilinux:~/.ros/log/latest$ cat listener-2.log
+...
+[rosout][INFO] 2000-01-01 02:37:13,073: myPort: ttyMFLD2  myBaud: 9600
+...
+
+
+======= END SUMMARY ============
+
+
+
+==== side track on how ardros is using yaml file ===
+
+
+ardros    	       	   <- package name
+
+ardros/info/ardros.yaml    <- yaml file name
+
+port: /dev/ttyACM0
+baudRate: 115200
+batteryStateParams: {voltageLowlimit: 11.8, voltageLowLowlimit: 11.5}
+
+# wheel diameter [m], trackwidth [m], ticks per revolution
+driveGeometry: {wheelDiameter: 0.2476, trackWidth: 0.4572, countsPerRevolution: 800}
+
+ardros/launch/ardros_standalone.launch
+
+launch>
+  <node name="arduino" pkg="ardros" type="arduino.py">
+    <rosparam file="$(find ardros)/info/ardros.yaml" command="load" />
+  </node>
+</launch>
+
+ardros/nodes/arduino.py
+
+	def __init__(self, port="/dev/ttyACM0", baudrate=115200):
+
+		self._Counter = 0
+		self._PreviousLeftEncTicks = 0
+		self._PreviousRighEncTicks = 0
+
+		rospy.init_node('arduino')
+
+		port = rospy.get_param("~port", "/dev/ttyACM0")
+		baudRate = int(rospy.get_param("~baudRate", 115200))
+...
+		self._VoltageLowlimit = rospy.get_param("~batteryStateParams/voltageLowlimit", "12.0")
+		self._VoltageLowLowlimit = rospy.get_param("~batteryStateParams/voltageLowLowlimit", "11.7")
+
+NOTE:
+      ~port		        is a PRIVATE variable local to the ardros node's name space
+      /listener/port	is a global variable
+
+=== big whoppie! === end side note & move on with the issue at hand ====
+
+=== start background ===
+
+
+diffdrv node 
+- subscribes to /cmd_vel topic
+- translate /cmd_vel cv (m/s) & cav (rad/s) 
+  into kangaroo drive & turn serial command
+- send kangaroo drive & turn command
+
+                               <-- M1 encoder----\
+                       9600   /             /--->M1
+ /cmd_vel -->[diffdrv] ----> KMC ---> 2x12 SBT
+               node    baud   \             \--->M2
+                               <-- M2 encoder----/
+ 
+ CV  1   m/s   *1000   1000 mm/s
+ CAV 1 rad/s   *57
+
+
+[RBC]
+- Python ROS Node
+- subscribes to /cmd_vel topic
+
+linear : {       -1.5  to  +1.5  m/s
+  x : 0.0,    // linear velocity along X axis in meters/sec
+  y : 0.0,
+  z : 0.0
+},
+angular : {
+  x : 0.0,
+  y : 0.0,	-2.0  to  -2.0  rad/s
+  z : 0.0     // angular vel about Z axis in radians/
+}
+
+
+REF:
+[0] Lexar: ROS-BOOKS-n-NOTES/ROS-BOOKS/agit-small.pdf
+    Best ROS ref yet... how to setup workspace, create a package,
+    write a node, use a launch file to start it, debug it, etc
+
+[0.1] C++ Node example
+1 // This program subscribes to turt le1/cmd_vel and
+2 // republishes on turt le1/cmd_vel_reversed, with the signs inverted .
+...
+Listing 6.4:
+A C++ program called reverse_cmd_vel that reverses turtlesimvelocity commands.
+
+REF:
+[2] Ros Indigo By Example - Vol 1
+
+Publish /cmd_vel at 10hz rate from the command line using rostopic:
+> we can use this to test/debug our RBC node
+
+$ rostopic pub -r 10 /cmd_vel geometry_msgs/Twist '{linear: {x: 0.1, y: 0, z: 0}, angular: {x: 0, y: 0, z: -0.5}}'
+
+REF:
+[3] http://wiki.ros.org/rospy/Overview
+
+import rospy
+from std_msgs.msg import String
+
+def callback(data):
+    rospy.loginfo("I heard %s",data.data)
+
+def listener():
+    rospy.init_node('node_name')
+    rospy.Subscriber("chatter", String, callback)
+    # spin() simply keeps python from exiting until this node is stopped
+    rospy.spin()
+
+REF:
+[4] ROScheatsheet_catkin.pdf
+$catkin_create_pkg [package name] [depend1]..[dependN]
+
+REF:
+[5] http://wiki.ros.org/ROS/Tutorials#Core_ROS_Tutorials
+    Back to the ROS Tutorials for the Nth Time!!!
+
+[5.1] http://wiki.ros.org/ROS/Tutorials/CreatingPackage
+
+=== Ed J16 <-- USB cable --> u1404 ===
+iqdean@hpdm4:~$ ssh iqdean@192.168.2.15
+
+On Edison: < this is where the RBC node will live
+
+1. Install ROS - already done
+
+iqdean@ubilinux:~$ env | grep ROS
+ROS_ROOT=/opt/ros/indigo/share/ros
+ROS_PACKAGE_PATH=/home/iqdean/catkin_ws/src:/opt/ros/indigo/share:/opt/ros/indigo/stacks
+ROS_MASTER_URI=http://localhost:11311
+ROS_DISTRO=indigo
+ROS_ETC_DIR=/opt/ros/indigo/etc/ros
+
+2. create catkin_ws - already done (while installing/testing rosbridge stuff)
+
+iqdean@ubilinux:~$ tree -L 2 catkin_ws
+catkin_ws
+├── build
+├── devel
+├── rosbridge-usage
+└── src
+    ├── CMakeLists.txt -> /opt/ros/indigo/share/catkin/cmake/toplevel.cmake
+    ├── common_msgs
+    ├── rosauth
+    └── rosbridge_suite
+
+3. create ros package
+
+iqdean@ubilinux:~$ which catkin_create_pkg
+/usr/local/bin/catkin_create_pkg
+
+iqdean@ubilinux:~/catkin_ws/src$ catkin_create_pkg robot_base_controller std_msgs rospy roscpp
+Created file robot_base_controller/package.xml
+Created file robot_base_controller/CMakeLists.txt
+Created folder robot_base_controller/include/robot_base_controller
+Created folder robot_base_controller/src
+Successfully created files in /home/iqdean/catkin_ws/src/robot_base_controller. Please adjust the values in package.xml.
+
+iqdean@ubilinux:~$ tree catkin_ws/src/robot_base_controller/
+catkin_ws/src/robot_base_controller/
+├── CMakeLists.txt
+├── include
+│   └── robot_base_controller
+├── package.xml
+└── src
+
+iqdean@ubilinux:~$ which rospack
+/opt/ros/indigo/bin/rospack
+iqdean@ubilinux:~$ rospack depends1 robot_base_controller
+roscpp
+rospy
+std_msgs
+
+3.1 use catkin_make to build the 'package' (which at this point don't got any nodes in it)
+
+catkin_make                              < builds all the packages in src
+catkin_make --pkg robot_base_controller  < still builds all the the packages in src
+
+Per
+REF:
+[5.2] http://answers.ros.org/question/54178/how-to-build-just-one-package-using-catkin_make/
+
+# "List of ';' separated packages to build"
+catkin_make -DCATKIN_WHITELIST_PACKAGES="foo;bar"   < THIS IS HOW YOU BUILD JUST A SPECIFIC PKG
+
+3.1.1
+iqdean@ubilinux:~/catkin_ws$ catkin_make -DCATKIN_WHITELIST_PACKAGES="robot_base_controller"
+Base path: /home/iqdean/catkin_ws
+Source space: /home/iqdean/catkin_ws/src
+Build space: /home/iqdean/catkin_ws/build
+Devel space: /home/iqdean/catkin_ws/devel
+Install space: /home/iqdean/catkin_ws/install
+####
+#### Running command: "cmake /home/iqdean/catkin_ws/src -DCATKIN_WHITELIST_PACKAGES=robot_base_controller -DCATKIN_DEVEL_PREFIX=/home/iqdean/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/iqdean/catkin_ws/install -G Unix Makefiles" in "/home/iqdean/catkin_ws/build"
+####
+-- Using CATKIN_DEVEL_PREFIX: /home/iqdean/catkin_ws/devel
+-- Using CMAKE_PREFIX_PATH: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- This workspace overlays: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- Using PYTHON_EXECUTABLE: /usr/bin/python
+-- Using Debian Python package layout
+-- Using empy: /usr/bin/empy
+-- Using CATKIN_ENABLE_TESTING: ON
+-- Call enable_testing()
+-- Using CATKIN_TEST_RESULTS_DIR: /home/iqdean/catkin_ws/build/test_results
+-- Found gtest sources under '/usr/src/gtest': gtests will be built
+-- Using Python nosetests: /usr/bin/nosetests-2.7
+-- catkin 0.6.18
+-- BUILD_SHARED_LIBS is on
+-- Using CATKIN_WHITELIST_PACKAGES: robot_base_controller
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- ~~  traversing 1 packages in topological order:
+-- ~~  - robot_base_controller
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- +++ processing catkin package: 'robot_base_controller'
+-- ==> add_subdirectory(robot_base_controller)
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/iqdean/catkin_ws/build
+####
+#### Running command: "make -j2 -l2" in "/home/iqdean/catkin_ws/build"
+####
+-- Using CATKIN_DEVEL_PREFIX: /home/iqdean/catkin_ws/devel
+-- Using CMAKE_PREFIX_PATH: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- This workspace overlays: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- Using PYTHON_EXECUTABLE: /usr/bin/python
+-- Using Debian Python package layout
+-- Using empy: /usr/bin/empy
+-- Using CATKIN_ENABLE_TESTING: ON
+-- Call enable_testing()
+-- Using CATKIN_TEST_RESULTS_DIR: /home/iqdean/catkin_ws/build/test_results
+-- Found gtest sources under '/usr/src/gtest': gtests will be built
+-- Using Python nosetests: /usr/bin/nosetests-2.7
+-- catkin 0.6.18
+-- BUILD_SHARED_LIBS is on
+-- Using CATKIN_WHITELIST_PACKAGES: robot_base_controller
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- ~~  traversing 1 packages in topological order:
+-- ~~  - robot_base_controller
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- +++ processing catkin package: 'robot_base_controller'
+-- ==> add_subdirectory(robot_base_controller)
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/iqdean/catkin_ws/build
+
+4. write code to subscribe to /cmd_vel topic
+
+REF:
+
+http://wiki.ros.org/ROS/Tutorials/WritingPublisherSubscriber%28python%29
+4.1
+iqdean@ubilinux:~/catkin_ws$ roscd robot_base_controller/
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ ls -l
+total 20
+-rw-r--r-- 1 iqdean iqdean 6289 Jan  1 00:30 CMakeLists.txt
+drwxr-xr-x 3 iqdean iqdean 4096 Jan  1 00:30 include
+-rw-r--r-- 1 iqdean iqdean 2145 Jan  1 00:30 package.xml
+drwxr-xr-x 2 iqdean iqdean 4096 Jan  1 00:30 src
+4.2
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ mkdir scripts
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ cd scripts
+4.3
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ vim talker.py
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ cat talker.py
+#!/usr/bin/env python
+# license removed for brevity
+import rospy
+from std_msgs.msg import String
+
+def talker():
+    pub = rospy.Publisher('chatter', String, queue_size=10)
+    rospy.init_node('talker', anonymous=True)
+    rate = rospy.Rate(10) # 10hz
+    while not rospy.is_shutdown():
+        hello_str = "hello world %s" % rospy.get_time()
+        rospy.loginfo(hello_str)
+        pub.publish(hello_str)
+        rate.sleep()
+
+if __name__ == '__main__':
+    try:
+        talker()
+    except rospy.ROSInterruptException:
+        pass
+
+4.3.1 $ chmod +x talker.py
+
+4.4
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ vim listener.py
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ cat listener.py
+#!/usr/bin/env python
+import rospy
+from std_msgs.msg import String
+
+def callback(data):
+    rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
+
+def listener():
+
+    # In ROS, nodes are uniquely named. If two nodes with the same
+    # node are launched, the previous one is kicked off. The
+    # anonymous=True flag means that rospy will choose a unique
+    # name for our 'listener' node so that multiple listeners can
+    # run simultaneously.
+    rospy.init_node('listener', anonymous=True)
+
+    rospy.Subscriber("chatter", String, callback)
+
+    # spin() simply keeps python from exiting until this node is stopped
+    rospy.spin()
+
+if __name__ == '__main__':
+    listener()
+
+4.4.1
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ chmod +x listener.py
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ ls -l
+total 8
+-rwxr-xr-x 1 iqdean iqdean 695 Jan  1 01:20 listener.py   /__ NOW WE GOT 2
+-rwxr-xr-x 1 iqdean iqdean 535 Jan  1 01:07 talker.py	  \   PYTHON NODES
+
+5. Build your nodes
+
+http://wiki.ros.org/ROS/Tutorials/WritingPublisherSubscriber%28python%29
+
+We use CMake as our build system and, yes, you have to use it even for Python nodes.
+This is to make sure that the autogenerated Python code for messages and services is created.
+
+5.1
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ cd ~/catkin_ws
+iqdean@ubilinux:~/catkin_ws$ catkin_make -DCATKIN_WHITELIST_PACKAGES="robot_base_controller"
+
+Now that you have written a simple publisher and subscriber, let's examine the simple publisher and subscriber.
+
+6. Running your nodes
+
+http://wiki.ros.org/ROS/Tutorials/ExaminingPublisherSubscriber
+
+6.1
+
+Make sure you have sourced your workspace's setup.sh after calling catkin_make
+but before trying to use your applications:
+
+iqdean@ubilinux:~/catkin_ws$ cat ~/.bashrc
+...
+# Source ROS Indigo Environment settings
+source /opt/ros/indigo/setup.bash
+source /home/iqdean/catkin_ws/devel/setup.bash
+
+6.1 Term1:
+iqdean@ubilinux:~$ roscore
+
+6.2 Term2:
+iqdean@ubilinux:~$ rospack find robot_base_controller
+/home/iqdean/catkin_ws/src/robot_base_controller
+iqdean@ubilinux:~$ rosrun robot_base_controller talker.py
+[INFO] [WallTime: 946691149.716411] hello world 946691149.716
+[INFO] [WallTime: 946691149.816918] hello world 946691149.816
+[INFO] [WallTime: 946691149.916969] hello world 946691149.917
+...
+
+6.3 Term3:
+iqdean@ubilinux:~$ rosrun robot_base_controller listener.py
+[INFO] [WallTime: 946691261.831727] /listener_3377_946691261448I heard hello world 946691261.824
+[INFO] [WallTime: 946691261.927731] /listener_3377_946691261448I heard hello world 946691261.924
+[INFO] [WallTime: 946691262.027380] /listener_3377_946691261448I heard hello world 946691262.024
+[INFO] [WallTime: 946691262.128358] /listener_3377_946691261448I heard hello world 946691262.124
+[INFO] [WallTime: 946691262.228083] /listener_3377_946691261448I heard hello world 946691262.224
+...
+
+7. Writing a Simple Service and Client (Python)
+
+http://wiki.ros.org/ROS/Tutorials/WritingServiceClient%28python%29
+
+Prequisites for Service
+
+$ roscd robot_base_controller
+
+$ mkdir srv
+$ cd srv
+
+$ vim AddTwoInts.srv
+
+int64 a
+int64 b
+---
+int64 sum
+
+$ roscd robot_base_controller
+$ vim package.xml
+
+ <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>message_generation</build_depend>	< add this line
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>message_runtime</run_depend>		< add this line
+
+$ vim CMakelists.txt
+
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  rospy
+  std_msgs
+  message_generation					< add this line
+)
+
+## Generate services in the 'srv' folder
+
+ add_service_files(					< uncomment/add this whole stanza
+   FILES
+   AddTwoInts.srv
+ )
+
+http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv#Common_step_for_msg_and_srv
+
+$ roscd robot_base_controller
+$ vim CMakelists.txt
+
+## Generate added messages and services
+## with any dependencies listed here
+ generate_messages(					< uncomment this whole stanza
+   DEPENDENCIES
+   std_msgs
+ )
+
+$ cd ~/catkin_ws/
+:~/catkin_ws$
+$ cd ~/catkin_ws/
+iqdean@ubilinux:~/catkin_ws$
+
+iqdean@ubilinux:~/catkin_ws$ catkin_make install
+... See [x1] - Backup ref ...
+generates messages used by ROS Service/Client nodes and installs
+them to python site for use by python node code
+... See [x1]
+
+iqdean@ubilinux:~/catkin_ws$ cd -
+/home/iqdean/catkin_ws/src/robot_base_controller
+
+That's all you need to do to create a srv.
+Let's make sure that ROS can see it using the rossrv show command:
+
+iqdean@ubilinux:~/catkin_ws$ rossrv show robot_base_controller/AddTwoInts
+int64 a
+int64 b
+---
+int64 sum
+
+
+
+iqdean@ubilinux:~/catkin_ws$ roscd robot_base_controller
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ cd scripts/
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ ls -l
+total 8
+-rwxr-xr-x 1 iqdean iqdean 695 Jan  1 01:20 listener.py
+-rwxr-xr-x 1 iqdean iqdean 535 Jan  1 01:07 talker.py
+
+add_two_ints_server.py
+----------------------
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ vim add_two_ints_server.py
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ cat add_two_ints_server.py
+#!/usr/bin/env python
+
+from robot_base_controller.srv import *
+import rospy
+
+def handle_add_two_ints(req):
+    print "Returning [%s + %s = %s]"%(req.a, req.b, (req.a + req.b))
+    return AddTwoIntsResponse(req.a + req.b)
+
+def add_two_ints_server():
+    rospy.init_node('add_two_ints_server')
+    s = rospy.Service('add_two_ints', AddTwoInts, handle_add_two_ints)
+    print "Ready to add two ints."
+    rospy.spin()
+
+if __name__ == "__main__":
+    add_two_ints_server()
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ chmod +x add_two_ints_server.py
+
+add_two_ints_client.py
+-----------------------
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ vim add_two_ints_client.py
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ chmod +x add_two_ints_client.py
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ cat add_two_ints_client.py
+#!/usr/bin/env python
+
+import sys
+import rospy
+from robot_base_controller.srv import *
+
+def add_two_ints_client(x, y):
+    rospy.wait_for_service('add_two_ints')
+    try:
+        add_two_ints = rospy.ServiceProxy('add_two_ints', AddTwoInts)
+        resp1 = add_two_ints(x, y)
+        return resp1.sum
+    except rospy.ServiceException, e:
+        print "Service call failed: %s"%e
+
+def usage():
+    return "%s [x y]"%sys.argv[0]
+
+if __name__ == "__main__":
+    if len(sys.argv) == 3:
+        x = int(sys.argv[1])
+        y = int(sys.argv[2])
+    else:
+        print usage()
+        sys.exit(1)
+    print "Requesting %s+%s"%(x, y)
+    print "%s + %s = %s"%(x, y, add_two_ints_client(x, y))
+
+build add_two_ints_xxxx.py
+--------------------------
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller/scripts$ cd ~/catkin_ws
+iqdean@ubilinux:~/catkin_ws$ catkin_make -DCATKIN_WHITELIST_PACKAGES="robot_base_controller"
+
+
+run your service/client nodes
+-----------------------------
+Term0:
+
+$ roscore
+
+Term1:
+
+iqdean@ubilinux:~/catkin_ws$ rosrun robot_base_controller add_two_ints_server.py
+Ready to add two ints.
+
+Term2:
+
+iqdean@ubilinux:~$ rosrun robot_base_controller add_two_ints_client.py
+/home/iqdean/catkin_ws/src/robot_base_controller/scripts/add_two_ints_client.py [x y]
+
+iqdean@ubilinux:~$ rosrun robot_base_controller add_two_ints_client.py 4 5
+Requesting 4+5
+4 + 5 = 9
+
+
+=== SUMMARY ====
+
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$ tree
+.
+├── CMakeLists.txt
+├── include
+│   └── robot_base_controller
+├── package.xml
+
+├── scripts                           NOW WE GOT 4 WORKING PYTHON ROS NODES:
+
+│   ├── add_two_ints_client.py        ROS SERVICE Client
+│   ├── add_two_ints_server.py	      ROS SERVICE Server
+│   ├── listener.py		      ROS SUBSCRIBER
+│   └── talker.py		      ROS PUBLISHER
+
+├── src
+
+└── srv
+    └── AddTwoInts.srv
+
+5 directories, 7 files
+
+
+
+
+
+[x1] - BACKUP REF
+iqdean@ubilinux:~/catkin_ws$ catkin_make install
+Base path: /home/iqdean/catkin_ws
+Source space: /home/iqdean/catkin_ws/src
+Build space: /home/iqdean/catkin_ws/build
+Devel space: /home/iqdean/catkin_ws/devel
+Install space: /home/iqdean/catkin_ws/install
+####
+#### Running command: "cmake /home/iqdean/catkin_ws/src -DCATKIN_DEVEL_PREFIX=/home/iqdean/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/iqdean/catkin_ws/install -G Unix Makefiles" in "/home/iqdean/catkin_ws/build"
+####
+-- Using CATKIN_DEVEL_PREFIX: /home/iqdean/catkin_ws/devel
+-- Using CMAKE_PREFIX_PATH: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- This workspace overlays: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- Using PYTHON_EXECUTABLE: /usr/bin/python
+-- Using Debian Python package layout
+-- Using empy: /usr/bin/empy
+-- Using CATKIN_ENABLE_TESTING: ON
+-- Call enable_testing()
+-- Using CATKIN_TEST_RESULTS_DIR: /home/iqdean/catkin_ws/build/test_results
+-- Found gtest sources under '/usr/src/gtest': gtests will be built
+-- Using Python nosetests: /usr/bin/nosetests-2.7
+-- catkin 0.6.18
+-- BUILD_SHARED_LIBS is on
+-- Using CATKIN_WHITELIST_PACKAGES: robot_base_controller
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- ~~  traversing 1 packages in topological order:
+-- ~~  - robot_base_controller
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- +++ processing catkin package: 'robot_base_controller'
+-- ==> add_subdirectory(robot_base_controller)
+-- Using these message generators: gencpp;genlisp;genpy
+-- robot_base_controller: 0 messages, 1 services
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/iqdean/catkin_ws/build
+####
+#### Running command: "make install -j2 -l2" in "/home/iqdean/catkin_ws/build"
+####
+-- Using CATKIN_DEVEL_PREFIX: /home/iqdean/catkin_ws/devel
+-- Using CMAKE_PREFIX_PATH: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- This workspace overlays: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- Using PYTHON_EXECUTABLE: /usr/bin/python
+-- Using Debian Python package layout
+-- Using empy: /usr/bin/empy
+-- Using CATKIN_ENABLE_TESTING: ON
+-- Call enable_testing()
+-- Using CATKIN_TEST_RESULTS_DIR: /home/iqdean/catkin_ws/build/test_results
+-- Found gtest sources under '/usr/src/gtest': gtests will be built
+-- Using Python nosetests: /usr/bin/nosetests-2.7
+-- catkin 0.6.18
+-- BUILD_SHARED_LIBS is on
+-- Using CATKIN_WHITELIST_PACKAGES: robot_base_controller
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- ~~  traversing 1 packages in topological order:
+-- ~~  - robot_base_controller
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- +++ processing catkin package: 'robot_base_controller'
+-- ==> add_subdirectory(robot_base_controller)
+-- Using these message generators: gencpp;genlisp;genpy
+-- robot_base_controller: 0 messages, 1 services
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/iqdean/catkin_ws/build
+Scanning dependencies of target _robot_base_controller_generate_messages_check_deps_AddTwoInts
+Scanning dependencies of target std_msgs_generate_messages_py
+[  0%] Built target std_msgs_generate_messages_py
+Scanning dependencies of target std_msgs_generate_messages_cpp
+[  0%] Built target std_msgs_generate_messages_cpp
+Scanning dependencies of target std_msgs_generate_messages_lisp
+[  0%] Built target std_msgs_generate_messages_lisp
+[  0%] Built target _robot_base_controller_generate_messages_check_deps_AddTwoInts
+Scanning dependencies of target robot_base_controller_generate_messages_cpp
+Scanning dependencies of target robot_base_controller_generate_messages_py
+make[2]: Warning: File `/opt/ros/indigo/share/gencpp/cmake/../srv.h.template' has modification time 5.2e+08 s in the future
+make[2]: Warning: File `/opt/ros/indigo/share/genpy/cmake/../../../lib/genpy/gensrv_py.py' has modification time 5.2e+08 s in the future
+[ 50%] [ 50%] Generating Python code from SRV robot_base_controller/AddTwoInts
+Generating C++ code from robot_base_controller/AddTwoInts.srv
+[ 75%] Generating Python srv __init__.py for robot_base_controller
+make[2]: warning:  Clock skew detected.  Your build may be incomplete.
+[ 75%] Built target robot_base_controller_generate_messages_py
+Scanning dependencies of target robot_base_controller_generate_messages_lisp
+make[2]: Warning: File `/opt/ros/indigo/share/genlisp/cmake/../../../lib/genlisp/gen_lisp.py' has modification time 5.2e+08 s in the future
+[100%] Generating Lisp code from robot_base_controller/AddTwoInts.srv
+make[2]: warning:  Clock skew detected.  Your build may be incomplete.
+[100%] Built target robot_base_controller_generate_messages_lisp
+make[2]: warning:  Clock skew detected.  Your build may be incomplete.
+[100%] Built target robot_base_controller_generate_messages_cpp
+Scanning dependencies of target robot_base_controller_generate_messages
+[100%] Built target robot_base_controller_generate_messages
+Install the project...
+-- Install configuration: ""
+-- Installing: /home/iqdean/catkin_ws/install/_setup_util.py
+-- Installing: /home/iqdean/catkin_ws/install/env.sh
+-- Installing: /home/iqdean/catkin_ws/install/setup.bash
+-- Installing: /home/iqdean/catkin_ws/install/setup.sh
+-- Installing: /home/iqdean/catkin_ws/install/setup.zsh
+-- Installing: /home/iqdean/catkin_ws/install/.rosinstall
+-- Installing: /home/iqdean/catkin_ws/install/share/robot_base_controller/srv/AddTwoInts.srv
+-- Installing: /home/iqdean/catkin_ws/install/share/robot_base_controller/cmake/robot_base_controller-msg-paths.cmake
+-- Installing: /home/iqdean/catkin_ws/install/include/robot_base_controller
+-- Installing: /home/iqdean/catkin_ws/install/include/robot_base_controller/AddTwoInts.h
+-- Installing: /home/iqdean/catkin_ws/install/include/robot_base_controller/AddTwoIntsResponse.h
+-- Installing: /home/iqdean/catkin_ws/install/include/robot_base_controller/AddTwoIntsRequest.h
+-- Installing: /home/iqdean/catkin_ws/install/share/common-lisp/ros/robot_base_controller
+-- Installing: /home/iqdean/catkin_ws/install/share/common-lisp/ros/robot_base_controller/srv
+-- Installing: /home/iqdean/catkin_ws/install/share/common-lisp/ros/robot_base_controller/srv/AddTwoInts.lisp
+-- Installing: /home/iqdean/catkin_ws/install/share/common-lisp/ros/robot_base_controller/srv/robot_base_controller-srv.asd
+-- Installing: /home/iqdean/catkin_ws/install/share/common-lisp/ros/robot_base_controller/srv/_package_AddTwoInts.lisp
+-- Installing: /home/iqdean/catkin_ws/install/share/common-lisp/ros/robot_base_controller/srv/_package.lisp
+Listing /home/iqdean/catkin_ws/devel/lib/python2.7/dist-packages/robot_base_controller ...
+Compiling /home/iqdean/catkin_ws/devel/lib/python2.7/dist-packages/robot_base_controller/__init__.py ...
+Listing /home/iqdean/catkin_ws/devel/lib/python2.7/dist-packages/robot_base_controller/srv ...
+Compiling /home/iqdean/catkin_ws/devel/lib/python2.7/dist-packages/robot_base_controller/srv/_AddTwoInts.py ...
+Compiling /home/iqdean/catkin_ws/devel/lib/python2.7/dist-packages/robot_base_controller/srv/__init__.py ...
+-- Installing: /home/iqdean/catkin_ws/install/lib/python2.7/dist-packages/robot_base_controller
+-- Installing: /home/iqdean/catkin_ws/install/lib/python2.7/dist-packages/robot_base_controller/__init__.py
+-- Installing: /home/iqdean/catkin_ws/install/lib/python2.7/dist-packages/robot_base_controller/__init__.pyc
+-- Installing: /home/iqdean/catkin_ws/install/lib/python2.7/dist-packages/robot_base_controller/srv
+-- Installing: /home/iqdean/catkin_ws/install/lib/python2.7/dist-packages/robot_base_controller/srv/__init__.py
+-- Installing: /home/iqdean/catkin_ws/install/lib/python2.7/dist-packages/robot_base_controller/srv/_AddTwoInts.pyc
+-- Installing: /home/iqdean/catkin_ws/install/lib/python2.7/dist-packages/robot_base_controller/srv/__init__.pyc
+-- Installing: /home/iqdean/catkin_ws/install/lib/python2.7/dist-packages/robot_base_controller/srv/_AddTwoInts.py
+-- Installing: /home/iqdean/catkin_ws/install/lib/pkgconfig/robot_base_controller.pc
+-- Installing: /home/iqdean/catkin_ws/install/share/robot_base_controller/cmake/robot_base_controller-msg-extras.cmake
+-- Installing: /home/iqdean/catkin_ws/install/share/robot_base_controller/cmake/robot_base_controllerConfig.cmake
+-- Installing: /home/iqdean/catkin_ws/install/share/robot_base_controller/cmake/robot_base_controllerConfig-version.cmake
+-- Installing: /home/iqdean/catkin_ws/install/share/robot_base_controller/package.xml
+iqdean@ubilinux:~/catkin_ws$ cd -
+/home/iqdean/catkin_ws/src/robot_base_controller
+iqdean@ubilinux:~/catkin_ws/src/robot_base_controller$

@@ -1,0 +1,86 @@
+
+1. Get joystick working on ubu1404 hp notebook machine
+
+  xbox 360 game controller
+    |
+  WL PC game adapter
+    |
+  USB
+    |
+  Ubu14.04
+    |
+  XBOX DRV
+    |
+  /dev/jsX
+
+
+BKM for UBU 14.04
+
+<1>
+sudo apt-add-repository -y ppa:rael-gc/ubuntu-xboxdrv
+sudo apt-get update
+sudo apt-get install ubuntu-xboxdrv    <-- this installs jstest-gtk & jstest
+<1.1> Reboot to make sure new drivers take effect (vs default ones)
+
+<1.2> plug in pcwlga + wl xbox 360 gc, try running xboxdrv --silent
+      wont associate, nothing works, try rmod xpad, still no luck
+
+To uninstall, please use purge to remove the xpad stock driver from blacklist:
+sudo apt-get purge ubuntu-xboxdrv
+iqdean@hpdm4:~$ sudo apt-get purge xboxdrv    <--- we dont need xboxdrv if use
+                                                   following 
+
+<2.0> install steamos-xpad-dkms  <- this updates xpad driver 
+                                    so dont need xboxdrv
+
+sudo add-apt-repository ppa:mdeslaur/steamos	ok
+sudo apt-get update				ok
+sudo apt-get install steamos-xpad-dkms		ok
+
+<3.0> reboot
+      BEFORE: $ lsmod | grep xpad     < no xpad driver loaded
+      plug in PCWLGA, push X on xb360 gc, it associates
+      AFTER:  $ lsmod | grap xpad     < xpad driver loads automagically
+
+$ jstest-gtk    < gui based test ... all the gamepad inputs work great !!
+
+$ jstest /dev/input/js1    < cmd line based check ... all inputs work
+
+NOTES:
+
+iqdean@hpdm4:~$ ls -al /dev/input/j*
+crw-r--r--  1 root root 13, 0 Jun 30 17:58 /dev/input/js0
+crw-rw-r--+ 1 root root 13, 1 Jun 30 18:29 /dev/input/js1   <- this is xbx360 gc
+
+if udont uses the xbx360 for a while, it powers down, (no leds on the x) and /dev/input/js1 dissapears
+when this happens, u have to push the green X on the xbx360 gc to get it to associate and the
+/dev/input/js1 will reappear.
+
+2. write nodejs app that reads gamepad controller inputs
+   REF: https://www.npmjs.com/package/xbox-controller-node
+   REF: nodejs programming notes  < dig these up and put on F:
+
+$ sudo apt-get install nodejs npm
+
+
+
+
+
+
+
+
+
+
+
+
+
+3. modify client.js to use
+  connect to robot using rosbridge websocket
+  &
+  use settimeout to periodically read /dev/jsX
+  &
+  publish /myrobot/cmd_vel
+
+4. write ros node to read /cmd_vel and drive kangaroo
+   serial port
+

@@ -1,0 +1,109 @@
+REF: 10-ros-python-node-101.txt
+-------------------------------
+
+1. iqdean@ubilinux:~/catkin_ws$ catkin_create_pkg edbot std_msgs rospy roscpp
+----------------------------------------------------------------------------
+Created file edbot/CMakeLists.txt
+Created file edbot/package.xml
+Created folder edbot/include/edbot
+Created folder edbot/src
+Successfully created files in /home/iqdean/catkin_ws/edbot. Please adjust the values in package.xml.
+
+1.1 iqdean@ubilinux:~/catkin_ws$ tree edbot
+--------------------------------------------
+edbot
+├── CMakeLists.txt
+├── include
+│   └── edbot
+├── package.xml
+└── src
+
+3 directories, 2 files
+
+2 iqdean@ubilinux:~/catkin_ws$ catkin_make -DCATKIN_WHITELIST_PACKAGES="edbot"
+-----------------------------------------------------------------------------
+Base path: /home/iqdean/catkin_ws
+Source space: /home/iqdean/catkin_ws/src
+Build space: /home/iqdean/catkin_ws/build
+Devel space: /home/iqdean/catkin_ws/devel
+Install space: /home/iqdean/catkin_ws/install
+####
+#### Running command: "cmake /home/iqdean/catkin_ws/src -DCATKIN_WHITELIST_PACKAGES=edbot -DCATKIN_DEVEL_PREFIX=/home/iqdean/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/iqdean/catkin_ws/install -G Unix Makefiles" in "/home/iqdean/catkin_ws/build"
+####
+-- Using CATKIN_DEVEL_PREFIX: /home/iqdean/catkin_ws/devel
+-- Using CMAKE_PREFIX_PATH: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- This workspace overlays: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- Using PYTHON_EXECUTABLE: /usr/bin/python
+-- Using Debian Python package layout
+-- Using empy: /usr/bin/empy
+-- Using CATKIN_ENABLE_TESTING: ON
+-- Call enable_testing()
+-- Using CATKIN_TEST_RESULTS_DIR: /home/iqdean/catkin_ws/build/test_results
+-- Found gtest sources under '/usr/src/gtest': gtests will be built
+-- Using Python nosetests: /usr/bin/nosetests-2.7
+-- catkin 0.6.18
+-- BUILD_SHARED_LIBS is on
+-- Using CATKIN_WHITELIST_PACKAGES: edbot
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/iqdean/catkin_ws/build
+####
+#### Running command: "make -j2 -l2" in "/home/iqdean/catkin_ws/build"
+####
+iqdean@ubilinux:~/catkin_ws$ 
+
+2.1 
+
+iqdean@ubilinux:~/catkin_ws$ tree edbot
+edbot
+├── CMakeLists.txt
+├── include
+│   └── edbot
+├── package.xml
+└── src
+
+3.  === now add content for the nodes that will make up this package under source ===
+    you can have more than 1 node in this package if needed
+    if this is the case, then you start the nodes by name as follows
+    $ rosrun <pkg_name> <node_name>
+
+
+
+====  old ====
+
+iqdean@ubilinux:~/catkin_ws/src$ catkin_create_pkg edbot_diff_drive std_msgs rospy roscpp
+Created file edbot_diff_drive/CMakeLists.txt
+Created file edbot_diff_drive/package.xml
+Created folder edbot_diff_drive/include/edbot_diff_drive
+Created folder edbot_diff_drive/src
+Successfully created files in /home/iqdean/catkin_ws/src/edbot_diff_drive. Please adjust the values in package.xml.
+
+iqdean@ubilinux:~/catkin_ws/src$ tree edbot_diff_drive/
+edbot_diff_drive/
+├── CMakeLists.txt
+├── include
+│   └── edbot_diff_drive
+├── package.xml
+└── src
+
+3 directories, 2 files
+
+$ cd ..
+$ iqdean@ubilinux:~/catkin_ws$ catkin_make -DCATKIN_WHITELIST_PACKAGES="edbot_diff_drive"
+
+iqdean@ubilinux:~/catkin_ws$ tree src/edbot_diff_drive/
+src/edbot_diff_drive/
+├── CMakeLists.txt
+├── include
+│   └── edbot_diff_drive
+├── package.xml
+└── src
+
+3 directories, 2 files
+
+=== now add content for the nodes that will make up this package under source ===
+    you can have more than 1 node in this package if needed
+    if this is the case, then you start the nodes by name as follows
+    $ rosrun <pkg_name> <node_name>
+
+

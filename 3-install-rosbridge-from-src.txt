@@ -1,0 +1,301 @@
+----- Take 2:  Install rosbridge_suite from source ------
+
+Summary:
+How to install rosbridge_suite from source on ros indigo (built from source)
+
+Create a catkin workspace
+
+$ cd ~/catkin_ws
+$ mkdir -p ~/catkin_ws/src
+$ cd ~/catkin_ws/src
+~/catkin_ws/src$ catkin_init_workspace
+
+cd /path/to/your/catkin_ws/src
+iqdean@ubilinux:~/catkin_ws/src$ git clone -b develop https://github.com/RobotWebTools/rosbridge_suite.git
+iqdean@ubilinux:~/catkin_ws/src$ git clone https://github.com/ros/common_msgs.git
+iqdean@ubilinux:~/catkin_ws/src$ git clone https://github.com/GT-RAIL/rosauth.git
+
+cd /path/to/your/catkin_ws   ($ cd .. )
+iqdean@ubilinux:~/catkin_ws$ catkin_make
+
+iqdean@ubilinux:~/Downloads$ wget https://pypi.python.org/packages/37/87/506503fe26b11cc03acf7de82332f058842d7c40df7dac462c3c53b41eda/bson-0.4.1.tar.gz
+iqdean@ubilinux:~/Downloads$ ls
+bson-0.4.1.tar.gz
+iqdean@ubilinux:~/Downloads/bson-0.4.1$ sudo python setup.py install
+
+iqdean@ubilinux:~/Downloads/$ wget https://pypi.python.org/packages/18/85/eb7af503356e933061bf1220033c3a85bad0dbc5035dfd9a97f1e900dfcb/Twisted-16.2.0.tar.bz2#md5=8b35a88d5f1a4bfd762a008968fddabf
+iqdean@ubilinux:~/Downloads$ tar -jxvf Twisted-16.2.0.tar.bz2
+iqdean@ubilinux:~/Downloads/Twisted-16.2.0$ sudo python setup.py install
+
+To start rosbridge_server on the robot
+--------------------------------------
+
+$ roscore
+$ roslaunch rosbridge_server rosbridge_websocket.launch
+...
+INFO] [WallTime: 1467233084.426947] Rosbridge WebSocket server started on port 9090
+
+
+========= 1st pass of notes beyond here ============
+
+Delete the current catkin_ws/src dir
+--------------------------------
+From ~/catkin_ws :   $ rm -rf src
+
+recreate from scratch
+---------------------
+$ mkdir -p ~/catkin_ws/src	ok
+$ cd ~/catkin_ws/src		ok
+~/catkin_ws/src$ catkin_init_workspace
+
+iqdean@ubilinux:~/catkin_ws/src$ cd ..
+iqdean@ubilinux:~/catkin_ws$
+iqdean@ubilinux:~/catkin_ws$ catkin_make
+
+Start fresh
+-----------
+
+REF: http://answers.ros.org/question/208963/installing-package-from-source-in-indigo/
+
+# go to workspace src space
+cd /path/to/your/catkin_ws/src							1
+
+      ---------------------------
+1 ---- git clone rosbridge_suite ---------- 1
+      ---------------------------
+# checkout the desired version of the descartes repository.
+git clone -b develop https://github.com/RobotWebTools/rosbridge_suite.git	1.1
+
+# we need to make sure you have all dependencies installed.
+cd /path/to/your/catkin_ws
+rosdep install --from-paths src --ignore-src --rosdistro indigo			< this didn't work
+
+--- hmm
+iqdean@ubilinux:~/catkin_ws$ rosdep install --from-paths src --ignore-src --rosdistro indigo
+ERROR: the following packages/stacks could not have their rosdep keys resolved
+to system dependencies:
+rosbridge_library: No definition of [visualization_msgs] for OS [debian]
+rosbridge_server: No definition of [rosauth] for OS [debian]
+--- hmm
+
+      --------------------------------------------------
+2 ---- git clone https://github.com/ros/common_msgs.git  ----
+      --------------------------------------------------
+
+iqdean@ubilinux:~/catkin_ws/src$ git clone https://github.com/ros/common_msgs.git
+
+       --------------
+3 ---- see if it builds  ----
+       ---------------
+iqdean@ubilinux:~/catkin_ws$ catkin_make   < appears to build ok			3
+
+------ see if it works ----
+REF: http://wiki.ros.org/roslibjs/Tutorials/BasicRosFunctionality
+
+$ roscore
+$ roslaunch rosbridge_server rosbridge_websocket.launch
+...
+started roslaunch server http://ubilinux:36116/
+
+SUMMARY
+========
+
+PARAMETERS
+ * /rosbridge_websocket/address:
+ * /rosbridge_websocket/authenticate: False
+ * /rosbridge_websocket/delay_between_messages: 0
+ * /rosbridge_websocket/fragment_timeout: 600
+ * /rosbridge_websocket/max_message_size: None
+ * /rosbridge_websocket/port: 9090
+ * /rosbridge_websocket/retry_startup_delay: 5
+ * /rosdistro: indigo
+ * /rosversion: 1.11.20
+
+NODES
+  /
+    rosapi (rosapi/rosapi_node)
+    rosbridge_websocket (rosbridge_server/rosbridge_websocket)
+
+ROS_MASTER_URI=http://localhost:11311
+
+core service [/rosout] found
+process[rosbridge_websocket-1]: started with pid [7330]
+process[rosapi-2]: started with pid [7331]
+Traceback (most recent call last):
+  File "/home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_server/scripts/rosbridge_websocket", line 43, in <module>
+    from rosbridge_server import RosbridgeWebSocket
+  File "/home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_server/src/rosbridge_server/__init__.py", line 1, in <module>
+    from websocket_handler import RosbridgeWebSocket
+  File "/home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_server/src/rosbridge_server/websocket_handler.py", line 35, in <module>
+    from rosauth.srv import Authentication
+ImportError: No module named rosauth.srv
+[rosbridge_websocket-1] process has died [pid 7330, exit code 1, cmd /home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_server/scripts/rosbridge_websocket __name:=rosbridge_websocket __log:=/home/iqdean/.ros/log/c8cd6632-3e32-11e6-b347-784b87a69877/rosbridge_websocket-1.log].
+log file: /home/iqdean/.ros/log/c8cd6632-3e32-11e6-b347-784b87a69877/rosbridge_websocket-1*.log
+
+--- google 'rosauth.srv' ----
+
+http://answers.ros.org/question/207535/error-for-running-rosbridge_websocketlaunch/
+> same error as above <
+
+Did you make sure to download and compile rosauth and all of rosbridge_server's other dependencies?
+Dan Lazewatsky gravatar imageDan Lazewatsky (Apr 21 '15)
+
+You are right the rosauth was missing. worked. Thanks.
+Robatics1 gravatar imageRobatics1 (Apr 21 '15)
+
+--- download and compile rosauth ----
+
+Ok, see if download & compile of rosauth works?
+From link above, rosauth is available from git repo:  https://github.com/GT-RAIL/rosauth.git
+
+-- git clone rosauth ---
+iqdean@ubilinux:~/catkin_ws/src$ git clone https://github.com/GT-RAIL/rosauth.git		4
+
+iqdean@ubilinux:~/catkin_ws/src$ ls -al
+lrwxrwxrwx  1 iqdean iqdean   49 Jun 29 16:56 CMakeLists.txt -> /opt/ros/indigo/share/catkin/cmake/toplevel.cmake
+drwxr-xr-x 13 iqdean iqdean 4096 Jun 29 19:25 common_msgs
+drwxr-xr-x  6 iqdean iqdean 4096 Jun 29 20:04 rosauth
+drwxr-xr-x  7 iqdean iqdean 4096 Jun 29 17:02 rosbridge_suite
+
+--- build the packages ---
+
+if do	  ~/catkin_ws$ catkin_make       < it builds ALL the packages
+
+to build a specific package
+
+catkin_make --pkg <my_package_name>
+Example:
+
+catkin_make --pkg turtlebot
+Multiple Packages:
+
+catkin_make --pkg <package A> <package B>
+
+iqdean@ubilinux:~/catkin_ws$ catkin_make --pkg rosauth	  < builds ok			5
+
+--- see if rosbridge works now ?? ---
+
+$ roscore
+$ roslaunch rosbridge_server rosbridge_websocket.launch
+...
+  File "/home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_library/src/rosbridge_library/protocol.py", line 35, in <module>
+    import bson
+ImportError: No module named bson
+
+      ---------------------------
+6 ---- download and install bson ------	6
+      ---------------------------
+iqdean@ubilinux:~/Downloads$ wget https://pypi.python.org/packages/37/87/506503fe26b11cc03acf7de82332f058842d7c40df7dac462c3c53b41eda/bson-0.4.1.tar.gz
+iqdean@ubilinux:~/Downloads$ ls
+bson-0.4.1.tar.gz
+iqdean@ubilinux:~/Downloads/bson-0.4.1$ sudo python setup.py install
+
+--- rinse and repeat ---
+
+$ roscore
+$ roslaunch rosbridge_server rosbridge_websocket.launch
+...
+Traceback (most recent call last):
+  File "/home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_server/scripts/rosbridge_websocket", line 43, in <module>
+    from rosbridge_server import RosbridgeWebSocket
+  File "/home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_server/src/rosbridge_server/__init__.py", line 3, in <module>
+    from udp_handler import RosbridgeUdpSocket,RosbridgeUdpFactory
+  File "/home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_server/src/rosbridge_server/udp_handler.py", line 6, in <module>
+    from twisted.internet.protocol import DatagramProtocol,Factory
+ImportError: No module named twisted.internet.protocol
+
+     ----------------------------------------------
+7 --- download and install python Twisted library ----					7
+     ----------------------------------------------
+https://twistedmatrix.com/trac/
+What is Twisted?
+Twisted is an event-driven networking engine written in Python and licensed under the open source ​MIT license.
+Twisted runs on Python 2 and an ever growing subset also works with Python 3.
+
+iqdean@ubilinux:~/Downloads/$ wget https://pypi.python.org/packages/18/85/eb7af503356e933061bf1220033c3a85bad0dbc5035dfd9a97f1e900dfcb/Twisted-16.2.0.tar.bz2#md5=8b35a88d5f1a4bfd762a008968fddabf
+iqdean@ubilinux:~/Downloads$ tar -jxvf Twisted-16.2.0.tar.bz2
+iqdean@ubilinux:~/Downloads/Twisted-16.2.0$ sudo python setup.py install
+
+--- rinse and repeat ---
+$ roscore
+$ roslaunch rosbridge_server rosbridge_websocket.launch
+
+iqdean@ubilinux:~/catkin_ws$ roslaunch rosbridge_server rosbridge_websocket.launch
+... logging to /home/iqdean/.ros/log/45e274d0-3e3a-11e6-91be-784b87a69877/roslaunch-ubilinux-9929.log
+Checking log directory for disk usage. This may take awhile.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+
+started roslaunch server http://ubilinux:59742/
+
+SUMMARY
+========
+
+PARAMETERS
+ * /rosbridge_websocket/address:
+ * /rosbridge_websocket/authenticate: False
+ * /rosbridge_websocket/delay_between_messages: 0
+ * /rosbridge_websocket/fragment_timeout: 600
+ * /rosbridge_websocket/max_message_size: None
+ * /rosbridge_websocket/port: 9090
+ * /rosbridge_websocket/retry_startup_delay: 5
+ * /rosdistro: indigo
+ * /rosversion: 1.11.20
+
+NODES
+  /
+    rosapi (rosapi/rosapi_node)
+    rosbridge_websocket (rosbridge_server/rosbridge_websocket)
+
+ROS_MASTER_URI=http://localhost:11311
+
+core service [/rosout] found
+process[rosbridge_websocket-1]: started with pid [9947]
+process[rosapi-2]: started with pid [9948]
+registered capabilities (classes):
+ - rosbridge_library.capabilities.call_service.CallService
+ - rosbridge_library.capabilities.advertise.Advertise
+ - rosbridge_library.capabilities.publish.Publish
+ - rosbridge_library.capabilities.subscribe.Subscribe
+ - <class 'rosbridge_library.capabilities.defragmentation.Defragment'>
+ - rosbridge_library.capabilities.advertise_service.AdvertiseService
+ - rosbridge_library.capabilities.service_response.ServiceResponse
+ - rosbridge_library.capabilities.unadvertise_service.UnadvertiseService
+[INFO] [WallTime: 1467233084.426947] Rosbridge WebSocket server started on port 9090
+
+--- and now it seems to run ok ----
+
+http://iguanatronics.com/simple-tutorial-on-rosbridge-and-roslibjs/
+This tutorial demonstrates how to create a simple web page that communicates with ROS using rosbridge and roslibjs.
+
+Dear iguanatronics,
+
+Your posting, which is “Simple tutorial on rosbridge and roslibjs”, is very helpful for me.
+I configured a simple node.js server and ran your html+js on it. Also I succeed running turtlesim by clicking the buttons.
+In addition, I posted about it on my github, and I am able to control my real turtle-bot via web interface!
+
+you may wanna check it out.
+https://github.com/bus710/rosbridge-usage   <--- THIS IS BEAUTIFUL!! nodejs code that talks to ros via websocket interface
+https://github.com/bus710/sulcata-web
+
+Anyways, thank you so much for your posting!
+
+Sincerely,
+SJ
+
+=== but both of these examples are using turtlebot simultor as the robot and
+    then publishing /cmd_vel messages to the turtlebot from webbrowser i/f
+
+    but just to see if this works, we could run it without the turtle bot and
+    just see if we can publish /cmd_vel msgs from the browser to the robot
+
+
+Remote Host  <- any machine with a browser
+WebBrowser
+    |
+Edision
+ip_robot:3000
+Linear  [ X ]
+Angular [ Z ]
+Publish Button  ---> websocket ---> /cmd_vel topic
+                     localhost:9090

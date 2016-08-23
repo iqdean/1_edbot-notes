@@ -1,0 +1,83 @@
+
+00:02:55>> d, start
+00:03:04>> t, start
+00:03:07>> d, units 779 mm = 1024 lines
+00:03:19>> t, units 360 degrees = 1891 lines
+00:03:37>> d, getp
+00:03:40>> D,P0
+
+00:03:40>> t, getp
+00:03:43>> T,P0
+
+00:03:43>> d, s125	< this doesn't do anything
+00:03:52>> d, s0   
+00:04:08>> t, s0
+00:04:15>> d, s125  < but this does, so you gotta add the d, s0 / t, s0 to the init seq
+00:04:21>> d, s0
+00:04:28>> 
+
+---- repeat: power off, power on, reconnect to simulate cold boot -----
+
+iqdean@ubilinux:~/motors$ sudo ./cfgttyMFD1.sh 
+iqdean@ubilinux:~/motors$ python 7-4a-edpyserial.py 
+Opening Uart(0): /dev/ttyMFD1
+Enter your commands below.
+Insert "exit" to leave the application.
+00:02:05>> d, start
+00:03:36>> t, start
+00:03:41>> d, units 779 mm = 1024 lines
+00:03:51>> t, units 360 degrees = 1891 lines
+00:04:06>> d, s0
+00:04:11>> t, s0
+00:04:13>> d, getp
+00:04:19>> D,P0
+
+00:04:19>> t, getp
+00:04:23>> T,P0
+               CV*1000   CV
+	       s0       0000.0
+00:04:23>> d, s125	.125 m/s   
+00:04:46>> d, s250	.250 
+00:04:51>> d, s500	.500
+00:04:57>> d, s750	.750   
+00:05:03>> d, s700	.700 
+00:05:10>> d, s600	.600
+00:05:14>> d, s500	.500
+00:05:18>> d, s250	.250
+00:05:23>> d, s125	.125 m/s 
+00:05:29>> d, s0	0
+00:05:32>> d, getp
+00:05:35>> D,P20119
+
+00:12:39>> t, s0
+00:12:57>> t, start
+00:13:02>> t, units 360 degrees = 1891 lines
+00:13:22>> t, s0
+00:13:28>> t, getp
+00:13:34>> T,P0
+
+00:13:34>> t, pi90s50
+00:13:42>> t, getp
+00:13:49>> T,P90
+
+00:13:49>> t, pi-90s50
+00:14:02>> t, getp
+00:14:07>> T,P0 
+
+00:15:13>> t, s0                                              0
+00:15:18>> t, s-25
+00:15:26>> t, s-0
+00:15:34>> t, s25                          --- CAV --------  -- joystick --
+00:15:40>> t, s57       <  57.29 deg/sec  = 1 rad/sec
+00:15:46>> t, s75
+00:15:50>> t, s80
+00:15:57>> t, s90	<  90 degrees/sec = 1.57 rads/sec      1
+00:16:02>> t, s180	< 180 degrees/sec = 3.14 rads/sec     <-- this is spinning really fast
+00:16:09>> t, s90
+00:16:18>> t, s50
+00:16:23>> t, s25
+00:16:33>> t, s0
+
+-------------------------------------------------------------
+
+

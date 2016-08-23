@@ -1,0 +1,65 @@
+http://www.tecmint.com/rsync-local-remote-file-synchronization-commands/
+
+Copy/Sync a Remote Directory to a Local Machine
+
+This command will help you sync a remote directory to a local directory. 
+Here in this example, a directory /home/tarunika/rpmpkgs which is on a remote 
+server is being copied in your local computer in /tmp/myrpms.
+
+[root@tecmint]# rsync -avzh root@192.168.0.100:/home/tarunika/rpmpkgs /tmp/myrpm
+
+                                                     --------- source dir --------------------  ------- destination dir ------------
+iqdean@hpdm4:~/u1404/intel-edison/bkups$ rsync -avzh iqdean@192.168.2.15:/home/iqdean/catkin_ws /home/iqdean/u1404/intel-edison/bkups
+
+creates copies contents of /homt/iqdean/catkin_ws into dir 'bkups':
+
+iqdean@hpdm4:~/u1404/intel-edison/bkups$ ls -al
+total 21
+drwxrwxrwx 1 root root   504 Jul  9 13:29 .
+drwxrwxrwx 1 root root 16384 Jul  9 13:17 ..
+drwxrwxrwx 1 root root   448 Dec 31  1999 catkin_ws         <------- source dir and all it's contents
+-rwxrwxrwx 1 root root  1651 Jul  9 13:29 rync-backups.txt
+
+---- backup ----
+
+iqdean@hpdm4:~/u1404/intel-edison/bkups$ ls -al catkin_ws/
+total 21
+drwxrwxrwx 1 root root  448 Dec 31  1999 .
+drwxrwxrwx 1 root root  504 Jul  9 13:32 ..
+drwxrwxrwx 1 root root 4096 Dec 31  1999 build
+-rwxrwxrwx 1 root root   98 Jun 28 20:30 .catkin_workspace
+drwxrwxrwx 1 root root 4096 Dec 31  1999 devel
+drwxrwxrwx 1 root root 4096 Dec 31  1999 install
+drwxrwxrwx 1 root root 4096 Jun 29 17:55 rosbridge-usage
+drwxrwxrwx 1 root root 4096 Dec 31  1999 src
+
+iqdean@hpdm4:~/u1404/intel-edison/bkups$ ls -al catkin_ws/src/
+total 21
+drwxrwxrwx 1 root root 4096 Dec 31  1999 .
+drwxrwxrwx 1 root root  448 Dec 31  1999 ..
+
+lrwxrwxrwx 1 root root  106 Jun 29 09:56 CMakeLists.txt -> /opt/ros/indigo/share/catkin/cmake/toplevel.cmake   <- symlinks are RED
+
+drwxrwxrwx 1 root root 4096 Jun 29 12:25 common_msgs
+drwxrwxrwx 1 root root 4096 Dec 31  1999 robot_base_controller
+drwxrwxrwx 1 root root 4096 Jun 29 13:04 rosauth
+drwxrwxrwx 1 root root 4096 Jun 29 10:02 rosbridge_suite
+iqdean@hpdm4:~/u1404/intel-edison/bkups$ ls -al catkin_ws/src/robot_base_controller/
+total 24
+drwxrwxrwx 1 root root 4096 Dec 31  1999 .
+drwxrwxrwx 1 root root 4096 Dec 31  1999 ..
+-rwxrwxrwx 1 root root 6287 Dec 31  1999 CMakeLists.txt
+drwxrwxrwx 1 root root    0 Dec 31  1999 include
+-rwxrwxrwx 1 root root 2238 Dec 31  1999 package.xml
+drwxrwxrwx 1 root root 4096 Dec 31  1999 scripts
+drwxrwxrwx 1 root root    0 Dec 31  1999 src
+drwxrwxrwx 1 root root    0 Dec 31  1999 srv
+
+iqdean@hpdm4:~/u1404/intel-edison/bkups$ ls -al catkin_ws/src/robot_base_controller/scripts
+total 18
+drwxrwxrwx 1 root root 4096 Dec 31  1999 .
+drwxrwxrwx 1 root root 4096 Dec 31  1999 ..
+-rwxrwxrwx 1 root root  690 Dec 31  1999 add_two_ints_client.py
+-rwxrwxrwx 1 root root  470 Dec 31  1999 add_two_ints_server.py
+-rwxrwxrwx 1 root root  695 Dec 31  1999 listener.py
+-rwxrwxrwx 1 root root  535 Dec 31  1999 talker.py

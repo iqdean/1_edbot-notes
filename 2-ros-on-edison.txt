@@ -1,0 +1,981 @@
+eval ros indigo after installing it:
+REF: acer-c720/2015/2-test-ros-indigo-install.txt
+
+Configuring Your ROS Environment
+
+1. make ROS setup scripts executable
+
+iqdean@ubilinux:~$ ls -al /opt/ros/indigo/
+
+-rw-r--r--  1 root root   260 Jun 28 04:20 setup.bash
+-rw-r--r--  1 root root  2528 Jun 28 04:20 setup.sh
+
+iqdean@ubilinux:~$ sudo chmod +x /opt/ros/indigo/setup.sh
+                   sudo chmod +x /opt/ros/indigo/setup.bash
+
+iqdean@ubilinux:~$ ls -al /opt/ros/indigo/
+
+-rwxr-xr-x  1 root root   260 Jun 28 04:20 setup.bash
+-rwxr-xr-x  1 root root  2528 Jun 28 04:20 setup.sh
+
+1.1 update .bashrc to source ROS setup.bash to set rqd env settings
+
+:~$ cat .bashrc
+  ...
+source /opt/ros/indigo/setup.bash
+
+1.1.1 logout/log back in
+
+1.1.2 check ROS Env settings
+
+iqdean@ubilinux:~$ env | grep ROS
+ROS_ROOT=/opt/ros/indigo/share/ros
+ROS_PACKAGE_PATH=/opt/ros/indigo/share:/opt/ros/indigo/stacks
+ROS_MASTER_URI=http://localhost:11311
+ROS_DISTRO=indigo
+ROS_ETC_DIR=/opt/ros/indigo/etc/ros
+
+create catkin workspace
+------------------------
+
+$ mkdir -p ~/catkin_ws/src	ok
+$ cd ~/catkin_ws/src		ok
+~/catkin_ws/src$ catkin_init_workspace
+
+iqdean@ubilinux:~/catkin_ws/src$ cd ..
+iqdean@ubilinux:~/catkin_ws$
+iqdean@ubilinux:~/catkin_ws$ catkin_make
+
+update .bashrc to source catkin_ws/devel/setup.bash
+
+# Source ROS Indigo Environment settings
+source /opt/ros/indigo/setup.bash
+source /home/iqdean/catkin_ws/devel/setup.bash
+
+logout/log back in
+
+iqdean@ubilinux:~$ env | grep ROS
+ROS_ROOT=/opt/ros/indigo/share/ros
+ROS_PACKAGE_PATH=/home/iqdean/catkin_ws/src:/opt/ros/indigo/share:/opt/ros/indigo/stacks
+ROS_MASTER_URI=http://localhost:11311
+ROS_DISTRO=indigo
+ROS_ETC_DIR=/opt/ros/indigo/etc/ros
+
+ROS COMMAND LINE BASICS   REF: ROScheatsheet_catkin.pdf
+
+iqdean@ubilinux:~/catkin_ws/devel$ ls -l /opt/ros/indigo/bin
+total 176
+-rwxr-xr-x 1 root root  2792 Jun 28 03:43 catkin_find
+-rwxr-xr-x 1 root root  1071 Jun 28 03:43 catkin_init_workspace
+-rwxr-xr-x 1 root root 14251 Jun 28 03:43 catkin_make
+-rwxr-xr-x 1 root root  7630 Jun 28 03:43 catkin_make_isolated
+-rwxr-xr-x 1 root root  1614 Jun 28 03:43 catkin_package_version
+-rwxr-xr-x 1 root root 19810 Jun 28 03:43 catkin_prepare_release
+-rwxr-xr-x 1 root root  1720 Jun 28 03:43 catkin_test_results
+-rwxr-xr-x 1 root root  2414 Jun 28 03:43 catkin_topological_order
+-rwxr-xr-x 1 root root  1657 Jun 28 04:22 rosbag
+-rwxr-xr-x 1 root root  1663 Jun 28 03:46 rosboost-cfg
+-rwxr-xr-x 1 root root  1664 Jun 28 03:46 rosclean
+-rwxr-xr-x 1 root root    65 Jun 28 03:51 rosconsole
+-rwxr-xr-x 1 root root  3025 Jun 28 03:53 roscore
+-rwxr-xr-x 1 root root  1683 Jun 28 03:47 roscreate-pkg
+-rwxr-xr-x 1 root root  1760 Jun 28 03:47 rosgraph
+-rwxr-xr-x 1 root root  1657 Jun 28 03:53 roslaunch
+-rwxr-xr-x 1 root root  2433 Jun 28 03:53 roslaunch-complete
+-rwxr-xr-x 1 root root  1688 Jun 28 03:53 roslaunch-deps
+-rwxr-xr-x 1 root root  1692 Jun 28 03:53 roslaunch-logs
+-rwxr-xr-x 1 root root  2678 Jun 28 03:47 rosmake
+-rwxr-xr-x 1 root root  1667 Jun 28 03:48 rosmaster
+-rwxr-xr-x 1 root root  1657 Jun 28 03:48 rosmsg
+-rwxr-xr-x 1 root root  2032 Jun 28 03:48 rosmsg-proto
+-rwxr-xr-x 1 root root  1660 Jun 28 04:16 rosnode
+-rwxr-xr-x 1 root root  7150 Jun 28 03:49 rospack
+-rwxr-xr-x 1 root root  1659 Jun 28 03:51 rosparam
+-rwxr-xr-x 1 root root  2721 Jun 27 22:15 rosrun
+-rwxr-xr-x 1 root root  1669 Jun 28 03:51 rosservice
+-rwxr-xr-x 1 root root  1700 Jun 28 03:48 rossrv
+-rwxr-xr-x 1 root root  7153 Jun 28 03:49 rosstack
+-rwxr-xr-x 1 root root  1670 Jun 28 03:57 rostest
+-rwxr-xr-x 1 root root  1663 Jun 28 04:16 rostopic
+-rwxr-xr-x 1 root root  1686 Jun 28 03:53 rosunit
+-rwxr-xr-x 1 root root  1658 Jun 28 04:16 roswtf
+
+
+iqdean@ubilinux:~$ roscd
+iqdean@ubilinux:~/catkin_ws/devel$
+
+iqdean@ubilinux:~/catkin_ws/devel$ roscd roscpp
+iqdean@ubilinux:/opt/ros/indigo/share/roscpp$
+
+iqdean@ubilinux:/opt/ros/indigo/share/roscpp$ roscd
+iqdean@ubilinux:~/catkin_ws/devel$
+
+$ rospack help
+
+iqdean@ubilinux:~/catkin_ws/devel$ rospack find roscpp
+/opt/ros/indigo/share/roscpp
+
+iqdean@ubilinux:~/catkin_ws/devel$ rospack list
+catkin /opt/ros/indigo/share/catkin
+cmake_modules /opt/ros/indigo/share/cmake_modules
+cpp_common /opt/ros/indigo/share/cpp_common
+gencpp /opt/ros/indigo/share/gencpp
+genlisp /opt/ros/indigo/share/genlisp
+genmsg /opt/ros/indigo/share/genmsg
+genpy /opt/ros/indigo/share/genpy
+message_filters /opt/ros/indigo/share/message_filters
+message_generation /opt/ros/indigo/share/message_generation
+message_runtime /opt/ros/indigo/share/message_runtime
+mk /opt/ros/indigo/share/mk
+rosbag /opt/ros/indigo/share/rosbag
+rosbag_storage /opt/ros/indigo/share/rosbag_storage
+rosbash /opt/ros/indigo/share/rosbash
+rosboost_cfg /opt/ros/indigo/share/rosboost_cfg
+rosbuild /opt/ros/indigo/share/rosbuild
+rosclean /opt/ros/indigo/share/rosclean
+rosconsole /opt/ros/indigo/share/rosconsole
+roscpp /opt/ros/indigo/share/roscpp
+roscpp_serialization /opt/ros/indigo/share/roscpp_serialization
+roscpp_traits /opt/ros/indigo/share/roscpp_traits
+roscreate /opt/ros/indigo/share/roscreate
+rosgraph /opt/ros/indigo/share/rosgraph
+rosgraph_msgs /opt/ros/indigo/share/rosgraph_msgs
+roslang /opt/ros/indigo/share/roslang
+roslaunch /opt/ros/indigo/share/roslaunch
+roslib /opt/ros/indigo/share/roslib
+roslz4 /opt/ros/indigo/share/roslz4
+rosmake /opt/ros/indigo/share/rosmake
+rosmaster /opt/ros/indigo/share/rosmaster
+rosmsg /opt/ros/indigo/share/rosmsg
+rosnode /opt/ros/indigo/share/rosnode
+rosout /opt/ros/indigo/share/rosout
+rospack /opt/ros/indigo/share/rospack
+rosparam /opt/ros/indigo/share/rosparam
+rospy /opt/ros/indigo/share/rospy
+rosservice /opt/ros/indigo/share/rosservice
+rostest /opt/ros/indigo/share/rostest
+rostime /opt/ros/indigo/share/rostime
+rostopic /opt/ros/indigo/share/rostopic
+rosunit /opt/ros/indigo/share/rosunit
+roswtf /opt/ros/indigo/share/roswtf
+std_msgs /opt/ros/indigo/share/std_msgs
+std_srvs /opt/ros/indigo/share/std_srvs
+topic_tools /opt/ros/indigo/share/topic_tools
+xmlrpcpp /opt/ros/indigo/share/xmlrpcpp
+
+----- Install rosbridge_suite from source ------
+
+iqdean@ubilinux:~/catkin_ws/src$ wstool init
+
+iqdean@ubilinux:~/catkin_ws/src$ wstool set rosbridge_suite --git https://github.com/RobotWebTools/rosbridge_suite.git
+iqdean@ubilinux:~/catkin_ws/src$ wstool update rosbridge_suite
+
+iqdean@ubilinux:~/catkin_ws/src$ wstool set common_msgs --git https://github.com/ros/common_msgs.git
+iqdean@ubilinux:~/catkin_ws/src$ wstool update common_msgs
+
+iqdean@ubilinux:~/catkin_ws/src$ cd ..
+iqdean@ubilinux:~/catkin_ws$ ls src
+CMakeLists.txt  common_msgs  rosbridge_suite
+iqdean@ubilinux:~/catkin_ws$ catkin_make
+
+
+iqdean@ubilinux:~/catkin_ws$ rospack find rosbridge_server
+/home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_server
+
+iqdean@ubilinux:~/catkin_ws$ rospack find rosbridge_websocket
+[rospack] Error: package 'rosbridge_websocket' not found      <--rospack wont find it even though it exits??
+
+iqdean@ubilinux:~/catkin_ws/src/rosbridge_suite$ roslaunch rosbridge_server rosbridge_websocket.launch
+
+... logging to /home/iqdean/.ros/log/0a70f4d6-3dd0-11e6-bdeb-784b87a69877/roslaunch-ubilinux-3167.log
+Checking log directory for disk usage. This may take awhile.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+
+started roslaunch server http://ubilinux:43746/
+
+SUMMARY
+========
+
+PARAMETERS
+ * /rosbridge_websocket/address:
+ * /rosbridge_websocket/authenticate: False
+ * /rosbridge_websocket/delay_between_messages: 0
+ * /rosbridge_websocket/fragment_timeout: 600
+ * /rosbridge_websocket/max_message_size: None
+ * /rosbridge_websocket/port: 9090
+ * /rosbridge_websocket/retry_startup_delay: 5
+ * /rosdistro: indigo
+ * /rosversion: 1.11.20
+
+NODES
+  /
+    rosapi (rosapi/rosapi_node)
+    rosbridge_websocket (rosbridge_server/rosbridge_websocket)
+
+auto-starting new master
+process[master]: started with pid [3180]
+ROS_MASTER_URI=http://localhost:11311
+
+setting /run_id to 0a70f4d6-3dd0-11e6-bdeb-784b87a69877
+process[rosout-1]: started with pid [3193]
+started core service [/rosout]
+process[rosbridge_websocket-2]: started with pid [3196]
+process[rosapi-3]: started with pid [3197]
+Traceback (most recent call last):
+  File "/home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_server/scripts/rosbridge_websocket", line 39, in <module>
+    from tornado.ioloop import IOLoop
+ImportError: No module named tornado.ioloop
+Traceback (most recent call last):
+  File "/home/iqdean/catkin_ws/src/rosbridge_suite/rosapi/scripts/rosapi_node", line 36, in <module>
+    from rosapi import proxy, objectutils, params
+ImportError: No module named rosapi
+
+[rosbridge_websocket-2] process has died [pid 3196, exit code 1, cmd /home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_server/scripts/rosbridge_websocket __name:=rosbridge_websocket __log:=/home/iqdean/.ros/log/0a70f4d6-3dd0-11e6-bdeb-784b87a69877/rosbridge_websocket-2.log].
+log file: /home/iqdean/.ros/log/0a70f4d6-3dd0-11e6-bdeb-784b87a69877/rosbridge_websocket-2*.log
+[rosapi-3] process has died [pid 3197, exit code 1, cmd /home/iqdean/catkin_ws/src/rosbridge_suite/rosapi/scripts/rosapi_node __name:=rosapi __log:=/home/iqdean/.ros/log/0a70f4d6-3dd0-11e6-bdeb-784b87a69877/rosapi-3.log].
+log file: /home/iqdean/.ros/log/0a70f4d6-3dd0-11e6-bdeb-784b87a69877/rosapi-3*.log
+^C[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+done
+
+--- see if setting PYTHONPATH wit rosapi gets us past this ?? ---
+
+iqdean@ubilinux:~/catkin_ws/src/rosbridge_suite$ env |grep PYTHONPATH
+PYTHONPATH=/opt/ros/indigo/lib/python2.7/dist-packages:/usr/local/lib/python2.7/site-packages
+
+iqdean@ubilinux:~/catkin_ws/src/rosbridge_suite$ echo $PYTHONPATH
+/opt/ros/indigo/lib/python2.7/dist-packages:/usr/local/lib/python2.7/site-packages
+
+
+
+├── rosapi
+│   ├── CHANGELOG.rst
+│   ├── CMakeLists.txt
+│   ├── msg
+│   │   └── TypeDef.msg
+│   ├── package.xml
+│   ├── scripts
+│   │   └── rosapi_node
+│   ├── setup.py
+│   ├── src
+│   │   └── rosapi
+│   │       ├── __init__.py
+│   │       ├── objectutils.py
+│   │       ├── params.py
+│   │       └── proxy.py
+
+/home/iqdean/catkin_ws/src/rosbridge_suite/rosapi/src/rosapi/
+
+PYTHONPATH=$PYTHONPATH:/home/iqdean/catkin_ws/src/rosbridge_suite/rosapi/src/rosapi
+
+iqdean@ubilinux:~/catkin_ws/src/rosbridge_suite$ echo $PYTHONPATH /opt/ros/indigo/lib/python2.7/dist-packages:/usr/local/lib/python2.7/site-packages:/home/iqdean/catkin_ws/src/rosbridge_suite/rosapi/src/rosapi
+
+>>> still same error <<<
+
+
+
+
+
+
+
+
+iqdean@ubilinux:~/catkin_ws/src/rosbridge_suite$ tree
+.
+├── AUTHORS.md
+├── CHANGELOG.md
+├── LICENSE
+├── README.md
+├── rosapi
+│   ├── CHANGELOG.rst
+│   ├── CMakeLists.txt
+│   ├── msg
+│   │   └── TypeDef.msg
+│   ├── package.xml
+│   ├── scripts
+│   │   └── rosapi_node
+│   ├── setup.py
+│   ├── src
+│   │   └── rosapi
+│   │       ├── __init__.py
+│   │       ├── objectutils.py
+│   │       ├── params.py
+│   │       └── proxy.py
+│   └── srv
+│       ├── DeleteParam.srv
+│       ├── GetParamNames.srv
+│       ├── GetParam.srv
+│       ├── GetTime.srv
+│       ├── HasParam.srv
+│       ├── MessageDetails.srv
+│       ├── Nodes.srv
+│       ├── Publishers.srv
+│       ├── SearchParam.srv
+│       ├── ServiceHost.srv
+│       ├── ServiceNode.srv
+│       ├── ServiceProviders.srv
+│       ├── ServiceRequestDetails.srv
+│       ├── ServiceResponseDetails.srv
+│       ├── ServicesForType.srv
+│       ├── Services.srv
+│       ├── ServiceType.srv
+│       ├── SetParam.srv
+│       ├── Subscribers.srv
+│       ├── TopicsForType.srv
+│       ├── Topics.srv
+│       └── TopicType.srv
+├── rosbridge_library
+│   ├── CHANGELOG.rst
+│   ├── CMakeLists.txt
+│   ├── msg
+│   │   ├── Num.msg
+│   │   ├── TestChar.msg
+│   │   ├── TestDurationArray.msg
+│   │   ├── TestHeaderArray.msg
+│   │   ├── TestHeader.msg
+│   │   ├── TestHeaderTwo.msg
+│   │   ├── TestTimeArray.msg
+│   │   ├── TestUInt8FixedSizeArray16.msg
+│   │   └── TestUInt8.msg
+│   ├── package.xml
+│   ├── setup.py
+│   ├── src
+│   │   └── rosbridge_library
+│   │       ├── capabilities
+│   │       │   ├── advertise.py
+│   │       │   ├── advertise_service.py
+│   │       │   ├── call_service.py
+│   │       │   ├── defragmentation.py
+│   │       │   ├── fragmentation.py
+│   │       │   ├── __init__.py
+│   │       │   ├── publish.py
+│   │       │   ├── service_response.py
+│   │       │   ├── subscribe.py
+│   │       │   └── unadvertise_service.py
+│   │       ├── capability.py
+│   │       ├── __init__.py
+│   │       ├── internal
+│   │       │   ├── exceptions.py
+│   │       │   ├── __init__.py
+│   │       │   ├── message_conversion.py
+│   │       │   ├── pngcompression.py
+│   │       │   ├── publishers.py
+│   │       │   ├── ros_loader.py
+│   │       │   ├── services.py
+│   │       │   ├── subscribers.py
+│   │       │   ├── subscription_modifiers.py
+│   │       │   └── topics.py
+│   │       ├── protocol.py
+│   │       ├── rosbridge_protocol.py
+│   │       └── util
+│   │           └── __init__.py
+│   ├── srv
+│   │   ├── AddTwoInts.srv
+│   │   ├── SendBytes.srv
+│   │   ├── TestArrayRequest.srv
+│   │   ├── TestEmpty.srv
+│   │   ├── TestMultipleRequestFields.srv
+│   │   ├── TestMultipleResponseFields.srv
+│   │   ├── TestNestedService.srv
+│   │   ├── TestRequestAndResponse.srv
+│   │   ├── TestRequestOnly.srv
+│   │   └── TestResponseOnly.srv
+│   └── test
+│       ├── capabilities
+│       │   ├── __init__.py
+│       │   ├── test_advertise.py
+│       │   ├── test_call_service.py
+│       │   ├── test_capabilities.test
+│       │   ├── test_publish.py
+│       │   └── test_subscribe.py
+│       ├── experimental
+│       │   ├── complex_srv+tcp
+│       │   │   ├── test_non-ros_service_client_complex-srv.py
+│       │   │   └── test_non-ros_service_server_complex-srv.py
+│       │   └── fragmentation+srv+tcp
+│       │       ├── test_non-ros_service_client_fragmented.py
+│       │       └── test_non-ros_service_server_fragmented.py
+│       ├── __init__.py
+│       ├── internal
+│       │   ├── __init__.py
+│       │   ├── publishers
+│       │   │   ├── __init__.py
+│       │   │   ├── test_multi_publisher.py
+│       │   │   ├── test_multi_unregistering.py
+│       │   │   ├── test_publisher_consistency_listener.py
+│       │   │   └── test_publisher_manager.py
+│       │   ├── subscribers
+│       │   │   ├── __init__.py
+│       │   │   ├── test_multi_subscriber.py
+│       │   │   ├── test_subscriber_manager.py
+│       │   │   └── test_subscription_modifiers.py
+│       │   ├── test_compression.py
+│       │   ├── test_internal.test
+│       │   ├── test_message_conversion.py
+│       │   ├── test_ros_loader.py
+│       │   └── test_services.py
+│       └── test_all.test
+├── ROSBRIDGE_PROTOCOL.md
+├── rosbridge_server
+│   ├── CHANGELOG.rst
+│   ├── CMakeLists.txt
+│   ├── launch
+│   │   ├── rosbridge_tcp.launch
+│   │   ├── rosbridge_udp.launch
+│   │   └── rosbridge_websocket.launch
+│   ├── package.xml
+│   ├── scripts
+│   │   ├── rosbridge_tcp -> ./rosbridge_tcp.py
+│   │   ├── rosbridge_tcp.py
+│   │   ├── rosbridge_udp -> rosbridge_udp.py
+│   │   ├── rosbridge_udp.py
+│   │   ├── rosbridge_websocket -> rosbridge_websocket.py
+│   │   └── rosbridge_websocket.py
+│   ├── setup.py
+│   └── src
+│       ├── backports
+│       │   ├── __init__.py
+│       │   └── ssl_match_hostname
+│       │       ├── __init__.py
+│       │       ├── LICENSE.txt
+│       │       └── README.txt
+│       ├── rosbridge_server
+│       │   ├── __init__.py
+│       │   ├── tcp_handler.py
+│       │   ├── udp_handler.py
+│       │   └── websocket_handler.py
+│       └── tornado
+│           ├── auth.py
+│           ├── autoreload.py
+│           ├── concurrent.py
+│           ├── curl_httpclient.py
+│           ├── escape.py
+│           ├── gen.py
+│           ├── http1connection.py
+│           ├── httpclient.py
+│           ├── httpserver.py
+│           ├── httputil.py
+│           ├── __init__.py
+│           ├── ioloop.py
+│           ├── iostream.py
+│           ├── locale.py
+│           ├── log.py
+│           ├── netutil.py
+│           ├── options.py
+│           ├── platform
+│           │   ├── asyncio.py
+│           │   ├── auto.py
+│           │   ├── caresresolver.py
+│           │   ├── common.py
+│           │   ├── epoll.py
+│           │   ├── __init__.py
+│           │   ├── interface.py
+│           │   ├── kqueue.py
+│           │   ├── posix.py
+│           │   ├── select.py
+│           │   ├── twisted.py
+│           │   └── windows.py
+│           ├── process.py
+│           ├── simple_httpclient.py
+│           ├── speedups.c
+│           ├── stack_context.py
+│           ├── tcpclient.py
+│           ├── tcpserver.py
+│           ├── template.py
+│           ├── test
+│           │   ├── auth_test.py
+│           │   ├── concurrent_test.py
+│           │   ├── csv_translations
+│           │   │   └── fr_FR.csv
+│           │   ├── curl_httpclient_test.py
+│           │   ├── escape_test.py
+│           │   ├── gen_test.py
+│           │   ├── gettext_translations
+│           │   │   └── fr_FR
+│           │   │       └── LC_MESSAGES
+│           │   │           ├── tornado_test.mo
+│           │   │           └── tornado_test.po
+│           │   ├── httpclient_test.py
+│           │   ├── httpserver_test.py
+│           │   ├── httputil_test.py
+│           │   ├── import_test.py
+│           │   ├── __init__.py
+│           │   ├── ioloop_test.py
+│           │   ├── iostream_test.py
+│           │   ├── locale_test.py
+│           │   ├── log_test.py
+│           │   ├── __main__.py
+│           │   ├── netutil_test.py
+│           │   ├── options_test.cfg
+│           │   ├── options_test.py
+│           │   ├── process_test.py
+│           │   ├── README
+│           │   ├── resolve_test_helper.py
+│           │   ├── runtests.py
+│           │   ├── simple_httpclient_test.py
+│           │   ├── stack_context_test.py
+│           │   ├── static
+│           │   │   ├── dir
+│           │   │   │   └── index.html
+│           │   │   └── robots.txt
+│           │   ├── tcpclient_test.py
+│           │   ├── templates
+│           │   │   └── utf8.html
+│           │   ├── template_test.py
+│           │   ├── test.crt
+│           │   ├── testing_test.py
+│           │   ├── test.key
+│           │   ├── twisted_test.py
+│           │   ├── util.py
+│           │   ├── util_test.py
+│           │   ├── websocket_test.py
+│           │   ├── web_test.py
+│           │   └── wsgi_test.py
+│           ├── testing.py
+│           ├── util.py
+│           ├── web.py
+│           ├── websocket.py
+│           └── wsgi.py
+└── rosbridge_suite
+    ├── CHANGELOG.rst
+    ├── CMakeLists.txt
+    └── package.xml
+
+40 directories, 218 files
+
+
+
+
+
+
+
+
+--- BACKUP console spew installing/building ros packages from source -----
+
+iqdean@ubilinux:~/catkin_ws/src$ wstool init
+Writing /home/iqdean/catkin_ws/src/.rosinstall
+
+update complete.
+
+iqdean@ubilinux:~/catkin_ws/src$ wstool set rosbridge_suite --git https://github.com/RobotWebTools/rosbridge_suite.git
+
+     Add new elements:
+  rosbridge_suite       git  https://github.com/RobotWebTools/rosbridge_suite.git
+
+Continue: (y)es, (n)o: y
+Overwriting /home/iqdean/catkin_ws/src/.rosinstall
+Config changed, remember to run 'wstool update rosbridge_suite' to update the folder from git
+
+iqdean@ubilinux:~/catkin_ws/src$ wstool update
+[rosbridge_suite] Fetching https://github.com/RobotWebTools/rosbridge_suite.git (version None) to /home/iqdean/catkin_ws/src/rosbridge_suite
+Cloning into '/home/iqdean/catkin_ws/src/rosbridge_suite'...
+remote: Counting objects: 4171, done.
+remote: Compressing objects: 100% (24/24), done.
+remote: Total 4171 (delta 12), reused 0 (delta 0), pack-reused 4147
+Receiving objects: 100% (4171/4171), 2.08 MiB | 642 KiB/s, done.
+Resolving deltas: 100% (2244/2244), done.
+perl: warning: Setting locale failed.
+perl: warning: Please check that your locale settings:
+        LANGUAGE = (unset),
+        LC_ALL = (unset),
+        LANG = "en_US.UTF-8"
+    are supported and installed on your system.
+perl: warning: Falling back to the standard locale ("C").
+perl: warning: Setting locale failed.
+perl: warning: Please check that your locale settings:
+        LANGUAGE = (unset),
+        LC_ALL = (unset),
+        LANG = "en_US.UTF-8"
+    are supported and installed on your system.
+perl: warning: Falling back to the standard locale ("C").
+[rosbridge_suite] Done.
+
+iqdean@ubilinux:~/catkin_ws$ rosdep install rosbridge_suite
+#All required rosdeps installed successfully
+
+iqdean@ubilinux:~/catkin_ws/src$ wstool set common_msgs --git https://github.com/ros/common_msgs.git
+
+     Add new elements:
+  common_msgs           git  https://github.com/ros/common_msgs.git
+
+Continue: (y)es, (n)o: Y
+==========================================
+
+     Add new elements:
+  common_msgs           git  https://github.com/ros/common_msgs.git
+
+Continue: (y)es, (n)o: y
+Overwriting /home/iqdean/catkin_ws/src/.rosinstall
+Config changed, remember to run 'wstool update common_msgs' to update the folder from git
+iqdean@ubilinux:~/catkin_ws/src$ wstool update common_msgs
+[common_msgs] Fetching https://github.com/ros/common_msgs.git (version None) to /home/iqdean/catkin_ws/src/common_msgs
+Cloning into '/home/iqdean/catkin_ws/src/common_msgs'...
+remote: Counting objects: 5738, done.
+remote: Total 5738 (delta 0), reused 0 (delta 0), pack-reused 5738
+Receiving objects: 100% (5738/5738), 1.10 MiB | 547 KiB/s, done.
+Resolving deltas: 100% (3143/3143), done.
+perl: warning: Setting locale failed.
+perl: warning: Please check that your locale settings:
+        LANGUAGE = (unset),
+        LC_ALL = (unset),
+        LANG = "en_US.UTF-8"
+    are supported and installed on your system.
+perl: warning: Falling back to the standard locale ("C").
+perl: warning: Setting locale failed.
+perl: warning: Please check that your locale settings:
+        LANGUAGE = (unset),
+        LC_ALL = (unset),
+        LANG = "en_US.UTF-8"
+    are supported and installed on your system.
+perl: warning: Falling back to the standard locale ("C").
+[common_msgs] Done.
+iqdean@ubilinux:~/catkin_ws/src$ cd ..
+iqdean@ubilinux:~/catkin_ws$ ls src
+CMakeLists.txt  common_msgs  rosbridge_suite
+iqdean@ubilinux:~/catkin_ws$ catkin_make help
+Base path: /home/iqdean/catkin_ws
+Source space: /home/iqdean/catkin_ws/src
+Build space: /home/iqdean/catkin_ws/build
+Devel space: /home/iqdean/catkin_ws/devel
+Install space: /home/iqdean/catkin_ws/install
+####
+#### Running command: "cmake /home/iqdean/catkin_ws/src -DCATKIN_DEVEL_PREFIX=/home/iqdean/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/iqdean/catkin_ws/install -G Unix Makefiles" in "/home/iqdean/catkin_ws/build"
+####
+-- Using CATKIN_DEVEL_PREFIX: /home/iqdean/catkin_ws/devel
+-- Using CMAKE_PREFIX_PATH: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- This workspace overlays: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- Using PYTHON_EXECUTABLE: /usr/bin/python
+-- Using Debian Python package layout
+-- Using empy: /usr/bin/empy
+-- Using CATKIN_ENABLE_TESTING: ON
+-- Call enable_testing()
+-- Using CATKIN_TEST_RESULTS_DIR: /home/iqdean/catkin_ws/build/test_results
+-- Found gtest sources under '/usr/src/gtest': gtests will be built
+-- Using Python nosetests: /usr/bin/nosetests-2.7
+-- catkin 0.6.18
+-- BUILD_SHARED_LIBS is on
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- ~~  traversing 14 packages in topological order:
+-- ~~  - common_msgs (metapackage)
+-- ~~  - rosbridge_suite (metapackage)
+-- ~~  - actionlib_msgs
+-- ~~  - diagnostic_msgs
+-- ~~  - geometry_msgs
+-- ~~  - nav_msgs
+-- ~~  - sensor_msgs
+-- ~~  - shape_msgs
+-- ~~  - stereo_msgs
+-- ~~  - trajectory_msgs
+-- ~~  - visualization_msgs
+-- ~~  - rosapi
+-- ~~  - rosbridge_library
+-- ~~  - rosbridge_server
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- +++ processing catkin metapackage: 'common_msgs'
+-- ==> add_subdirectory(common_msgs/common_msgs)
+-- +++ processing catkin metapackage: 'rosbridge_suite'
+-- ==> add_subdirectory(rosbridge_suite/rosbridge_suite)
+-- +++ processing catkin package: 'actionlib_msgs'
+-- ==> add_subdirectory(common_msgs/actionlib_msgs)
+-- Using these message generators: gencpp;genlisp;genpy
+-- actionlib_msgs: 3 messages, 0 services
+-- +++ processing catkin package: 'diagnostic_msgs'
+-- ==> add_subdirectory(common_msgs/diagnostic_msgs)
+-- Using these message generators: gencpp;genlisp;genpy
+-- diagnostic_msgs: 3 messages, 2 services
+-- +++ processing catkin package: 'geometry_msgs'
+-- ==> add_subdirectory(common_msgs/geometry_msgs)
+-- Using these message generators: gencpp;genlisp;genpy
+-- geometry_msgs: 29 messages, 0 services
+-- +++ processing catkin package: 'nav_msgs'
+-- ==> add_subdirectory(common_msgs/nav_msgs)
+-- Using these message generators: gencpp;genlisp;genpy
+-- Generating .msg files for action nav_msgs/GetMap /home/iqdean/catkin_ws/src/common_msgs/nav_msgs/action/GetMap.action
+Generating for action GetMap
+-- nav_msgs: 12 messages, 3 services
+-- +++ processing catkin package: 'sensor_msgs'
+-- ==> add_subdirectory(common_msgs/sensor_msgs)
+-- Using these message generators: gencpp;genlisp;genpy
+-- sensor_msgs: 27 messages, 1 services
+-- +++ processing catkin package: 'shape_msgs'
+-- ==> add_subdirectory(common_msgs/shape_msgs)
+-- Using these message generators: gencpp;genlisp;genpy
+-- shape_msgs: 4 messages, 0 services
+-- +++ processing catkin package: 'stereo_msgs'
+-- ==> add_subdirectory(common_msgs/stereo_msgs)
+-- Using these message generators: gencpp;genlisp;genpy
+-- stereo_msgs: 1 messages, 0 services
+-- +++ processing catkin package: 'trajectory_msgs'
+-- ==> add_subdirectory(common_msgs/trajectory_msgs)
+-- Using these message generators: gencpp;genlisp;genpy
+-- trajectory_msgs: 4 messages, 0 services
+-- +++ processing catkin package: 'visualization_msgs'
+-- ==> add_subdirectory(common_msgs/visualization_msgs)
+-- Using these message generators: gencpp;genlisp;genpy
+-- visualization_msgs: 10 messages, 0 services
+-- +++ processing catkin package: 'rosapi'
+-- ==> add_subdirectory(rosbridge_suite/rosapi)
+-- Using these message generators: gencpp;genlisp;genpy
+-- rosapi: 1 messages, 22 services
+-- +++ processing catkin package: 'rosbridge_library'
+-- ==> add_subdirectory(rosbridge_suite/rosbridge_library)
+-- Using these message generators: gencpp;genlisp;genpy
+-- rosbridge_library: 9 messages, 10 services
+-- +++ processing catkin package: 'rosbridge_server'
+-- ==> add_subdirectory(rosbridge_suite/rosbridge_server)
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/iqdean/catkin_ws/build
+####
+#### Running command: "make help -j2 -l2" in "/home/iqdean/catkin_ws/build"
+####
+The following are some of the valid targets for this Makefile:
+... all (the default if no target is provided)
+... clean
+... depend
+... clean_test_results
+... download_extra_data
+... doxygen
+... edit_cache
+... install
+... install/local
+... install/strip
+... list_install_components
+... rebuild_cache
+... run_tests
+... test
+... tests
+... gtest
+... gtest_main
+... _catkin_empty_exported_target
+... _actionlib_msgs_generate_messages_check_deps_GoalID
+... _actionlib_msgs_generate_messages_check_deps_GoalStatus
+... _actionlib_msgs_generate_messages_check_deps_GoalStatusArray
+... actionlib_msgs_gencpp
+... actionlib_msgs_generate_messages
+... actionlib_msgs_generate_messages_cpp
+... actionlib_msgs_generate_messages_lisp
+... actionlib_msgs_generate_messages_py
+... actionlib_msgs_genlisp
+... actionlib_msgs_genpy
+... std_msgs_generate_messages_cpp
+... std_msgs_generate_messages_lisp
+... std_msgs_generate_messages_py
+... _diagnostic_msgs_generate_messages_check_deps_AddDiagnostics
+... _diagnostic_msgs_generate_messages_check_deps_DiagnosticArray
+... _diagnostic_msgs_generate_messages_check_deps_DiagnosticStatus
+... _diagnostic_msgs_generate_messages_check_deps_KeyValue
+... _diagnostic_msgs_generate_messages_check_deps_SelfTest
+... diagnostic_msgs_gencpp
+... diagnostic_msgs_generate_messages
+... diagnostic_msgs_generate_messages_cpp
+... diagnostic_msgs_generate_messages_lisp
+... diagnostic_msgs_generate_messages_py
+... diagnostic_msgs_genlisp
+... diagnostic_msgs_genpy
+... _geometry_msgs_generate_messages_check_deps_Accel
+... _geometry_msgs_generate_messages_check_deps_AccelStamped
+... _geometry_msgs_generate_messages_check_deps_AccelWithCovariance
+... _geometry_msgs_generate_messages_check_deps_AccelWithCovarianceStamped
+... _geometry_msgs_generate_messages_check_deps_Inertia
+... _geometry_msgs_generate_messages_check_deps_InertiaStamped
+... _geometry_msgs_generate_messages_check_deps_Point
+... _geometry_msgs_generate_messages_check_deps_Point32
+... _geometry_msgs_generate_messages_check_deps_PointStamped
+... _geometry_msgs_generate_messages_check_deps_Polygon
+... _geometry_msgs_generate_messages_check_deps_PolygonStamped
+... _geometry_msgs_generate_messages_check_deps_Pose
+... _geometry_msgs_generate_messages_check_deps_Pose2D
+... _geometry_msgs_generate_messages_check_deps_PoseArray
+... _geometry_msgs_generate_messages_check_deps_PoseStamped
+... _geometry_msgs_generate_messages_check_deps_PoseWithCovariance
+... _geometry_msgs_generate_messages_check_deps_PoseWithCovarianceStamped
+... _geometry_msgs_generate_messages_check_deps_Quaternion
+... _geometry_msgs_generate_messages_check_deps_QuaternionStamped
+... _geometry_msgs_generate_messages_check_deps_Transform
+... _geometry_msgs_generate_messages_check_deps_TransformStamped
+... _geometry_msgs_generate_messages_check_deps_Twist
+... _geometry_msgs_generate_messages_check_deps_TwistStamped
+... _geometry_msgs_generate_messages_check_deps_TwistWithCovariance
+... _geometry_msgs_generate_messages_check_deps_TwistWithCovarianceStamped
+... _geometry_msgs_generate_messages_check_deps_Vector3
+... _geometry_msgs_generate_messages_check_deps_Vector3Stamped
+... _geometry_msgs_generate_messages_check_deps_Wrench
+... _geometry_msgs_generate_messages_check_deps_WrenchStamped
+... geometry_msgs_gencpp
+... geometry_msgs_generate_messages
+... geometry_msgs_generate_messages_cpp
+... geometry_msgs_generate_messages_lisp
+... geometry_msgs_generate_messages_py
+... geometry_msgs_genlisp
+... geometry_msgs_genpy
+... _nav_msgs_generate_messages_check_deps_GetMap
+... _nav_msgs_generate_messages_check_deps_GetMapAction
+... _nav_msgs_generate_messages_check_deps_GetMapActionFeedback
+... _nav_msgs_generate_messages_check_deps_GetMapActionGoal
+... _nav_msgs_generate_messages_check_deps_GetMapActionResult
+... _nav_msgs_generate_messages_check_deps_GetMapFeedback
+... _nav_msgs_generate_messages_check_deps_GetMapGoal
+... _nav_msgs_generate_messages_check_deps_GetMapResult
+... _nav_msgs_generate_messages_check_deps_GetPlan
+... _nav_msgs_generate_messages_check_deps_GridCells
+... _nav_msgs_generate_messages_check_deps_MapMetaData
+... _nav_msgs_generate_messages_check_deps_OccupancyGrid
+... _nav_msgs_generate_messages_check_deps_Odometry
+... _nav_msgs_generate_messages_check_deps_Path
+... _nav_msgs_generate_messages_check_deps_SetMap
+... nav_msgs_gencpp
+... nav_msgs_generate_messages
+... nav_msgs_generate_messages_cpp
+... nav_msgs_generate_messages_lisp
+... nav_msgs_generate_messages_py
+... nav_msgs_genlisp
+... nav_msgs_genpy
+... _sensor_msgs_generate_messages_check_deps_BatteryState
+... _sensor_msgs_generate_messages_check_deps_CameraInfo
+... _sensor_msgs_generate_messages_check_deps_ChannelFloat32
+... _sensor_msgs_generate_messages_check_deps_CompressedImage
+... _sensor_msgs_generate_messages_check_deps_FluidPressure
+... _sensor_msgs_generate_messages_check_deps_Illuminance
+... _sensor_msgs_generate_messages_check_deps_Image
+... _sensor_msgs_generate_messages_check_deps_Imu
+... _sensor_msgs_generate_messages_check_deps_JointState
+... _sensor_msgs_generate_messages_check_deps_Joy
+... _sensor_msgs_generate_messages_check_deps_JoyFeedback
+... _sensor_msgs_generate_messages_check_deps_JoyFeedbackArray
+... _sensor_msgs_generate_messages_check_deps_LaserEcho
+... _sensor_msgs_generate_messages_check_deps_LaserScan
+... _sensor_msgs_generate_messages_check_deps_MagneticField
+... _sensor_msgs_generate_messages_check_deps_MultiDOFJointState
+... _sensor_msgs_generate_messages_check_deps_MultiEchoLaserScan
+... _sensor_msgs_generate_messages_check_deps_NavSatFix
+... _sensor_msgs_generate_messages_check_deps_NavSatStatus
+... _sensor_msgs_generate_messages_check_deps_PointCloud
+... _sensor_msgs_generate_messages_check_deps_PointCloud2
+... _sensor_msgs_generate_messages_check_deps_PointField
+... _sensor_msgs_generate_messages_check_deps_Range
+... _sensor_msgs_generate_messages_check_deps_RegionOfInterest
+... _sensor_msgs_generate_messages_check_deps_RelativeHumidity
+... _sensor_msgs_generate_messages_check_deps_SetCameraInfo
+... _sensor_msgs_generate_messages_check_deps_Temperature
+... _sensor_msgs_generate_messages_check_deps_TimeReference
+... sensor_msgs_gencpp
+... sensor_msgs_generate_messages
+... sensor_msgs_generate_messages_cpp
+... sensor_msgs_generate_messages_lisp
+... sensor_msgs_generate_messages_py
+... sensor_msgs_genlisp
+... sensor_msgs_genpy
+... _run_tests_sensor_msgs
+... _run_tests_sensor_msgs_gtest
+... _run_tests_sensor_msgs_gtest_sensor_msgs_test
+... clean_test_results_sensor_msgs
+... run_tests_sensor_msgs
+... run_tests_sensor_msgs_gtest
+... run_tests_sensor_msgs_gtest_sensor_msgs_test
+... sensor_msgs_test
+... _shape_msgs_generate_messages_check_deps_Mesh
+... _shape_msgs_generate_messages_check_deps_MeshTriangle
+... _shape_msgs_generate_messages_check_deps_Plane
+... _shape_msgs_generate_messages_check_deps_SolidPrimitive
+... shape_msgs_gencpp
+... shape_msgs_generate_messages
+... shape_msgs_generate_messages_cpp
+... shape_msgs_generate_messages_lisp
+... shape_msgs_generate_messages_py
+... shape_msgs_genlisp
+... shape_msgs_genpy
+... _stereo_msgs_generate_messages_check_deps_DisparityImage
+... stereo_msgs_gencpp
+... stereo_msgs_generate_messages
+... stereo_msgs_generate_messages_cpp
+... stereo_msgs_generate_messages_lisp
+... stereo_msgs_generate_messages_py
+... stereo_msgs_genlisp
+... stereo_msgs_genpy
+... _trajectory_msgs_generate_messages_check_deps_JointTrajectory
+... _trajectory_msgs_generate_messages_check_deps_JointTrajectoryPoint
+... _trajectory_msgs_generate_messages_check_deps_MultiDOFJointTrajectory
+... _trajectory_msgs_generate_messages_check_deps_MultiDOFJointTrajectoryPoint
+... trajectory_msgs_gencpp
+... trajectory_msgs_generate_messages
+... trajectory_msgs_generate_messages_cpp
+... trajectory_msgs_generate_messages_lisp
+... trajectory_msgs_generate_messages_py
+... trajectory_msgs_genlisp
+... trajectory_msgs_genpy
+... _visualization_msgs_generate_messages_check_deps_ImageMarker
+... _visualization_msgs_generate_messages_check_deps_InteractiveMarker
+... _visualization_msgs_generate_messages_check_deps_InteractiveMarkerControl
+... _visualization_msgs_generate_messages_check_deps_InteractiveMarkerFeedback
+... _visualization_msgs_generate_messages_check_deps_InteractiveMarkerInit
+... _visualization_msgs_generate_messages_check_deps_InteractiveMarkerPose
+... _visualization_msgs_generate_messages_check_deps_InteractiveMarkerUpdate
+... _visualization_msgs_generate_messages_check_deps_Marker
+... _visualization_msgs_generate_messages_check_deps_MarkerArray
+... _visualization_msgs_generate_messages_check_deps_MenuEntry
+... visualization_msgs_gencpp
+... visualization_msgs_generate_messages
+... visualization_msgs_generate_messages_cpp
+... visualization_msgs_generate_messages_lisp
+... visualization_msgs_generate_messages_py
+... visualization_msgs_genlisp
+... visualization_msgs_genpy
+... _rosapi_generate_messages_check_deps_DeleteParam
+... _rosapi_generate_messages_check_deps_GetParam
+... _rosapi_generate_messages_check_deps_GetParamNames
+... _rosapi_generate_messages_check_deps_GetTime
+... _rosapi_generate_messages_check_deps_HasParam
+... _rosapi_generate_messages_check_deps_MessageDetails
+... _rosapi_generate_messages_check_deps_Nodes
+... _rosapi_generate_messages_check_deps_Publishers
+... _rosapi_generate_messages_check_deps_SearchParam
+... _rosapi_generate_messages_check_deps_ServiceHost
+... _rosapi_generate_messages_check_deps_ServiceNode
+... _rosapi_generate_messages_check_deps_ServiceProviders
+... _rosapi_generate_messages_check_deps_ServiceRequestDetails
+... _rosapi_generate_messages_check_deps_ServiceResponseDetails
+... _rosapi_generate_messages_check_deps_ServiceType
+... _rosapi_generate_messages_check_deps_Services
+... _rosapi_generate_messages_check_deps_ServicesForType
+... _rosapi_generate_messages_check_deps_SetParam
+... _rosapi_generate_messages_check_deps_Subscribers
+... _rosapi_generate_messages_check_deps_TopicType
+... _rosapi_generate_messages_check_deps_Topics
+... _rosapi_generate_messages_check_deps_TopicsForType
+... _rosapi_generate_messages_check_deps_TypeDef
+... rosapi_gencpp
+... rosapi_generate_messages
+... rosapi_generate_messages_cpp
+... rosapi_generate_messages_lisp
+... rosapi_generate_messages_py
+... rosapi_genlisp
+... rosapi_genpy
+... _rosbridge_library_generate_messages_check_deps_AddTwoInts
+... _rosbridge_library_generate_messages_check_deps_Num
+... _rosbridge_library_generate_messages_check_deps_SendBytes
+... _rosbridge_library_generate_messages_check_deps_TestArrayRequest
+... _rosbridge_library_generate_messages_check_deps_TestChar
+... _rosbridge_library_generate_messages_check_deps_TestDurationArray
+... _rosbridge_library_generate_messages_check_deps_TestEmpty
+... _rosbridge_library_generate_messages_check_deps_TestHeader
+... _rosbridge_library_generate_messages_check_deps_TestHeaderArray
+... _rosbridge_library_generate_messages_check_deps_TestHeaderTwo
+... _rosbridge_library_generate_messages_check_deps_TestMultipleRequestFields
+... _rosbridge_library_generate_messages_check_deps_TestMultipleResponseFields
+... _rosbridge_library_generate_messages_check_deps_TestNestedService
+... _rosbridge_library_generate_messages_check_deps_TestRequestAndResponse
+... _rosbridge_library_generate_messages_check_deps_TestRequestOnly
+... _rosbridge_library_generate_messages_check_deps_TestResponseOnly
+... _rosbridge_library_generate_messages_check_deps_TestTimeArray
+... _rosbridge_library_generate_messages_check_deps_TestUInt8
+... _rosbridge_library_generate_messages_check_deps_TestUInt8FixedSizeArray16
+... rosbridge_library_gencpp
+... rosbridge_library_generate_messages
+... rosbridge_library_generate_messages_cpp
+... rosbridge_library_generate_messages_lisp
+... rosbridge_library_generate_messages_py
+... rosbridge_library_genlisp
+... rosbridge_library_genpy

@@ -1,0 +1,92 @@
+7-27-2016
+---------
+
+Power-on-off button
+--------------------
+
+Currently
+- power on is via spst sw that switches on Vbat to ed.
+- power off is via
+  a) terminal:  $ sudo shutdown -h now   <- this ensures clean shutdown of fs
+                                            & avoids crashing sd card due to
+					    fs corruption
+  b) power off spst switch off Vbat to ed.
+
+>> switching off vbat to ed will result in abrupt loss of power
+   & not a 'clean' shutdown where power is removed AFTER the
+   OS has flushed all file system operations and unmounted all
+   the storage volumes (like the sdcard).
+
+
+To remedy this,
+
+       fuse  spst    ___________
+Vbat ---o~o---o\o---|soft_latch |----> Vmcu
+                    | power     |
+	      pwr_btn --->| switch    |<---- PwrOff
+	               \  |___________|
+		              \______________/---> PwrBtn
+
+1. push pwr_btn - edison powers on
+                                              shutdown_ed.py
+2 push pwr_btn  -> gen interrupt -> isr runs python script to initate
+                                    $ shutdown -h now
+
+3 shutdown cmd runs system shutdown scripts to perform a orderly shutdown
+
+4 system halt script runs AFTER filesystem has been unmounted
+
+                              pwroff.py
+  > modify halt script to run python script to toggle PwrOff line to
+    soft_latching pwr switch which will power off ed.
+
+1.0 shutdown_ed.py
+
+1.1 shutdown_ed.py:
+- cfg PwrBtn GPIO pin as OUTPUT w PULLUP & IRQ on falling edge
+- install isr to monitor PwrBtn GPIO
+- pwrBtnIrq:
+  - run $ sudo shutdown -h now
+
+----
+
+#!/bin/python
+# Simple script for shutting down the raspberry Pi at the press of a button.
+# by Inderpreet Singh
+
+import RPi.GPIO as GPIO
+import time
+import os
+
+# Use the Broadcom SOC Pin numbers
+# Setup the Pin with Internal pullups enabled and PIN in reading mode.
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(18, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+
+# Our function on what to do when the button is pressed
+
+def Shutdown(channel):
+    os.system("sudo shutdown -h now")
+
+# Add our function to execute when the button pressed event happens
+
+GPIO.add_event_detect(18, GPIO.FALLING, callback = Shutdown, bouncetime = 2000)
+
+# Now wait!
+
+while 1:
+    time.sleep(1)
+
+--------
+
+1.2 update /etc/rc.local
+- to start auto-start shutdown_ed.py on boot
+
+2 pwroff.py:
+- cfg PwrOff pin as OUTPUT w Pull-Down & no IRQ
+
+==== implementation on edison:
+
+SEE 'Edison Arduino GPIO Mux.ppt' in
+C:\u1404\intel-edison\10-3-Edison-Hardware-Refs\Edison-Arduino-Board-GPIO-Mux-Tables
+for more details

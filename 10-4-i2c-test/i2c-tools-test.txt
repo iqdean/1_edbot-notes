@@ -1,0 +1,126 @@
+7-22-16  See if we can instal i2c-tools and read the contents of the
+         U39 PCAL9535A i2c-to-gpio adapter used to control the 
+	 programmable pull-up/pull-down's on the edison arduino board
+
+1. install i2c-tools package
+ 
+$ sudo atp-get update 
+$ sudo apt-get install i2c-tools
+
+iqdean@ubilinux:~$ dpkg -l | grep i2c
+ii  i2c-tools    3.1.0-2      i386   heterogeneous set of I2C tools for Linux
+
+iqdean@ubilinux:~$ dpkg -L i2c-tools
+/.
+/usr
+/usr/bin
+/usr/bin/decode-vaio
+/usr/bin/ddcmon
+/usr/bin/decode-edid
+/usr/bin/decode-dimms
+/usr/share
+/usr/share/man
+/usr/share/man/man8
+/usr/share/man/man8/i2cdetect.8.gz
+/usr/share/man/man8/i2cset.8.gz
+/usr/share/man/man8/i2cget.8.gz
+/usr/share/man/man8/i2cdump.8.gz
+/usr/share/doc
+/usr/share/doc/i2c-tools
+/usr/share/doc/i2c-tools/changelog.Debian.gz
+/usr/share/doc/i2c-tools/copyright
+/usr/share/doc/i2c-tools/changelog.gz
+/usr/sbin
+/usr/sbin/i2cdetect
+/usr/sbin/i2cget
+/usr/sbin/i2cdump
+/usr/sbin/i2cset
+/lib
+/lib/udev
+/lib/udev/rules.d
+/lib/udev/rules.d/60-i2c-tools.rules
+
+iqdean@ubilinux:~$ ls /dev/i2c*
+/dev/i2c-1  /dev/i2c-3  /dev/i2c-5  /dev/i2c-7
+/dev/i2c-2  /dev/i2c-4  /dev/i2c-6  /dev/i2c-8
+
+http://www.i-programmer.info/programming/hardware/9124-exploring-edison-i2c-bus.html
+
+Edison I2C 
+
+The Edison supports two I2C buses but only one is usable on the Arduino breakout board. For this reason it is better to use I2C-1 unless you have a very good reason not to. 
+
+$ i2cdetect -y -r 1
+
+iqdean@ubilinux:~$ sudo i2cdetect -y -r 1
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00:          -- -- -- -- -- -- -- -- -- -- -- -- --
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+20: UU UU UU UU -- -- -- -- -- -- -- -- -- -- -- --
+30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+40: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+70: -- -- -- -- -- -- -- --
+
+ "UU". Probing was skipped, because this address is currently  in  use
+         by  a  driver.  This  strongly  suggests that there is a chip at this
+         address.
+
+
+Let's assume these are the 4 i2c-gpio expanders on the edison arduino board
+>> WELL I2C-Tools don't work with edison i2c busess... typical intel bullshit!!
+
+iqdean@ubilinux:~$ sudo i2cdump -y 1 21 w
+     0,8  1,9  2,a  3,b  4,c  5,d  6,e  7,f
+00: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+08: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+10: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+18: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+20: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+28: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+30: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+38: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+40: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+48: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+50: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+58: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+60: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+68: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+70: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+78: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+80: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+88: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+90: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+98: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+a0: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+a8: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+b0: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+b8: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+c0: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+c8: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+d0: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+d8: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+e0: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+e8: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+f0: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+f8: XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX
+
+--- ok, here starts another rabbit hole ----
+google i2c edison
+
+From: 
+https://www.npmjs.com/package/edison-i2c-config
+ \__https://github.com/fivdi/i2c-bus
+ \__https://github.com/fivdi/edison-i2c-config/blob/master/edison-i2c-config.js
+
+
+iqdean@ubilinux:~$ ls -al /sys/class/gpio
+...
+lrwxrwxrwx  1 root root    0 Jul 22 17:25 gpio214 -> ../../devices/pci0000:00/0000:00:08.0/i2c-1/1-0020/gpio/gpio214
+lrwxrwxrwx  1 root root    0 Jul 22 17:25 gpio216 -> ../../devices/pci0000:00/0000:00:08.0/i2c-1/1-0021/gpio/gpio216
+lrwxrwxrwx  1 root root    0 Jul 22 17:25 gpio217 -> ../../devices/pci0000:00/0000:00:08.0/i2c-1/1-0021/gpio/gpio217
+lrwxrwxrwx  1 root root    0 Jul 22 17:25 gpio248 -> ../../devices/pci0000:00/0000:00:08.0/i2c-1/1-0023/gpio/gpio248
+lrwxrwxrwx  1 root root    0 Jul 22 17:25 gpio249 -> ../../devices/pci0000:00/0000:00:08.0/i2c-1/1-0023/gpio/gpio249
+
+

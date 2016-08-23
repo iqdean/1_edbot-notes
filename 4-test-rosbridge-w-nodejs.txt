@@ -1,0 +1,233 @@
+--- rinse and repeat ---
+$ roscore
+$ roslaunch rosbridge_server rosbridge_websocket.launch
+
+iqdean@ubilinux:~/catkin_ws$ roslaunch rosbridge_server rosbridge_websocket.launch
+... logging to /home/iqdean/.ros/log/45e274d0-3e3a-11e6-91be-784b87a69877/roslaunch-ubilinux-9929.log
+Checking log directory for disk usage. This may take awhile.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+
+started roslaunch server http://ubilinux:59742/
+
+SUMMARY
+========
+
+PARAMETERS
+ * /rosbridge_websocket/address:
+ * /rosbridge_websocket/authenticate: False
+ * /rosbridge_websocket/delay_between_messages: 0
+ * /rosbridge_websocket/fragment_timeout: 600
+ * /rosbridge_websocket/max_message_size: None
+ * /rosbridge_websocket/port: 9090
+ * /rosbridge_websocket/retry_startup_delay: 5
+ * /rosdistro: indigo
+ * /rosversion: 1.11.20
+
+NODES
+  /
+    rosapi (rosapi/rosapi_node)
+    rosbridge_websocket (rosbridge_server/rosbridge_websocket)
+
+ROS_MASTER_URI=http://localhost:11311
+
+core service [/rosout] found
+process[rosbridge_websocket-1]: started with pid [9947]
+process[rosapi-2]: started with pid [9948]
+registered capabilities (classes):
+ - rosbridge_library.capabilities.call_service.CallService
+ - rosbridge_library.capabilities.advertise.Advertise
+ - rosbridge_library.capabilities.publish.Publish
+ - rosbridge_library.capabilities.subscribe.Subscribe
+ - <class 'rosbridge_library.capabilities.defragmentation.Defragment'>
+ - rosbridge_library.capabilities.advertise_service.AdvertiseService
+ - rosbridge_library.capabilities.service_response.ServiceResponse
+ - rosbridge_library.capabilities.unadvertise_service.UnadvertiseService
+[INFO] [WallTime: 1467233084.426947] Rosbridge WebSocket server started on port 9090
+
+--- and now it seems to run ok ----
+
+http://iguanatronics.com/simple-tutorial-on-rosbridge-and-roslibjs/
+This tutorial demonstrates how to create a simple web page that communicates with ROS using rosbridge and roslibjs.
+
+Dear iguanatronics,
+
+Your posting, which is “Simple tutorial on rosbridge and roslibjs”, is very helpful for me.
+I configured a simple node.js server and ran your html+js on it. Also I succeed running turtlesim by clicking the buttons.
+In addition, I posted about it on my github, and I am able to control my real turtle-bot via web interface!
+
+you may wanna check it out.
+https://github.com/bus710/rosbridge-usage   <--- THIS IS BEAUTIFUL!! nodejs code that talks to ros via websocket interface
+https://github.com/bus710/sulcata-web
+
+Anyways, thank you so much for your posting!
+
+Sincerely,
+SJ
+
+=== but both of these examples are using turtlebot simultor as the robot and
+    then publishing /cmd_vel messages to the turtlebot from webbrowser i/f
+
+    but just to see if this works, we could run it without the turtle bot and
+    just see if we can publish /cmd_vel msgs from the browser to the robot
+    
+
+Remote Host  <- any machine with a browser
+WebBrowser
+    |
+Edision
+ip_robot:3000  
+Linear  [ X ]
+Angular [ Z ]
+Publish Button  ---> websocket ---> /cmd_vel topic
+                     localhost:9090
+
+=== test using
+https://github.com/bus710/rosbridge-usage   Installation
+
+cd ~                                                        On edison using Wheezy Repo's
+sudo apt-get install nodejs npm				    $ sudo apt-get install nodejs   < installs both nodejs and npm
+sudo apt-get install ros-indigo-rosbridge-*		    < already installed from source
+sudo apt-get install ros-indigo-turtlesim-*		    < not gonna use it for it
+git clone http://github.com/bus710/rosbridge-usage.git	    :~/catkin_ws$ git clone http://github.com/bus710/rosbridge-usage.git
+cd ~/rosbridge-usage					    
+npm install						    :~/catkin_ws/rosbridge-usage$ npm install
+
+--- config ip address of edison for ROS and for rosbridge_usage app.js ---
+
+=== FOR ROS ===
+REF: http://wiki.ros.org/ROS/NetworkSetup
+
+iqdean@(none):~$ cat /etc/hosts
+127.0.0.1       localhost
+192.168.1.106   ubilinux				<-- add this line
+::1             localhost ip6-localhost ip6-loopback
+fe00::0         ip6-localnet
+ff00::0         ip6-mcastprefix
+ff02::1         ip6-allnodes
+ff02::2         ip6-allrouters
+
+
+=== FOR rosbridge_usage app.js ===
+
+Before you launch the stacks, you should edit scripts/client.js file to match the host variable and your robot's ip address.
+
+# the basic value is:
+var host = 'ws://192.168.0.5:9090';
+
+# if the robot's ip address is 192.168.0.7, then edit the variable as:
+var host = 'ws://192.168.0.7:9090';
+
+iqdean@ubilinux:~/catkin_ws/rosbridge-usage$ tree -L 2
+.
+├── 00_git_push
+├── 05_git_setup
+├── app.js
+├── images
+│   ├── rosbridge-sequence.png
+│   ├── simulator.png
+│   └── web-interface.png
+├── LICENSE
+├── node_modules
+│   ├── sys
+│   └── websocket
+├── package.json
+├── public
+│   ├── 404.html
+│   └── index.html
+├── README.md
+└── scripts
+    └── client.js	< update this file with IP
+
+$ nano scripts/client.js
+
+var host = 'ws://192.168.1.106:9090';
+
+=== see if it works ====
+
+# run below commands in each terminal.
+roscore
+rosrun turtlesim turtlesim_node
+rosrun turtlesim turtle_teleop_key
+roslaunch rosbridge_server rosbridge_websocket.launch
+
+# run below commands in one terminal
+cd ~/rosbridge-usage
+node app.js
+
+# access your linux host from another device's web browser.
+# the address might be 192.168.0.x and the port is 3000.
+# of course, the linux host and another device should use same wireless network.
+
+===
+
+ON Edison:
+
+$ roscore							< starts up w: ROS_MASTER_URI=http://ubilinux:11311/
+$ roslaunch rosbridge_server rosbridge_websocket.launch		< ok
+
+iqdean@ubilinux:~/catkin_ws/rosbridge-usage$ node app.js
+
+press ^c to terminate
+
+access to this host from your browser.
+192.168.1.106:3000
+
+On Win 7:
+http://192.168.1.106:3000/	<-- KEWL!! it works  screenshot-1.png
+
+BEFORE: clicking Publish:
+
+iqdean@ubilinux:~/catkin_ws/devel$ rostopic list
+/rosout
+/rosout_agg
+
+AFTER: clicking Publish:
+
+iqdean@ubilinux:~/catkin_ws/devel$ rostopic list
+/rosout
+/rosout_agg
+/turtle1/cmd_vel
+
+iqdean@ubilinux:~/catkin_ws/devel$ rostopic echo /turtle1/cmd_vel
+linear:
+  x: 1.5
+  y: 0.0
+  z: 0.0
+angular:
+  x: 0.0
+  y: 0.0
+  z: 1.0
+---
+...
+---
+linear:
+  x: 2.0
+  y: 0.0
+  z: 0.0
+angular:
+  x: 0.0
+  y: 0.0
+  z: 3.0
+---
+linear:
+  x: 1.5
+  y: 0.0
+  z: 0.0
+angular:
+  x: 0.0
+  y: 0.0
+  z: -0.5
+---
+
+EVERY TIME U click Publish in the Web Browser
+/turtle1/cmd_vel message gets published to the ROBOT   <-- see screenshot-2.png
+
++ and - /cmd_vel messages get published ok             <-- see screenshot-3.png
+
+=== ok, now we just need to write the rosnode to
+- subscribe to /cmd_vel
+- translate /cmd_vel to kangroo serial commands
+
+
+

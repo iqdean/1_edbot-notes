@@ -1,0 +1,398 @@
+Edison Ubilinux WPA-PSK TKIP Connection (Default on comcast wifi routers)
+--------------------------------
+
+--today---
+2  Look at the Raspberry PI Stuff:  ( Screw the Intel 3rd party documentation )
+
+http://weworkweplay.com/play/automatically-connect-a-raspberry-pi-to-a-wifi-network/
+
+As an overview, my interfaces- and wpa_supplicant-files:
+
+# /etc/network/interfaces
+
+auto wlan0
+
+iface lo inet loopback
+iface eth0 inet dhcp
+
+allow-hotplug wlan0
+iface wlan0 inet dhcp
+wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+iface default inet dhcp
+
+# /etc/wpa_supplicant/wpa_supplicant.conf
+
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+
+network={
+ssid="NYO_WWWP"
+psk="topsecret"
+proto=RSN
+key_mgmt=WPA-PSK
+pairwise=CCMP
+auth_alg=OPEN
+}
+
+--- SO Lets try this ----
+
+1. /etc/network/interfaces
+
+# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+# this is for network over usb-ethernet
+# works great as point-to-point b/t edison & ubu notebook
+# edision J16 <--- usb cable ---> ubu1404
+auto usb0
+iface usb0 inet static
+    address 192.168.2.15
+    netmask 255.255.255.0
+
+# following is for network
+auto wlan0
+iface wlan0 inet dhcp
+wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+
+2 /etc/wpa_supplicant/wpa_supplicant.conf
+
+iqdean@ubilinux:~$ cat /etc/wpa_supplicant/wpa_supplicant.conf 
+ctrl_interface=DIR=/var/run/wpa_supplicant
+
+network={
+  ssid="3256-2.4"
+  key_mgmt=WPA-PSK
+  pairwise=CCMP TKIP
+  group=CCMP TKIP WEP104 WEP40
+  eap=TTLS PEAP TLS
+  psk="Jason3256"
+  id_str="HomeNetwork"
+}
+
+iqdean@ubilinux:~$ sudo ifup wlan0
+Internet Systems Consortium DHCP Client 4.2.2
+Copyright 2004-2011 Internet Systems Consortium.
+All rights reserved.
+For info, please visit https://www.isc.org/software/dhcp/
+
+Listening on LPF/wlan0/78:4b:87:a6:98:77
+Sending on   LPF/wlan0/78:4b:87:a6:98:77
+Sending on   Socket/fallback
+DHCPDISCOVER on wlan0 to 255.255.255.255 port 67 interval 4
+DHCPDISCOVER on wlan0 to 255.255.255.255 port 67 interval 6
+DHCPDISCOVER on wlan0 to 255.255.255.255 port 67 interval 11
+DHCPREQUEST on wlan0 to 255.255.255.255 port 67
+DHCPOFFER from 10.0.0.1
+DHCPACK from 10.0.0.1
+bound to 10.0.0.157 -- renewal in 239284 seconds.
+
+=== see if it works from hp notebook ====
+iqdean@hpdm4:~$ ping 10.0.0.157
+PING 10.0.0.157 (10.0.0.157) 56(84) bytes of data.
+64 bytes from 10.0.0.157: icmp_seq=1 ttl=64 time=95.8 ms   < the router sucks in terms of  response time
+64 bytes from 10.0.0.157: icmp_seq=2 ttl=64 time=114 ms      compared to point-to-point usb eth0 (see below)
+64 bytes from 10.0.0.157: icmp_seq=3 ttl=64 time=132 ms	     but, the wifi connection works now!!!
+64 bytes from 10.0.0.157: icmp_seq=4 ttl=64 time=51.4 ms
+^C
+
+=== compare ping to point-to-point usb eth0 connection ===
+
+iqdean@hpdm4:~$ ping 192.168.2.15
+PING 192.168.2.15 (192.168.2.15) 56(84) bytes of data.
+64 bytes from 192.168.2.15: icmp_seq=1 ttl=64 time=0.658 ms
+64 bytes from 192.168.2.15: icmp_seq=2 ttl=64 time=0.627 ms
+64 bytes from 192.168.2.15: icmp_seq=3 ttl=64 time=0.655 ms
+^C
+
+
+
+=== finally... LINUX IS A BITCH!!! =====
+    sometimes, the simplest things take days to figure out
+    if you haven't recent done it and don't have photographic memory
+
+
+1 I found:
+
+https://github.com/instantinfrastructure/edison-src/blob/master/mw/oobe/src/configure_edison
+
+which has in it:
+
+class wpa_templates:
+  START = '''
+ctrl_interface=/var/run/wpa_supplicant
+ctrl_interface_group=0
+update_config=1
+ap_scan=1
+'''
+  OPEN =  '''
+network={
+  ssid="%s"
+  %s
+  key_mgmt=NONE
+}'''
+  WEP =  '''
+network={
+  ssid="%s"
+  %s
+  key_mgmt=NONE
+  group=WEP104 WEP40
+  wep_key0="%s"
+}
+'''
+  WPAPSK =  '''
+network={
+  ssid="%s"
+  %s
+  key_mgmt=WPA-PSK
+  pairwise=CCMP TKIP
+  group=CCMP TKIP WEP104 WEP40
+  eap=TTLS PEAP TLS
+  psk="%s"
+}
+'''
+  WPAEAP =  '''
+network={
+  ssid="%s"
+  %s
+  key_mgmt=WPA-EAP
+  pairwise=CCMP TKIP
+  group=CCMP TKIP WEP104 WEP40
+  eap=TTLS PEAP TLS
+  identity="%s"
+  password="%s"
+  phase1="peaplabel=0"
+}
+'''
+  #worst case, break this out.
+  MAX = '''
+network={
+  ssid="%s"
+  %s
+  key_mgmt=WPA-EAP WPA-PSK IEEE8021X NONE
+  pairwise=CCMP TKIP
+  group=CCMP TKIP WEP104 WEP40
+  psk="%s"
+  eap=TTLS PEAP TLS
+  identity="%s"
+  password="%s"
+  phase1="peaplabel=0"
+}
+'''
+
+2. http://rwx.io/blog/2015/08/16/edison-wifi-config/
+
+/etc/wpa_supplicant/wpa_supplicant.conf
+
+ctrl_interface=DIR=/var/run/wpa_supplicant
+
+network={
+  ssid="3256-2.4"
+  key_mgmt=WPA-PSK
+  pairwise=CCMP TKIP
+  group=CCMP TKIP WEP104 WEP40
+  eap=TTLS PEAP TLS
+  psk="Jason3256"
+  id_str="HomeNetwork"
+}
+
+iqdean@ubilinux:~$ sudo wpa_supplicant -iwlan0 -c/etc/wpa_supplicant/wpa_supplicant.conf
+ioctl[SIOCSIWENCODEEXT]: Invalid argument
+ioctl[SIOCSIWENCODEEXT]: Invalid argument
+wlan0: Trying to associate with d8:97:ba:50:31:38 (SSID='3256-2.4' freq=2437 MHz)
+ioctl[SIOCSIWFREQ]: Operation not supported
+wlan0: Association request to the driver failed
+wlan0: Associated with d8:97:ba:50:31:38
+wlan0: WPA: Key negotiation completed with d8:97:ba:50:31:38 [PTK=CCMP GTK=TKIP]
+wlan0: CTRL-EVENT-CONNECTED - Connection to d8:97:ba:50:31:38 completed (auth) [id=0 id_str=HomeNetwork]
+
+iqdean@ubilinux:~/mraa_test$ sudo dhclient -4 wlan0
+[sudo] password for iqdean: 
+iqdean@ubilinux:~/mraa_test$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:8 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:8 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:1104 (1.0 KiB)  TX bytes:1104 (1.0 KiB)
+
+usb0      Link encap:Ethernet  HWaddr 02:00:86:aa:b1:95  
+          inet addr:192.168.2.15  Bcast:192.168.2.255  Mask:255.255.255.0
+          inet6 addr: fe80::86ff:feaa:b195/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:10898 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:9256 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:807419 (788.4 KiB)  TX bytes:1546550 (1.4 MiB)
+
+wlan0     Link encap:Ethernet  HWaddr 78:4b:87:a6:98:77  
+          inet addr:10.0.0.157  Bcast:10.0.0.255  Mask:255.255.255.0             < & WE BE CONNECTED!!!!
+          inet6 addr: 2601:204:c200:fad9:7a4b:87ff:fea6:9877/64 Scope:Global
+          inet6 addr: fe80::7a4b:87ff:fea6:9877/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:129 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:151 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:15883 (15.5 KiB)  TX bytes:26212 (25.5 KiB)
+
+
+
+--last few weeks ---
+Comcast modem/router is using WPAWPA2-TSKEP/AES, which apparently the ubilinux wifi drivers can't handle
+So edision won't connect to wifi anymore using the same config that worked before with my cisco router
+
+So, lets see if we can workaround this by turning ubu1404 notebook into a wifi hotspot using WPA
+
+1. http://www.howtogeek.com/116409/how-to-turn-your-ubuntu-laptop-into-a-wireless-access-point/
+   > turn hpdm4 notebook into a wifi accesspoint 
+
+2. edison <--- usb cable ---> ubu1404 <---> comcast wifi
+   192.168.2.15
+
+$ ssh iqdean@192.168.2.15   (pw: csolinux)
+
+iqdean@ubilinux:~$ sudo iwlist wlan0 scan
+wlan0     Scan completed :
+          Cell 01 - Address: CA:72:19:53:A7:48
+                    Channel:1
+                    Frequency:2.412 GHz (Channel 1)
+                    Quality=70/70  Signal level=-26 dBm  
+                    Encryption key:on
+                    ESSID:"hpdm4"
+                    Bit Rates:1 Mb/s; 2 Mb/s; 5.5 Mb/s; 11 Mb/s; 6 Mb/s
+                              9 Mb/s; 12 Mb/s; 18 Mb/s
+                    Bit Rates:24 Mb/s; 36 Mb/s; 48 Mb/s; 54 Mb/s
+                    Mode:Ad-Hoc
+                    Extra:tsf=00000000145bbf06
+                    Extra: Last beacon: 100ms ago
+                    IE: Unknown: 00056870646D34
+                    IE: Unknown: 010882040B160C121824
+                    IE: Unknown: 030101
+                    IE: Unknown: 06020000
+                    IE: Unknown: 32043048606C
+                    IE: Unknown: 7F080000000001000040
+                    IE: Unknown: DD070050F202000100
+          Cell 02 - Address: D8:97:BA:50:31:38
+                    Channel:6
+                    Frequency:2.437 GHz (Channel 6)
+                    Quality=60/70  Signal level=-50 dBm  
+                    Encryption key:on
+                    ESSID:"3256-2.4"
+                    Bit Rates:1 Mb/s; 2 Mb/s; 5.5 Mb/s; 11 Mb/s; 6 Mb/s
+                              9 Mb/s; 12 Mb/s; 18 Mb/s
+                    Bit Rates:24 Mb/s; 36 Mb/s; 48 Mb/s; 54 Mb/s
+                    Mode:Master
+                    Extra:tsf=00000000145bbf11
+                    Extra: Last beacon: 100ms ago
+                    IE: Unknown: 0008333235362D322E34
+                    IE: Unknown: 010882848B968C129824
+                    IE: Unknown: 030106
+                    IE: Unknown: 050400010000
+                    IE: Unknown: 0706555320010B1E
+                    IE: Unknown: 2A0100
+                    IE: Unknown: 3204B048606C
+                    IE: Unknown: 2D1AAD011BFFFFFF0000000000000000000100000000000000000000
+                    IE: Unknown: 3D1606000100000000000000000000000000000000000000
+                    IE: Unknown: 4A0E14000A002C01C800140005001900
+                    IE: Unknown: 7F080100000000000040
+                    IE: Unknown: DD180050F2020101800003A4000027A4000042435E0062322F00
+                    IE: Unknown: DD0900037F01010000FF7F
+                    IE: IEEE 802.11i/WPA2 Version 1
+                        Group Cipher : TKIP
+                        Pairwise Ciphers (2) : CCMP TKIP
+                        Authentication Suites (1) : PSK
+                    IE: WPA Version 1
+                        Group Cipher : TKIP
+                        Pairwise Ciphers (2) : CCMP TKIP
+                        Authentication Suites (1) : PSK
+                    IE: Unknown: DD1D0050F204104A0001101044000102103C0001011049000600372A000120
+
+iqdean@ubilinux:~$ cat /etc/network/interfaces 
+# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+auto usb0
+iface usb0 inet static
+    address 192.168.2.15
+    netmask 255.255.255.0
+
+auto wlan0
+iface wlan0 inet dhcp
+
+    # For WPA
+    # wpa-ssid Emutex
+    # wpa-psk passphrase
+    # For WEP
+    #wireless-essid Emutex
+    #wireless-mode Managed
+    #wireless-key s:password
+
+#HOME is WEP
+#wireless-essid Cisco21076
+#wireless-key 23780e7adc
+
+#wireless-essid 3256-24
+#wireless-key Jason3256
+
+wireless-essid hpdm4
+wireless-mode Ad-Hoc
+wireless-key cd00085d7b
+
+# And the following 4 lines are for when using hostapd...
+#auto wlan0
+#iface wlan0 inet static
+#    address 192.168.42.1
+#    netmask 255.255.255.0
+
+iqdean@ubilinux:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+usb0      Link encap:Ethernet  HWaddr 02:00:86:aa:b1:95  
+          inet addr:192.168.2.15  Bcast:192.168.2.255  Mask:255.255.255.0
+          inet6 addr: fe80::86ff:feaa:b195/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:491 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:337 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:42508 (41.5 KiB)  TX bytes:48165 (47.0 KiB)
+
+wlan0     Link encap:Ethernet  HWaddr 78:4b:87:a6:98:77  
+          inet addr:10.42.0.39  Bcast:10.42.0.255  Mask:255.255.255.0		<--- kewl, edison connects to ubu1404
+          inet6 addr: fe80::7a4b:87ff:fea6:9877/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1                  
+          RX packets:396 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:439 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:26040 (25.4 KiB)  TX bytes:39178 (38.2 KiB)
+
+BUT THERE'S NO CONNECTION TO THE INTERNET ON THE ubu1404 machine cuz when using 
+the wifi as a hotspot, you can't connect to the internet... I imagine if i plug
+a wired network cable the ubu14.04, than i should be able to get at the internet
+from the edision, but lets save that for a rainy day and get on with the issue-at-hand
+which was to get edros node to send serial commands to kangaroo motion controller
+
+REF for rainy day:
+
+https://help.ubuntu.com/lts/ubuntu-help/net-wireless-adhoc.html
+
+Create a wireless hotspot
+You can use your computer as a wireless hotspot. This allows other devices to connect to you without a separate network, and allows you to share an internet connection you've made with another interface, such as to a wired network or over the cellular network.
+
+So, the scenario would be:
+
+	edision	 <--- wifi ---> ubu1404 <--- wired ---> Home Router/cable modem
+OR
+	edison <----- wifi ---> ubu1404 <--- usb -----> Samsung Glaxy Phone  to celluar   (teether'd config)
+
+
+

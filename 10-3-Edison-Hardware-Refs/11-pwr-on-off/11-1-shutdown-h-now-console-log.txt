@@ -1,0 +1,163 @@
+iqdean@ubilinux:~$ sudo shutdown -h now
+[sudo] password for iqdean:
+
+Broadcast message from root@ubilinux (ttyMFD2) (Sat Jan  1 00:01:42 2000):
+The system is going down for system halt NOW!
+]�*���u�э���������չ��ٕ���jԤ�(�*���U�������ɽ���͕́�����I5�������5jR�[info] Using makefile-style concurrent boot in runlevel 0.
+Stopping very small Busybox based DHCP server: Stopped /usr/sbin/udhcpd (pid 1732).
+udhcpd.
+Stopping galileod
+start-stop-daemon: warning: failed to kill 1865: No such process
+sketch.elf: no process found
+[ ok ] Stopping Avahi mDNS/DNS-SD Daemon: avahi-daemon.
+[ ok ] Asking all remaining processes to terminate...done.
+[ ok ] All processes ended within 1 seconds...done.
+[ ok ] Stopping enhanced syslogd: rsyslogd.
+[ ok ] Deconfiguring network interfaces...done.
+[info] Saving the system clock.
+hwclock: select() to /dev/rtc0 to wait for clock tick timed out: Success
+[info] Hardware Clock updated to Sat Jan  1 00:01:49 UTC 2000.
+[ ok ] Unmounting temporary filesystems...done.
+[ ok ] Deactivating swap...done.
+[ ok ] Unmounting local filesystems...done.
+[info] Will now halt.
+
+-----
+
+https://shabirimam.wordpress.com/2009/03/10/adding-script-to-run-at-startup-or-shutdown/
+
+------
+http://unix.stackexchange.com/questions/48973/execute-a-command-before-shutdown
+
+Linux Mint is based on Ubuntu, so I'm guesing the runlevel system is probably the same. On Ubuntu, scripts for the different runlevels are executed according to their presence in the /etc/rc[0-6].d directories. Runlevel 0 corresponds to shutdown, and 6 to reboot.
+
+Typically the script itself is stored in /etc/init.d, and then symlinks are placed in the directories corresponding to the runlevels you require.
+
+So in your case, write your script, store it in /etc/init.d/, then create a symlink in each of /etc/rc0.d and /etc/rc6.d (if you want both) pointing to your script.
+
+The scripts in each runlevel directory will be executed in asciibetical order, so if the order within the runlevel matters to you, choose the name of your symlink accordingly.
+
+----
+iqdean@ubilinux:~$ ls -al /etc/rc0.d
+total 12
+drwxr-xr-x  2 root root 4096 Feb 16  2015 .
+drwxr-xr-x 74 root root 4096 Jan  1 00:00 ..
+lrwxrwxrwx  1 root root   22 Feb 16  2015 K01avahi-daemon -> ../init.d/avahi-daemon
+lrwxrwxrwx  1 root root   21 Oct 15  2014 K01galileod.sh -> ../init.d/galileod.sh
+lrwxrwxrwx  1 root root   17 Oct 14  2014 K01hostapd -> ../init.d/hostapd
+lrwxrwxrwx  1 root root   16 Oct 14  2014 K01udhcpd -> ../init.d/udhcpd
+lrwxrwxrwx  1 root root   17 Oct 14  2014 K01urandom -> ../init.d/urandom
+lrwxrwxrwx  1 root root   18 Oct 14  2014 K02sendsigs -> ../init.d/sendsigs
+lrwxrwxrwx  1 root root   17 Oct 14  2014 K03rsyslog -> ../init.d/rsyslog
+lrwxrwxrwx  1 root root   20 Oct 14  2014 K04hwclock.sh -> ../init.d/hwclock.sh
+lrwxrwxrwx  1 root root   22 Oct 14  2014 K04umountnfs.sh -> ../init.d/umountnfs.sh
+lrwxrwxrwx  1 root root   20 Oct 14  2014 K05networking -> ../init.d/networking
+lrwxrwxrwx  1 root root   18 Oct 14  2014 K06umountfs -> ../init.d/umountfs
+lrwxrwxrwx  1 root root   20 Oct 14  2014 K07umountroot -> ../init.d/umountroot
+lrwxrwxrwx  1 root root   14 Oct 14  2014 K08halt -> ../init.d/halt
+-rw-r--r--  1 root root  353 Oct 15  2012 README
+
+iqdean@ubilinux:~$ cat /etc/init.d/halt |more
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          halt
+# Required-Start:
+# Required-Stop:
+# Default-Start:
+# Default-Stop:      0
+# Short-Description: Execute the halt command.
+# Description:
+### END INIT INFO
+
+NETDOWN=yes
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+[ -f /etc/default/halt ] && . /etc/default/halt
+
+. /lib/lsb/init-functions
+
+do_stop () {
+        if [ "$INIT_HALT" = "" ]
+        then
+                case "$HALT" in
+                  [Pp]*)
+                        INIT_HALT=POWEROFF
+                        ;;
+                  [Hh]*)
+                        INIT_HALT=HALT
+                        ;;
+                  *)
+                        INIT_HALT=POWEROFF
+                        ;;
+                esac
+        fi
+
+        # See if we need to cut the power.
+        if [ "$INIT_HALT" = "POWEROFF" ] && [ -x /etc/init.d/ups-monitor ]
+        then
+                /etc/init.d/ups-monitor poweroff
+        fi
+
+        # Don't shut down drives if we're using RAID.
+        hddown="-h"
+        if grep -qs '^md.*active' /proc/mdstat
+        then
+                hddown=""
+        fi
+
+        # If INIT_HALT=HALT don't poweroff.
+        poweroff="-p"
+        if [ "$INIT_HALT" = "HALT" ]
+        then
+                poweroff=""
+        fi
+
+        # Make it possible to not shut down network interfaces,
+        # needed to use wake-on-lan
+        netdown="-i"
+        if [ "$NETDOWN" = "no" ]; then
+                netdown=""
+        fi
+
+        log_action_msg "Will now halt"              <<< HERE BE "Will now halt" message... the last msg spewed at console before shutdown
+        halt -d -f $netdown $poweroff $hddown       <<< this is the command being issued to 'halt'
+}
+
+case "$1" in
+  start)
+        # No-op
+        ;;
+  restart|reload|force-reload)
+        echo "Error: argument '$1' not supported" >&2
+        exit 3
+        ;;
+  stop)
+        do_stop
+        ;;
+  *)
+        echo "Usage: $0 start|stop" >&2
+        exit 3
+        ;;
+esac
+
+=== SO, IN THEORY, WE COULD
+
+1. build soft-latching powerswitch                                       circuit board 
+
+   push button to turn on and push button to turn off
+   led indicating power state:  on, powering_down, off
+   1 input to allow ecu to turn pwr off
+   1 output to signal ecu of pwr btn press
+
+2. write python script to monitor pwrbtn input press
+   and run $ shutdown -h now
+  
+3. hook the system shutdown scripts to switch off the power
+   AFTER the filesystem has been cleanly unmounted
+  
+3.1 write a c-based libmraa program the toggles the power switch off	pwroff.exe
+3.2 write a bash script that runs pwroff.exe                           	pwroff.sh
+3.3 modify /etc/init.d/halt to run pwroff.sh BEFORE the halt command	/etc/init.d/halt
+
+
+

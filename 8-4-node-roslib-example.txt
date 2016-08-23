@@ -1,0 +1,197 @@
+Now that we got stable network connection between ubuntu and edison,
+we can continue with node roslib to ROS rosbridge-server experiment
+
+REVIEW:    8-node-roslib-example-2.txt
+
+	   node-simple.js
+	   |
+	   send /cmd_vel message to robot
+	   |
+	   roslib
+	   |
+	   ws://ip_of_ed:9090   <- websocket
+	   |
+	   rosbridge-server
+	   |
+	   publishs /cmd_vel message on ROS NETWORK
+	   
+
+Summary:
+
+ON Ubuntu 14.04 HP Notebook :
+Command Control Center (C3) side		
+-----------------------------------
+
+1 $ npm install roslib      <-- install roslib needed to i/f to rosbridge-server 
+     	 	 	     	 over websocket
+
+2 node-simple.js	    <- modified to publish /cmd_vel every 1 sec
+-----------------           using function loop()
+
+...
+var ros = new ROSLIB.Ros({
+    url : 'ws://localhost:9090'           <--- 3 UPDATE THIS WITH IP OF ROBOT
+});
+...
+
+ON Edison:
+Robot Side 
+------------
+
+$ roscore							< starts up w: ROS_MASTER_URI=http://ubilinux:11311/
+$ roslaunch rosbridge_server rosbridge_websocket.launch		< ok
+
+Ubu 14.04 side
+ 
+$ node node-simple.js	< start node-simple
+
+Robot side
+
+$ rostopic list			< should show /cmd_vel as a topic
+$ rostopic echo /cmd_vel	< should see it update every 1 sec
+
+=== start on edision side ===
+
+1. config /etc/hosts to match ip of usb0 on edison side
+
+iqdean@ubilinux:~$ cat /etc/hosts
+127.0.0.1	localhost
+#192.168.1.106	ubilinux
+192.168.2.15	ubilinux
+::1		localhost ip6-localhost ip6-loopback
+fe00::0		ip6-localnet
+ff00::0		ip6-mcastprefix
+ff02::1		ip6-allnodes
+ff02::2		ip6-allrouters
+
+$ sudo shutdown -r now
+
+2. start roscore and rosbridge_server/rosbridge_websocket.launch
+
+$ roscore							< starts up w: ROS_MASTER_URI=http://ubilinux:11311/
+$ roslaunch rosbridge_server rosbridge_websocket.launch
+
+iqdean@ubilinux:~$ rostopic list
+/rosout
+/rosout_agg
+
+On Ubu1404 side
+---------------
+
+1. update node-simple.js to set ip addres of edison websocket
+
+var ros = new ROSLIB.Ros({
+    //url : 'ws://localhost:9090'
+    url : 'ws://192.168.2.15:9090'
+});
+
+2. see if node-simple.js runs ????
+
+iqdean@hpdm4:~/u1404/nodeprojs/3-node-roslib-example$ node node-simple.js  
+(node) util.debug is deprecated. Use console.error instead.
+DEBUG: ROSLib uses utf8 encoding by default.It would be more efficent to use ascii (if possible)
+Connected to websocket server.
+Publishing cmd_vel
+Publishing cmd_vel
+Publishing cmd_vel
+Publishing cmd_vel
+Publishing cmd_vel
+Publishing cmd_vel
+Publishing cmd_vel
+
+KEWL it runs ok!!
+
+ON Robot Side:
+--------------
+
+iqdean@ubilinux:~$ rostopic list
+/cmd_vel
+/rosout
+/rosout_agg
+
+iqdean@ubilinux:~$ rostopic echo /cmd_vel
+linear: 
+  x: 0.1
+  y: 0.2
+  z: 0.3
+angular: 
+  x: -0.1
+  y: -0.2
+  z: -0.3
+---			< every 1 sec see /cmd_vel 
+linear: 		  as expected !!!
+  x: 0.1
+  y: 0.2
+  z: 0.3
+angular: 
+  x: -0.1
+  y: -0.2
+  z: -0.3
+---
+
+On UBU1404 side (C3 side)
+-------------------------
+CTRL-C to stop node-simple.js
+^C
+iqdean@hpdm4:~/u1404/nodeprojs/3-node-roslib-example$ 
+
+On Robot side
+---------------
+
+iqdean@ubilinux:~$ rostopic list    < so topic being published only shows up
+/rosout                               while node-simple.js is actually running
+/rosout_agg
+
+==== VERY COOL, 1st step to nodejs based teleoperations ======
+
+Next step,
+
+1. get node-simple.js and associated setup documented and into git repo
+   > this took days to figure out, we don't want forget how to do this
+     and then have to relearn all this
+
+   > start with node-simple.js
+     1st change/commit ... this working example + readme.txt for the setup
+
+2. next write node-xboxgc.js
+   - simple node app that console.log xbox game controller inputs
+     note: you might have to reinstall joystick and jstest packages
+
+>> this is kind of useless without wifi network connection to the robot <<
+
+But with the wired usb-eth network connection we can still do basic teleoperations
+as follows:
+
+Edison <---------- usb-eth ---------------> ubu1404 <------ xbox-pcwlgc  <- wireless -> xbox360gc
+  |                           publish 
+  | ros-bridge websocket     /cmd_vel  <-- nodejs app <-- read xbox joystick inputs
+  |                           via roslib                   via "npm joystick" pkg
+  | /cmd_vel
+  |
+ diffdrv node   pkg: edbot    ex: $ rosrun edbot diffdrv    
+  |                                 rosrun edbot nextnode  <-- put edbot folder in catkin_ws under git
+  | serial i/f                                                 and start adding nodes to this folder as needed
+  | diff drive
+  |
+ kangaroo
+ motion
+ controller
+  |
+ sabertooth
+ 2x12
+
+
+Option 1: more recent, higher number of recent downloads on npm
+          0 open issues on git hub
+
+https://www.npmjs.com/package/xbox-controller-node
+1.6.0 is the latest of 18 releases
+
+Option 2: less recent, lower number of recent downloads on npm
+          9 open issues on git hub
+          but really good example.js
+
+https://github.com/andrew/node-xbox-controller
+https://github.com/andrew/node-xbox-controller/blob/master/example.js
+
+

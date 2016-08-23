@@ -1,0 +1,71 @@
+Turns out there's an npm package for roslib
+
+      https://www.npmjs.com/package/roslib
+
+which points to github for roslib
+
+      https://github.com/RobotWebTools/roslibjs
+
+which has simple example of how to use nodejs with roslibjs:
+
+      https://github.com/RobotWebTools/roslibjs/blob/develop/examples/node_simple.js
+
+to do exactly what i wanted to do, which is publish /cmd_vel
+
+1. node_simple.js
+   command line app that publishs 1 /cmd_vel message each time you run it
+
+-- node_simple.js  ---
+
+#!/usr/bin/env node
+
+// Connecting to ROS
+var ROSLIB = require('roslib');
+
+var ros = new ROSLIB.Ros({
+    url : 'ws://localhost:9090'
+});
+
+ros.on('connection', function() {
+console.log('Connected to websocket server.');
+});
+
+ros.on('error', function(error) {
+console.log('Error connecting to websocket server: ', error);
+});
+
+ros.on('close', function() {
+console.log('Connection to websocket server closed.');
+});
+
+// Publishing a Topic
+// ------------------
+
+var cmdVel = new ROSLIB.Topic({
+  ros : ros,
+  name : '/cmd_vel',
+  messageType : 'geometry_msgs/Twist'
+});
+
+var twist = new ROSLIB.Message({
+linear : {
+  x : 0.1,
+  y : 0.2,
+  z : 0.3
+},
+angular : {
+  x : -0.1,
+  y : -0.2,
+  z : -0.3
+}
+});
+
+console.log("Publishing cmd_vel");
+cmdVel.publish(twist);
+
+usbrelay_08.js
+---------------
+Has example of how to recursively call a function using setinterval timer
+
+PLAN: modify node-simple.js to loop calling the cmdVel.publish(twist) and see if it works
+-----------------------------------------------------------------------------------------
