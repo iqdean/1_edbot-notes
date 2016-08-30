@@ -1,0 +1,231 @@
+13-3-edbot-diffdrv-launch.txt
+-----------------------------
+
+Review Status
+-------------
+
+----- do end to end test with ----------------------------------------------
+
+----- hp ub1404 notebook ----              ---edison---
+
+                                             roscore
+xbox360 <-usb-> roslibjoy.js  <-- usb eth--> roslaunch rosbridge_server rosbridge_websocket.launch
+                                             sudo ./cfgttyMFD1.sh
+                                             rosrun edbot src/diffdrv.py
+see notes in red notebook ... works!!!
+
+Next Steps:
+-----------
+
+Final issues to wrap this up and move on the next chapter:
+
+1. /etc/rc.local  add cfgttyMFD1.sh to get edison gpio pins configured to enable use of /dev/ttyMFD1 on boot
+
+iqdean@ubilinux:~/robot/motors$ sudo cp cfgttyMFD1.sh /usr/local/bin
+
+$ sudo nano /etc/rc.local
+-------------------------
+echo 1 >/sys/devices/virtual/misc/watchdog/disable
+
+#/sbin/first-install.sh
+
+bluetooth_rfkill_event >/dev/null 2>&1 &
+rfkill unblock bluetooth
+bluetoothd &
+
+export PYTHONPATH=/usr/local/lib/python2.7/site-packages; nohup /usr/bin/python /home/iqdean/mraa_test/shutdown_ed.py >/dev/null 2>&1 &
+
+/usr/local/bin/cfgttyMFD1.sh >/dev/null 2>&1 &
+
+exit 0
+
+---- reboot ----
+--- verify serial port works by running 7-4a-pyserial.py ----
+iqdean@ubilinux:~/robot/motors$ python 7-4a-edpyserial.py 
+Opening Uart(0): /dev/ttyMFD1
+Enter your commands below.
+Insert "exit" to leave the application.
+00:29:52>> d, start
+00:29:58>> t, start
+00:30:02>> d, start
+00:30:09>> t, start
+00:30:16>> d, s0
+00:30:22>> t, s0
+00:30:27>> d, getp
+00:30:32>> D,P0     works
+
+00:30:32>> t, getp
+00:30:37>> T,P0     works
+
+00:30:37>> d, s128  motors run
+00:30:44>> d, s0    motors stop
+00:30:48>> d, stop
+00:30:55>> t, stop
+00:30:59>> exit
+iqdean@ubilinux:~/robot/motors$ 
+
+----- verifies ok ----
+
+
+2. launch file    create ROS launch file to avoid manually starting everything on the robot side
+                  REF: https://cse.sc.edu/~jokane/agitr/agitr-letter-launch.pdf
+
+
+iqdean@ubilinux:~/catkin_ws/src/edbot$ tree
+.
+├── CMakeLists.txt
+├── include
+│   └── edbot
+├── launch                /__
+│   └── diffdrv.launch    \
+├── package.xml
+└── src
+    ├── diffdrv.py
+    ├── SerialDataGateway.py
+    └── SerialDataGateway.pyc
+
+iqdean@ubilinux:~/catkin_ws$ roscd edbot
+iqdean@ubilinux:~/catkin_ws/src/edbot$ which roslaunch
+/opt/ros/indigo/bin/roslaunch
+
+iqdean@ubilinux:~/catkin_ws$ cat src/edbot/launch/diffdrv.launch 
+<launch>
+	<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
+	<node name="diffdrv" pkg="edbot" type="diffdrv.py" />
+</launch>
+
+iqdean@ubilinux:~/catkin_ws/src/edbot$ roslaunch launch/diffdrv.launch 
+... logging to /home/iqdean/.ros/log/c0a3f95c-6e4e-11e6-9954-784b87a69877/roslaunch-ubilinux-2526.log
+Checking log directory for disk usage. This may take awhile.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+
+started roslaunch server http://ubilinux:51587/
+
+SUMMARY
+========
+
+PARAMETERS
+ * /rosbridge_websocket/address: 
+ * /rosbridge_websocket/authenticate: False
+ * /rosbridge_websocket/delay_between_messages: 0
+ * /rosbridge_websocket/fragment_timeout: 600
+ * /rosbridge_websocket/max_message_size: None
+ * /rosbridge_websocket/port: 9090
+ * /rosbridge_websocket/retry_startup_delay: 5
+ * /rosdistro: indigo
+ * /rosversion: 1.11.20
+
+NODES
+  /
+    diffdrv (edbot/diffdrv.py)
+    rosapi (rosapi/rosapi_node)
+    rosbridge_websocket (rosbridge_server/rosbridge_websocket)
+
+auto-starting new master
+process[master]: started with pid [2539]
+ROS_MASTER_URI=http://localhost:11311
+
+setting /run_id to c0a3f95c-6e4e-11e6-9954-784b87a69877
+process[rosout-1]: started with pid [2552]
+started core service [/rosout]
+process[rosbridge_websocket-2]: started with pid [2569]
+process[rosapi-3]: started with pid [2570]
+process[diffdrv-4]: started with pid [2571]
+registered capabilities (classes):
+ - rosbridge_library.capabilities.call_service.CallService
+ - rosbridge_library.capabilities.advertise.Advertise
+ - rosbridge_library.capabilities.publish.Publish
+ - rosbridge_library.capabilities.subscribe.Subscribe
+ - <class 'rosbridge_library.capabilities.defragmentation.Defragment'>
+ - rosbridge_library.capabilities.advertise_service.AdvertiseService
+ - rosbridge_library.capabilities.service_response.ServiceResponse
+ - rosbridge_library.capabilities.unadvertise_service.UnadvertiseService
+[INFO] [WallTime: 1472519526.643446] Rosbridge WebSocket server started on port 9090
+    
+
+make it go: OK
+ rostopic pub -r 1 /cmd_vel geometry_msgs/Twist '{linear: {x: 0.125, y: 0, z: 0}, angular: {x: 0, y: 0, z: 0}}'
+make it stop: OK
+ rostopic pub -r 1 /cmd_vel geometry_msgs/Twist '{linear: {x: 0, y: 0, z: 0}, angular: {x: 0, y: 0, z: 0}}'
+
+iqdean@ubilinux:~/.ros/log/c0a3f95c-6e4e-11e6-9954-784b87a69877$ ls -al
+total 92
+drwxr-xr-x 2 iqdean iqdean  4096 Aug 30 01:12 .
+drwxr-xr-x 6 iqdean iqdean  4096 Aug 30 01:19 ..
+-rw-r--r-- 1 iqdean iqdean  6838 Aug 30 01:19 diffdrv-4.log
+-rw-r--r-- 1 iqdean iqdean  3013 Aug 30 01:19 diffdrv-4-stdout.log
+-rw-r--r-- 1 iqdean iqdean 12753 Aug 30 01:19 master.log
+-rw-r--r-- 1 iqdean iqdean  1404 Aug 30 01:19 rosapi-3.log
+-rw-r--r-- 1 iqdean iqdean    52 Aug 30 01:19 rosapi-3-stdout.log
+-rw-r--r-- 1 iqdean iqdean  1450 Aug 30 01:19 rosbridge_websocket-2.log
+-rw-r--r-- 1 iqdean iqdean 29884 Aug 30 01:19 roslaunch-ubilinux-2526.log
+-rw-r--r-- 1 iqdean iqdean   152 Aug 30 01:12 rosout-1-stdout.log
+-rw-r--r-- 1 iqdean iqdean  4914 Aug 30 01:19 rosout.log
+
+ROS LOGGING ISSUES:  < logs r going to consume massive amounts of storage overtime if not dealt with??
+------------------
+http://answers.ros.org/question/9627/how-can-i-completely-disable-writing-logs-to-filesystem/
+--- Option 1: ---
+> To kill the *-stdout.log files, you have to recompile ros with
+No Rosout
+
+Start with 'rosmaster --core' instead of 'roscore'. This avoids firing up rosout.
+
+Cpp Logging
+
+Create an empty $ROS_ROOT/rosconfig.cmake and add the empty line
+
+set(ROS_COMPILE_FLAGS "-DROSCONSOLE_MIN_SEVERITY=5 ${ROS_COMPILE_FLAGS}")
+(note ROSCONSOLE_MIN_SEVERITY_NONE = 5 as defined in rosconsole/include/ros/console.h) and then recompile everything. This should disable all your cpp loggers. There is an exception though - the roscpp_internal named logger bypasses this as it seems it uses the log4cxx logger interfaces directly. I actually can't seem to change that logger's level (also roscpp.superdebug) at all via the rosconsole.config file, but that is a separate problem.
+
+Python Logging
+
+If you delete ${ROS_ROOT}/config/python_logging.conf, python programs will just completely abort any logging. I don't know that this is the recommended way of doing it though ;)
+
+--- end option 1 ----
+
+
+Option 2:
+For me, issuing the following command after startup works:
+
+rosclean purge -y
+
+The logging directory is cleaned and there does not appear to be any file logging any more.
+ROS still runs and does not even issue a warning.
+
+---- test rounding of angular velocities -----
+                                                                                                    .2
+rostopic pub -1 /cmd_vel geometry_msgs/Twist '{linear: {x: 0, y: 0, z: 0}, angular: {x: 0, y: 0, z:  x}}'
+                                                                                                   1.5
+
+omega2 = int(round(omega1*57.2958))
+                                        omega1 omega2
+                                           \   / 
+[INFO] [WallTime: 1472534612.579643] 0.0,0,0.2,11   
+[INFO] [WallTime: 1472534649.985153] 0.0,0,0.3,17
+[INFO] [WallTime: 1472534665.621212] 0.0,0,0.4,23
+[INFO] [WallTime: 1472534676.641653] 0.0,0,0.5,29
+[INFO] [WallTime: 1472534689.976617] 0.0,0,0.6,34
+[INFO] [WallTime: 1472534701.907520] 0.0,0,0.7,40
+[INFO] [WallTime: 1472534713.588228] 0.0,0,0.8,46
+[INFO] [WallTime: 1472534724.168594] 0.0,0,0.9,52
+[INFO] [WallTime: 1472534747.063864] 0.0,0,1.0,57
+[INFO] [WallTime: 1472534761.749120] 0.0,0,1.5,86
+[INFO] [WallTime: 1472534776.184497] 0.0,0,1.0,57
+[INFO] [WallTime: 1472534788.068586] 0.0,0,0.0,0
+
+python rounding works as expected :  see 13-3-chkrounding.ods for details
+
+-----------------------------------------------
+
+3. diffdrv.py              clean up debug/log messages otherwise the logs are going to
+   SerialDataGateway.py    take up unnecessary space on the filesystem
+
+
+4. roslibjoy.js   right now scales linear and angular vel to -1 to +1
+                  modify to scale to TBD desired linear/angular velocity ranges
+                  REF: 10-3-pwron-init-of-motor-drv.txt 
+
+
+

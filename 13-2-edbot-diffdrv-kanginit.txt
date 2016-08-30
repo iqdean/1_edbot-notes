@@ -1,0 +1,282 @@
+Update diffdrv node to add kangaroo init code:
+
+diff --git a/src/diffdrv.py b/src/diffdrv.py
+index 2670965..65f3e22 100755
+--- a/src/diffdrv.py
++++ b/src/diffdrv.py
+@@ -64,6 +64,7 @@ class DiffDrv(object):
+        def Start(self):
+                rospy.loginfo("DiffDrv.Start: Starting")
+                self._SerialDataGateway.Start()
++                self._InitKangarooMC()
+
+        def Stop(self):
+                rospy.loginfo("DiffDrv.Stop: Stopping")
+@@ -82,6 +83,16 @@ class DiffDrv(object):
+        def _HandleReceivedLine(self,  line):
+                rospy.loginfo("DiffDrv.hrl: Output Ack/Err < Msgs rcvd from Kana
+
++        def _InitKangarooMC(self):
++                # initial kangaroo motion controller
++                # initalize Kangaroo Motion Controller
++                message = 'd,start\r\nt,start\r\nd,s0\r\nt,s0\r\n'
++                self._SerialDataGateway.Write(message)
++                message = 'd,units 779 mm = 1024 lines\r\n'
++                self._SerialDataGateway.Write(message)
++                message = 't,units 360 degrees = 1891 lines\r\n'
++                self._SerialDataGateway.Write(message)
+:
+
+--- xfer it to edison and build it ---
+
+$ cd catkin_ws
+$ iqdean@ubilinux:~/catkin_ws$ catkin_make -DCATKIN_WHITELIST_PACKAGES="edbot"
+
+--- run it & see if the kangaroo init stuff logs correctly ---
+
+t1: $ roscore
+
+t2: $ rosrun edbot src/diffdrv.py
+
+iqdean@ubilinux:~/catkin_ws$ rosrun edbot src/diffdrv.py
+[INFO] [WallTime: 1472174547.341525] DiffDrv _init_: Starting with serial port: /dev/ttyMFD1, baud rate: 19200
+[INFO] [WallTime: 1472174547.367201] sdg._init_
+[INFO] [WallTime: 1472174547.368959] DiffDrv.Start: Starting
+[INFO] [WallTime: 1472174547.370530] sdg.Start: Starting serial gateway
+[INFO] [WallTime: 1472174547.375538] sdg.Write: Writing to serial port: d,stop
+d,start
+d,start
+t,stop
+t,start
+t,start
+d,s0
+t,s0
+
+[INFO] [WallTime: 1472174547.378650] sdg.Write: Writing to serial port: d,units 779 mm = 1024 lines
+
+[INFO] [WallTime: 1472174547.380625] sdg.Write: Writing to serial port: t,units 360 degrees = 1891 lines
+
+--- very kewl ---
+
+now kill roscore/ebot nodes and manually send some commands to kangroo
+
+Per 10-3-poweron-init-of-motor-drv.txt
+---------------------------------------
+due to the units commands,
+kangaroo is operating in units of mm/s and deg/sec, so the
+linear and angular velocity commands need to be scaled relative to
+this unit system:
+
+CV
+
+                                                               ROS Nav Stack
+ Max Rev          0        Max Fwd                             native units
+                                                               |
+-500 mm/s         0        +500 mm/s      <  CV mm/s = 1000*CV m/s
+- .5  m/s   -.125   +.125  + .5  m/s	  <  initial dynamic range of CV
+              |deadzone|
+
+
+CAV
+
+Max Left           0        Max Right
+ 180          +30     -30     -180    deg/sec  CAV deg/s = 57.2958 * CAV rad/s
+ 3.14         .525   -.525    +3.14   rad/sec               deg/s
+              |deadzone|
+
+--------------------------------
+t3: $ python 7-4a-pyserial.py
+
+01:22:50>> d,getp
+01:22:57>> D,P0
+
+01:22:57>> t, getp
+01:23:03>> T,P0
+
+01:23:03>> d,s500
+01:33:34>> d,s250
+01:33:43>> d,s125
+01:33:49>> d,s0
+01:33:54>> d,s-125
+01:34:05>> d,s-250
+01:34:12>> d,s-400
+01:34:20>> d,s-500
+01:34:26>> d,s-400
+01:34:30>> d,s-300
+01:34:37>> d,s-200
+01:34:43>> d,s-125
+01:34:47>> d,s0
+01:34:52>> d,getp
+01:34:57>> D,P-6256
+
+01:34:57>> t, s30
+01:36:40>> t, s45
+01:36:46>> t, s90
+01:36:55>> t, s45
+01:37:00>> t, s30
+01:37:06>> t, s0
+01:37:10>> t, s-30
+01:37:15>> t, s-45
+01:37:20>> t, s-90
+01:37:24>> t, s-45
+01:37:36>> t, s-30
+01:37:41>> t, s0
+
+--- kewl, manual commands work as expected ----
+check init code into  git
+
+add runtime code to deal with
+ros /cmd_vel -> cv x 1000 =  -> kangaroo 'd,<cv*1000>\r\n'
+ros /cmd_vel ->cav x 57.2958 -> kangaroo 't,<cav*57.2958>\r\n'
+
+---- chk run time calcs ----
+t1:$ roscore
+
+t2:
+iqdean@ubilinux:~/catkin_ws$ rosrun edbot src/diffdrv.py
+[INFO] [WallTime: 1472196783.612752] DiffDrv _init_: Starting with serial port: /dev/ttyMFD1, baud rate: 19200
+[INFO] [WallTime: 1472196783.636923] sdg._init_
+[INFO] [WallTime: 1472196783.638955] DiffDrv.Start: Starting
+[INFO] [WallTime: 1472196783.641306] sdg.Start: Starting serial gateway
+[INFO] [WallTime: 1472196783.655168] sdg.Write: Writing to serial port: d,start
+d,start
+t,start
+t,start
+d,s0
+t,s0
+
+[INFO] [WallTime: 1472196783.658066] sdg.Write: Writing to serial port: d,units 779 mm = 1024 lines
+
+[INFO] [WallTime: 1472196783.660650] sdg.Write: Writing to serial port: t,units 360 degrees = 1891 lines
+
+t3:
+iqdean@ubilinux:~$ rostopic pub -r 1 /cmd_vel geometry_msgs/Twist '{linear: {x: 0.1, y: 0, z: 0}, angular: {x: 0, y: 0, z: -0.5}}'
+
+t2:
+[INFO] [WallTime: 1472230576.389404] DiffDrv.hvc: ros in: 0.1,-0.5
+[INFO] [WallTime: 1472230576.391880] DiffDrv.hvc: kmc out:100,-28
+[INFO] [WallTime: 1472230576.394277] kmc velocity cmds:
+d,s100
+t,s-28
+
+[INFO] [WallTime: 1472230577.389450] DiffDrv.hvc: ros in: 0.1,-0.5
+[INFO] [WallTime: 1472230577.391863] DiffDrv.hvc: kmc out:100,-28
+[INFO] [WallTime: 1472230577.394213] kmc velocity cmds:
+d,s100
+t,s-28
+
+--- now enable writing linear/angular vel commands to kangaroo ----	Done
+    & then use rostopic to manually publish /cmd_vel  	       		Done
+    & verify motors are responding as expected				works as expected !!!
+
+t1: $ roscore
+
+t2: $ rosrun edbot src/diffdrv.py
+
+t3:
+iqdean@ubilinux:~/catkin_ws$ rostopic pub -1 /cmd_vel geometry_msgs/Twist '{linear: {x: -0.250, y: 0, z: 0}, angular: {x: 0, y: 0, z: 0}}'
+publishing and latching message for 3.0 seconds
+iqdean@ubilinux:~/catkin_ws$ rostopic pub -1 /cmd_vel geometry_msgs/Twist '{linear: {x: 0, y: 0, z: 0}, angular: {x: 0, y: 0, z: 0}}'
+publishing and latching message for 3.0 seconds
+iqdean@ubilinux:~/catkin_ws$ rostopic pub -1 /cmd_vel geometry_msgs/Twist '{linear: {x: 0, y: 0, z: 0}, angular: {x: 0, y: 0, z: 0.5}}'
+publishing and latching message for 3.0 seconds
+iqdean@ubilinux:~/catkin_ws$ rostopic pub -1 /cmd_vel geometry_msgs/Twist '{linear: {x: 0, y: 0, z: 0}, angular: {x: 0, y: 0, z: -0.5}}'
+publishing and latching message for 3.0 seconds
+iqdean@ubilinux:~/catkin_ws$ rostopic pub -1 /cmd_vel geometry_msgs/Twist '{linear: {x: 0, y: 0, z: 0}, angular: {x: 0, y: 0, z: -0.75}}'
+publishing and latching message for 3.0 seconds
+^[[Aiqdean@ubilinux:~/catkin_ws$ rostopic pub -1 /cmd_vel geometry_msgs/Twist '{linear: {x: 0, y: 0, z: 0}, angular: {x: 0, y: 0, z: -1}}'
+publishing and latching message for 3.0 seconds
+iqdean@ubilinux:~/catkin_ws$ rostopic pub -1 /cmd_vel geometry_msgs/Twist '{linear: {x: 0, y: 0, z: 0}, angular: {x: 0, y: 0, z: 0}}'
+publishing and latching message for 3.0 seconds
+
+t2:
+[INFO] [WallTime: 1472239151.132234] sdg.Write: Writing to serial port: d,s-125
+t,s0
+
+[INFO] [WallTime: 1472239185.931926] HVC ros in: -0.25,0.0
+[INFO] [WallTime: 1472239185.934587] HVC kmc out:-250,0
+[INFO] [WallTime: 1472239185.937179] HVC kmc xmt:
+d,s-250
+t,s0
+
+[INFO] [WallTime: 1472239185.939873] sdg.Write: Writing to serial port: d,s-250
+t,s0
+
+[INFO] [WallTime: 1472239202.420130] HVC ros in: 0.0,0.0
+[INFO] [WallTime: 1472239202.422889] HVC kmc out:0,0
+[INFO] [WallTime: 1472239202.426074] HVC kmc xmt:
+d,s0
+t,s0
+
+[INFO] [WallTime: 1472239202.429789] sdg.Write: Writing to serial port: d,s0
+t,s0
+
+[INFO] [WallTime: 1472239242.836654] HVC ros in: 0.0,0.5
+[INFO] [WallTime: 1472239242.839228] HVC kmc out:0,28
+[INFO] [WallTime: 1472239242.842112] HVC kmc xmt:
+d,s0
+t,s28
+
+[INFO] [WallTime: 1472239242.844584] sdg.Write: Writing to serial port: d,s0
+t,s28
+
+[INFO] [WallTime: 1472239267.484469] HVC ros in: 0.0,-0.5
+[INFO] [WallTime: 1472239267.486807] HVC kmc out:0,-28
+[INFO] [WallTime: 1472239267.489350] HVC kmc xmt:
+d,s0
+t,s-28
+
+[INFO] [WallTime: 1472239267.491940] sdg.Write: Writing to serial port: d,s0
+t,s-28
+
+[INFO] [WallTime: 1472239291.134187] HVC ros in: 0.0,-0.75
+[INFO] [WallTime: 1472239291.137296] HVC kmc out:0,-42
+[INFO] [WallTime: 1472239291.140150] HVC kmc xmt:
+d,s0
+t,s-42
+
+[INFO] [WallTime: 1472239291.143897] sdg.Write: Writing to serial port: d,s0
+t,s-42
+
+[INFO] [WallTime: 1472239303.315035] HVC ros in: 0.0,-1.0
+[INFO] [WallTime: 1472239303.318111] HVC kmc out:0,-57
+[INFO] [WallTime: 1472239303.321072] HVC kmc xmt:
+d,s0
+t,s-57
+
+[INFO] [WallTime: 1472239303.324888] sdg.Write: Writing to serial port: d,s0
+t,s-57
+
+[INFO] [WallTime: 1472239319.202655] HVC ros in: 0.0,0.0
+[INFO] [WallTime: 1472239319.205037] HVC kmc out:0,0
+[INFO] [WallTime: 1472239319.208065] HVC kmc xmt:
+d,s0
+t,s0
+
+[INFO] [WallTime: 1472239319.210727] sdg.Write: Writing to serial port: d,s0
+t,s0
+
+----- do end to end test with ----------------------------------------------
+
+----- hp ub1404 notebook ----              ---edison---
+                                             roscore
+xbox360 <-usb-> roslibjoy.js  <-- usb eth--> rosbridge_server
+                                             rosbridge_websocket.launch
+                                             sudo ./cfgttyMFD1.sh
+                                             rosrun edbot src/diffdrv.py
+
+see notes in red notebook ... works!!!
+
+Final issues to wrap this up and move on the next chapter:
+
+1. /etc/rc.local  add cfgttyMFD1.sh to get edison gpio pins configured to enable use of /dev/ttyMFD1 on boot
+
+2. launch file    create launch file to avoid manually starting everything on the robot side
+
+3. roslibjoy.js   right now scales linear and angular vel to -1 to +1
+
+4. diffdrv.py     clean up debug/log messages otherwise the logs are going to
+                  take up unnecessary space on the filesystem
+
+
+

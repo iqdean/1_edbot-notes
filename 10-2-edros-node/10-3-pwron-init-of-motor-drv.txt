@@ -66,13 +66,12 @@ TO:    -500  +500    -114    +114
 
 CV
 
-                                                               ROS Nav Stack
- Max Rev          0        Max Fwd                             native units
-                                                               |
--500 mm/s         0        +500 mm/s      <  CV mm/s = 1000*CV m/s
-- .5  m/s   -.125   +.125  + .5  m/s	  <  initial dynamic range of CV 
-              |deadzone|
-
+                                                                  ROS Nav Stack
+ Max Rev           0          Max Fwd                             native units
+                                                                  |
+-1000 mm/s         0         +1000 mm/s      <  CV mm/s = 1000*CV m/s
+-   1  m/s   -.125   +.125   +   1  m/s	     <  initial dynamic range of CV 
+               |deadzone|
 
 CAV
 
@@ -80,7 +79,6 @@ Max Left           0        Max Right
  180          +30     -30     -180    deg/sec  CAV deg/s = 57.2958 * CAV rad/s
  3.14         .525   -.525    +3.14   rad/sec               deg/s
               |deadzone|
-
 
 
 iqdean@ubilinux:~/motors$ sudo ./cfgttyMFD1.sh 
@@ -103,7 +101,7 @@ Insert "exit" to leave the application.
 21:45:17>> t, units 360 degrees = 1891 lines
                     
                                                                                        ROS Nav Stack
-	      	    	 Max Rev          0        Max Fwd                             native units
+	      	    	     Max Rev          0        Max Fwd                             native units
 21:45:36>> d, s125      -500 mm/s         0        +500 mm/s      <  CV mm/s = 1000*CV m/s
 21:46:00>> d, s250      - .5  m/s   -.125   +.125  + .5  m/s	  <  initial dynamic range of CV 
 21:46:07>> d, s500                    | dead |

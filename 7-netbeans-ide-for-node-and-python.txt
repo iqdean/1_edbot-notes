@@ -10,15 +10,15 @@ codelite crashes and the highliting for *.js sucks
 --- uninstall codelite ----
 $ sudo apt-get purge codelite codelite-plugs
 $ sudo apt-get autoremove   <-- this removed joystick and jstest since these were part of
-                                the xboxdrv package which got purged a while back... 
+                                the xboxdrv package which got purged a while back...
 				so, you might have to reinstall these if needed
 
---- install netbeans ide --- has javascript support since ver 8.01 and supports nodejs express 
+--- install netbeans ide --- has javascript support since ver 8.01 and supports nodejs express
                              see video bookmarked under PostIntel-> SW Programming > nodejs
 
-iqdean@hpdm4:~/Downloads$ chmod +x netbeans-8.1-linux.sh 
+iqdean@hpdm4:~/Downloads$ chmod +x netbeans-8.1-linux.sh
 
-iqdean@hpdm4:~/Downloads$ ./netbeans-8.1-linux.sh 
+iqdean@hpdm4:~/Downloads$ ./netbeans-8.1-linux.sh
 Configuring the installer...
 Searching for JVM on the system...
 Java SE Development Kit (JDK) was not found on this computer
@@ -31,7 +31,7 @@ To download the JDK, visit http://www.oracle.com/technetwork/java/javase/downloa
 
 1. download jdk-blah-blah.tar.gz
 2. unpack it
-3. The Java Development Kit files are installed in a directory 
+3. The Java Development Kit files are installed in a directory
    called jdk1.8.0_version in the current directory.
 
 4. Set JAVA_HOME.
@@ -61,16 +61,16 @@ https://jaxenter.com/netbeans/the-complete-guide-to-tuning-the-appearance-of-net
 
 Tools > PlugIns > Available PlugIns > [x] Dark Look And Feel
 Plugin Description
-Installing this plugin automatically activates Dark Metal look and feel theme in your IDE. 
-You can also choose Dark Nimbus look and feel in Tools - Options - Miscellaneous - Windows. 
-Both dark themes are designed to match Norway Today editor color profile. Use menu Tools - 
+Installing this plugin automatically activates Dark Metal look and feel theme in your IDE.
+You can also choose Dark Nimbus look and feel in Tools - Options - Miscellaneous - Windows.
+Both dark themes are designed to match Norway Today editor color profile. Use menu Tools -
 Options to switch back to the default look and feel or simply deactivate this plugin.
 
 Restart
 
 KEWL! It works... we got a dark theme with code highlighting
 
---- looking thru the list of plugins, theres one for python ... 
+--- looking thru the list of plugins, theres one for python ...
     since ros uses python and c/c++, we should be able to all 3
     with netbeans ide
 
@@ -79,11 +79,14 @@ install python plugin for netbeans
 
 After restart, Tools > Options  shows Python
 
-Activate C/C++ 
+Activate C/C++
 -------------
 Tools > Options > C/C++ > Activate
 
-Ok, now we should have JavaScript/Nodejs, Python, and C/C++ support 
+Ok, now we should have JavaScript/Nodejs, Python, and C/C++ support
 all thru 1 IDE!!
 
 
+----- Install Atom IDE on ubu1404 ------
+- works greats, has code highliting for nodejs, python and c/c++
+- started using Atom IDE instead of netbeans

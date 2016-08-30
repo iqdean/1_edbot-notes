@@ -1,0 +1,240 @@
+Attempt to backup all things edbot to github seems have hit a bump
+
+Got everything needed to rebuild edison image for edbot onto github
+except the ubilinux os image:
+
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git status
+On branch master
+nothing to commit, working directory clean
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git remote add origin https://github.com/iqdean/2_edbot-os.git
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git push origin master
+Username for 'https://github.com': iqdean
+Password for 'https://iqdean@github.com': 
+Counting objects: 12, done.
+Delta compression using up to 4 threads.
+Compressing objects: 100% (10/10), done.
+Writing objects: 100% (12/12), 587.33 MiB | 253.00 KiB/s, done.
+Total 12 (delta 0), reused 0 (delta 0)
+remote: warning: File ubi1-bkups/bkups/ubi1-home-iqdean.tgz is 73.25 MB; this is larger than GitHub's recommended maximum file size of 50.00 MB
+remote: error: GH001: Large files detected. You may want to try Git Large File Storage - https://git-lfs.github.com.
+remote: error: Trace: e8c460b65be9f527c486b14ae999fc55
+remote: error: See http://git.io/iEPt8g for more information.
+remote: error: File ubilinux-edison-150309.tar.gz is 501.02 MB; this exceeds GitHub's file size limit of 100.00 MB
+To https://github.com/iqdean/2_edbot-os.git
+ ! [remote rejected] master -> master (pre-receive hook declined)
+error: failed to push some refs to 'https://github.com/iqdean/2_edbot-os.git'
+
+=== download git-lfs client for linux, untar it, and install it ====
+
+iqdean@hpdm4:~/Downloads/git-lfs-1.3.1$ ls -al
+total 12124
+drwxr-xr-x 2 iqdean iqdean     4096 Aug  2 10:16 .
+drwxr-xr-x 3 iqdean iqdean     4096 Aug 23 17:49 ..
+-rw-r--r-- 1 iqdean iqdean    16621 Aug  2 10:16 CHANGELOG.md
+-rwxr-xr-x 1 iqdean iqdean 12357096 Aug  2 10:16 git-lfs
+-rwxr-xr-x 1 iqdean iqdean      313 Aug  2 10:16 install.sh
+-rw-r--r-- 1 iqdean iqdean     4687 Aug  2 10:16 README.md
+iqdean@hpdm4:~/Downloads/git-lfs-1.3.1$ sudo install.sh
+[sudo] password for iqdean: 
+sudo: install.sh: command not found
+iqdean@hpdm4:~/Downloads/git-lfs-1.3.1$ sudo ./install.sh
+Git LFS initialized.
+iqdean@hpdm4:~/Downloads/git-lfs-1.3.1$ which git-lfs
+/usr/local/bin/git-lfs
+iqdean@hpdm4:~/Downloads/git-lfs-1.3.1$ 
+
+=== follow the README.md to see if it works ?? ====
+
+Once installed, you need to setup the global Git hooks for Git LFS. This only
+needs to be done once per machine.
+
+```bash
+$ git lfs install
+```
+
+Now, it's time to add some large files to a repository. The first step is to
+specify file patterns to store with Git LFS. These file patterns are stored in
+`.gitattributes`.
+
+```bash
+$ mkdir large-repo
+$ cd large-repo
+$ git init
+
+# Add all zip files through Git LFS
+$ git lfs track "*.zip"
+```
+
+Now you're ready to push some commits:
+
+```bash
+$ git add .gitattributes
+$ git add my.zip
+$ git commit -m "add zip"
+```
+
+You can confirm that Git LFS is managing your zip file:
+
+```bash
+$ git lfs ls-files
+my.zip
+```
+
+Once you've made your commits, push your files to the Git remote:
+
+```bash
+$ git push origin master
+Sending my.zip
+LFS: 12.58 MB / 12.58 MB  100.00 %
+Counting objects: 2, done.
+Delta compression using up to 8 threads.
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (5/5), 548 bytes | 0 bytes/s, done.
+Total 5 (delta 1), reused 0 (delta 0)
+To https://github.com/github/git-lfs-test
+   67fcf6a..47b2002  master -> master
+```
+
+## Need Help?
+
+You can get help on specific commands directly:
+
+```bash
+$ git lfs help <subcommand>
+```
+
+=== begin test ===
+
+iqdean@hpdm4:~/Downloads/git-lfs-1.3.1$ git lfs install
+Git LFS initialized.
+
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ rm -rf .git     <- delete the old repo 
+                                                                  that failed the git push to github
+                                                                  due to large file size limit issues
+--- find your large files ---
+
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ ls -al
+total 513093
+drwxrwxrwx 1 root root      4096 Aug 23 17:55 .
+drwxrwxrwx 1 root root      4096 Aug 23 16:39 ..
+-rwxrwxrwx 1 root root     19755 Aug 17 20:11 11-1-ubilinux-take3-boot-off-sdcard.txt
+-rwxrwxrwx 1 root root     15252 Aug 17 20:04 7-ubilinux-take2.txt
+-rwxrwxrwx 1 root root         6 Aug 23 16:45 .gitignore
+drwxrwxrwx 1 root root         0 Sep 13  2015 ubi1-bkups
+-rwxrwxrwx 1 root root 525360770 Aug 16  2015 ubilinux-edison-150309.tar.gz
+
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ ls -al ubi1-bkups/bkups/
+total 94228
+drwxrwxrwx 1 root root     4096 Sep 13  2015 .
+drwxrwxrwx 1 root root        0 Sep 13  2015 ..
+-rwxrwxrwx 1 root root 15675204 Sep 13  2015 ubi1-boot.tgz
+-rwxrwxrwx 1 root root 76813073 Sep 13  2015 ubi1-home-iqdean.tgz
+-rwxrwxrwx 1 root root  3394123 Sep 13  2015 ubi1-home-ros-indigo.tgz
+-rwxrwxrwx 1 root root   593958 Sep 13  2015 ubi1-lib-modules-rtkern.tgz
+
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git config --global --list
+user.name=Ike Dean
+user.email=iad1046@gmail.com
+filter.lfs.clean=git-lfs clean -- %f
+filter.lfs.smudge=git-lfs smudge -- %f
+filter.lfs.required=true
+
+--- add project to git like usual ---
+
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git init
+Initialized empty Git repository in /media/8C365D65365D5176/u1404/DEV-SW/github/2_edbot-os/.git/
+
+--- except this part: -----
+
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git lfs track "*.tar.gz"
+Tracking *.tar.gz
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git lfs track "*.tgz"
+Tracking *.tgz
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git add .gitattributes
+
+--- more usual stuff ---
+
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git status
+On branch master
+
+Initial commit
+
+Changes to be committed:
+  (use "git rm --cached <file>..." to unstage)
+
+	new file:   .gitattributes
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+
+	.gitignore
+	11-1-ubilinux-take3-boot-off-sdcard.txt
+	7-ubilinux-take2.txt
+	ubi1-bkups/
+	ubilinux-edison-150309.tar.gz
+
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git add *.tar.gz
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git add .gitignore
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git add *.txt
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git add ubi1-bkups
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git status
+On branch master
+
+Initial commit
+
+Changes to be committed:
+  (use "git rm --cached <file>..." to unstage)
+
+	new file:   .gitattributes
+	new file:   .gitignore
+	new file:   11-1-ubilinux-take3-boot-off-sdcard.txt
+	new file:   7-ubilinux-take2.txt
+	new file:   ubi1-bkups/bkups/ubi1-boot.tgz
+	new file:   ubi1-bkups/bkups/ubi1-home-iqdean.tgz
+	new file:   ubi1-bkups/bkups/ubi1-home-ros-indigo.tgz
+	new file:   ubi1-bkups/bkups/ubi1-lib-modules-rtkern.tgz
+	new file:   ubilinux-edison-150309.tar.gz
+
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git commit -m "ubilinux debian wheezy image for edison"
+[master (root-commit) 6f8b1ab] ubilinux debian wheezy image for edison
+ 9 files changed, 920 insertions(+)
+ create mode 100644 .gitattributes
+ create mode 100644 .gitignore
+ create mode 100644 11-1-ubilinux-take3-boot-off-sdcard.txt
+ create mode 100644 7-ubilinux-take2.txt
+ create mode 100644 ubi1-bkups/bkups/ubi1-boot.tgz
+ create mode 100644 ubi1-bkups/bkups/ubi1-home-iqdean.tgz
+ create mode 100644 ubi1-bkups/bkups/ubi1-home-ros-indigo.tgz
+ create mode 100644 ubi1-bkups/bkups/ubi1-lib-modules-rtkern.tgz
+ create mode 100644 ubilinux-edison-150309.tar.gz
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git lfs ls-files
+3ed9c61a41 * ubi1-bkups/bkups/ubi1-boot.tgz
+83930ce209 * ubi1-bkups/bkups/ubi1-home-iqdean.tgz
+e7e67ff488 * ubi1-bkups/bkups/ubi1-home-ros-indigo.tgz
+15b86ad4fb * ubi1-bkups/bkups/ubi1-lib-modules-rtkern.tgz
+e5a8e8093b * ubilinux-edison-150309.tar.gz
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git remote add origin https://github.com/iqdean/2_edbot-os.git
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git push -u origin master
+Username for 'https://github.com': iqdean
+Password for 'https://iqdean@github.com': 
+Username for 'https://github.com': iqdean
+Password for 'https://iqdean@github.com': 
+Git LFS: (5 of 5 files) 593.03 MB / 593.03 MB                                                                                                
+Counting objects: 13, done.
+Delta compression using up to 4 threads.
+Compressing objects: 100% (11/11), done.
+Writing objects: 100% (13/13), 11.94 KiB | 0 bytes/s, done.
+Total 13 (delta 0), reused 0 (delta 0)
+To https://github.com/iqdean/2_edbot-os.git
+ * [new branch]      master -> master
+Branch master set up to track remote branch master from origin.  	<--- and it works this time
+
+iqdean@hpdm4:~/u1404/DEV-SW/github/2_edbot-os$ git status
+On branch master
+Your branch is up-to-date with 'origin/master'.
+
+nothing to commit, working directory clean
+
+==== on remote github repo ====
+looks good, can see all the *.tar.gz & *.tgz 'large files'
+
