@@ -1,0 +1,96 @@
+https://thomashunter.name/blog/a-better-debian-ssh-login-message/
+
+iqdean@ubilinux:~$ sudo cat /etc/motd
+
+Welecome to Edbot Research Robot
+
+Powered by
+
+   Linux Tux Penguins
+      .~.      .~.
+      /V\      /V\
+     // \\    // \\
+    /(   )\  /(   )\
+     ^`~'^    ^`~'^
+
+   ROS Indigo Turtles 
+     _____     ____
+    /      \  |  o | 
+   |        |/ ___\| 
+   |_________/     
+   |_|_| |_|_|
+
+
+iqdean@ubilinux:~$ cat .bash_profile    <-- whatever is in here
+w                                           runs at user login
+echo ""
+df -h -x tmpfs -x devtmpfs -x /dev/root
+
+---- Results in: --------------------
+
+Debian GNU/Linux 7 ubilinux ttyMFD2
+
+ubilinux login: iqdean
+Password: 
+Last login: Fri Sep  2 02:01:37 UTC 2016 on ttyMFD2
+Linux ubilinux 3.10.17-yocto-standard-r2 #7 SMP PREEMPT Thu Feb 26 09:57:06 UTC 2015 i686
+
+Welecome to Edbot Research Robot
+
+Powered by Intel Edison using
+
+Tux Penguins in Debian Linux 
+      .~.       .~.
+      /V\       /V\
+     // \\     // \\
+    /(   )\   /(   )\
+     ^`~'^     ^`~'^
+
+& Indigo Turtles in ROS
+     _____     ____
+    /      \  |  o | 
+   |        |/ ___\| 
+   |_________/     
+   |_|_| |_|_|
+
+Filesystem       Size  Used Avail Use% Mounted on
+rootfs            15G  1.4G   13G  10% /
+/dev/root         15G  1.4G   13G  10% /
+/dev/mmcblk0p7    32M  5.3M   27M  17% /boot
+/dev/mmcblk0p10  1.3G  177M  1.1G  14% /home
+
+iqdean@ubilinux:~$ 
+
+
+                        _,.--.
+    --..,_           .'`__ o  `;__,
+       `'.'.       .'.'`  '---'`  ' 
+          '.`-...-'.'
+            `-...-'
+
+---- Final login prompt ------
+
+Debian GNU/Linux 7 ubilinux ttyMFD2
+
+ubilinux login: iqdean
+Password: 
+Last login: Fri Sep  2 02:59:22 UTC 2016 on ttyMFD2
+Linux ubilinux 3.10.17-yocto-standard-r2 #7 SMP PREEMPT Thu Feb 26 09:57:06 UTC 2015 i686
+
+Welecome to Edbot Research Robot
+
+Edbot is powered by a Intel Edison board
+
+using a few       .~.       .~.
+Tux Penguins      /V\       /V\       & lots of python 
+from Debian      // \\     // \\      & c code           _,.--.
+Ubilinux        /(   )\   /(   )\    --..,_           .'`__ o  `;__,
+                 ^`~'^     ^`~'^       `'.'.       .'.'`  '---'`  ' 
+some               ______    ____         '.`-...-'.'
+Indigo Turtles    /      \  |  o |          `-...-'
+from ROS         |        |/ ___\|
+                 |_________/           
+                 |_|_| |_|_| 
+
+iqdean@ubilinux:~$ 
+

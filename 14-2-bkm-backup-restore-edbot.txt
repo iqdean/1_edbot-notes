@@ -1,0 +1,171 @@
+BKM Backup/Restore Edbot Edison Image 
+
+     -----------------------------        ubilinux in emmc
+---- ubilinux-edison-150309.tar.gz ----- (firmware, bootloader, kernel)
+     -----------------------------
+Nothing to backup, use the original ubilinux-edison-150309.tar.gz to restore emmc contents
+with firmware, bootloader, and kernel
+
+     ----------------------------
+---- to backup edbot sdcard      ----  (rootfs)
+     ----------------------------
+
+sdcard has complete rootfs with 
+- ROS Indigo (/opt/ros/indigo & ros deps in /usr/lib & /usr/local) 
+- edbot ROS packages (/home/iqdean/catkin_ws)
+  > as we add ros packages for edbot, /home/iqdean/catkin_ws and /usr/lib  & /usr/local will grow
+    so backup the sdcard at the completion of each major ros package
+    ex: 1st backup is of edbot diffdrv package
+        2nd backup will be of edbot odometery completes
+        3rd backup will be of edbot laserscanner
+        4th backup will be of edbot navigation stack
+
+
+5.1 pwr dwn robot, pull the sdcard from edison, insert into usb sdcard reader, plug in sdcard reader, plug in usbhd, figure out where ea is
+
+5.2 create disk img on usbhd from sdcard
+
+                          16GB edbot                    120GB
+                           -sdcard-            ------- wd usbhd ---------------------------------
+iqdean@hpdm4:~$ sudo dd if=/dev/sdb | bzip2 > /media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups/edbot-sdcard-20160902-1.img.bz2
+31116288+0 records in
+31116288+0 records out
+15931539456 bytes (16 GB) copied, 1277.96 s, 12.5 MB/s
+                                     \___________________  1278/60 = ~22 minute
+
+     --------------------------------------------
+---- to restore edbot rootfs backup onto a sdcard ----
+     --------------------------------------------
+
+PLUG IN USBHD with edbot sdcard backups on it, figure out where it ends up at:
+-------------
+
+iqdean@hpdm4:/media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups$ ls -lt
+total 1550800
+-rw-rw-r-- 1 iqdean iqdean 797589014 Sep  2 13:00 edbot-sdcard-20160902-1.img.bz2
+
+GET A BLANK SDCARD
+------------------
+use a brand new sdcard       <--- 16GB SANDISK EXTREME PLUS  (the cheap SanDisk Ultra cards are JUNK!!) 
+don't format or mkfs.ext4 on it
+write to /dev/sdb instead of /dev/sdb1 < the backup was of /dev/sdb, not /dev/sdb1 (see above)
+make sure the sdcard IS NOT mounted    < brand new sdcard will automount, so do following
+make sure the usbhd  IS mounted          $ mount                   to find /dev/sdx of the sdcard
+                                         $ sudo umount /dev/sdx    to unmount it
+
+WRITE BACKUP IMAGE TO SDCARD
+----------------------------
+iqdean@hpdm4:~$ bzcat /media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups/edbot-sdcard-20160902-1.img.bz2 | sudo dd of=/dev/sdb
+31116288+0 records in
+31116288+0 records out
+15931539456 bytes (16 GB) copied, 3661.7 s, 4.4 MB/s
+                                    \__________________ 3662/60 = ~62 minutes
+
+
+iqdean@hpdm4:~$ ls /mnt
+edbot-hme  sdcard
+iqdean@hpdm4:~$ sudo mount -t ext4 /dev/sdb /mnt/sdcard
+[sudo] password for iqdean: 
+mount: wrong fs type, bad option, bad superblock on /dev/sdb,
+       missing codepage or helper program, or other error
+       In some cases useful info is found in syslog - try
+       dmesg | tail  or so
+
+??? Hmm ???
+---- unplug and plug back in usb sdcard reader into a diff usb port on u1404:   it automounts fine & seems to be ok
+
+CHECK EXT4 FS INTEGRITY ON SDCARD
+----------------------------------
+1. unmount the sdcard
+
+iqdean@hpdm4:~$ sudo umount /media/iqdean/317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b 
+
+iqdean@hpdm4:~$ sudo fsck.ext4 /dev/sdb1 -f          <-- Force fs check even if it's clean
+e2fsck 1.42.9 (4-Feb-2014)
+Pass 1: Checking inodes, blocks, and sizes
+Pass 2: Checking directory structure
+Pass 3: Checking directory connectivity
+Pass 4: Checking reference counts
+Pass 5: Checking group summary information
+/dev/sdb1: 94190/972944 files (0.1% non-contiguous), 492082/3889280 blocks
+
+     ---------------
+---- flash ubilinux  ---- this restores emmc with firmware, bootloader, kernel
+     ---------------
+
+b) flash ubilinux to emmc
+--------------------------
+
+REF: https://learn.sparkfun.com/tutorials/loading-debian-ubilinux-on-the-edison/install-ubilinux
+
+On Linux, make sure you got dfu-util installed otherwise
+
+sudo apt-get install dfu-util
+
+iqdean@hpdm4:/media/8C365D65365D5176/u1204/intel-edison/ubilinux/toFlash$ which dfu-util
+/usr/bin/dfu-util
+
+
+SW1 set for J16
+  edison        ubu1404 ws
+   J3  <--usb---> PC   t1:  <anydir             > 1 $ sudo screen /dev/ttyUSB0 115200
+   J16 <--usb---> PC   t2:  <ubilinx toFlash dir> 2 $ sudo flashall.sh                   
+                                                  3 plugging in J16 pwrs up ed 
+
+tar xvfz ubilinux-edison-150309.tar.gz
+cd toFlash
+sudo ./flashall.sh
+
+t1: you can watch ubilinux getting flashed, then it reboots, bunch more setup stuff happens, then it reboots again to
+
+ubilinux login: root
+Password:       edison
+
+     ----------------------------------------------
+---- Config Ubilinux Bootloader to boot off sdcard ----
+     ----------------------------------------------
+
+6.3.1 configure uboot to boot off sdcard
+
+boot > setenv mmc-bootargs 'setenv bootargs root=${myrootfs} rootdelay=3 rootfstype=ext4 ${bootargs_console} ${bootargs_debug} systemd.unit=${bootargs_target}.target hardware_id=${hardware_id} g_multi.iSerialNumber=${serial#} g_multi.dev_addr=${usb0addr}'
+boot > setenv myrootfs_sdcard /dev/mmcblk1p1
+boot > setenv myrootfs_emmc PARTUUID=012b3303-34ac-284d-99b4-34e03a2335f4
+boot > setenv do_boot_emmc 'setenv myrootfs ${myrootfs_emmc}; run do_boot'
+boot > setenv do_boot_sdcard 'setenv myrootfs ${myrootfs_sdcard}; run do_boot'
+boot > setenv myrootfs /dev/mmcblk1p1
+boot > saveenv
+Saving Environment to MMC...
+Writing to MMC(0)... done
+
+boot > run do_boot_emmc
+
+login as root:edision & $ shutdown -h now
+plug in sdcard created from latest edbot rootfs backup
+power on
+
+Debian GNU/Linux 7 ubilinux ttyMFD2
+
+ubilinux login: iqdean
+Password:       csolinux
+
+Last login: Sat Sep  3 17:25:47 UTC 2016 on ttyMFD2
+Linux ubilinux 3.10.17-yocto-standard-r2 #7 SMP PREEMPT Thu Feb 26 09:57:06 UTC 2015 i686
+
+Welecome to Edbot Research Robot
+
+Edbot is powered by a Intel Edison board
+
+using a few       .~.       .~.
+Tux Penguins      /V\       /V\       & lots of python
+from Debian      // \\     // \\      & c code           _,.--.
+Ubilinux        /(   )\   /(   )\    --..,_           .'`__ o  `;__,
+                 ^`~'^     ^`~'^       `'.'.       .'.'`  '---'`  '
+some               ______    ____         '.`-...-'.'
+Indigo Turtles    /      \  |  o |          `-...-'
+from ROS         |        |/ ___\|
+                 |_________/
+                 |_|_| |_|_|
+
+iqdean@ubilinux:~$
+
+

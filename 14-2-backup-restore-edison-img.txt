@@ -1,0 +1,1170 @@
+Backup edison image
+
+REF:
+/home/iqdean/u1404/DEV-SW/github/2_edbot-os:
+  -rwxrwxrwx 1 root root     19755 Aug 17 20:11 11-1-ubilinux-take3-boot-off-sdcard.txt
+  -rwxrwxrwx 1 root root     15252 Aug 17 20:04 7-ubilinux-take2.txt
+  drwxrwxrwx 1 root root         0 Sep 13  2015 ubi1-bkups
+  -rwxrwxrwx 1 root root 525360770 Aug 16  2015 ubilinux-edison-150309.tar.gz
+
+RECAP:   ubilinux-edison-150309.tar.gz explodes to:
+
+/media/8C365D65365D5176/u1204/intel-edison/ubilinux/toFlash:
+a ------ firmware -------------------------------------------------------------------
+  -rwxrwxrwx 1 root root      98196 Feb 13  2015 edison_dnx_fwr.bin
+  -rwxrwxrwx 1 root root     148996 Feb 13  2015 edison_dnx_osr.bin
+  -rwxrwxrwx 1 root root    4194468 Feb 13  2015 edison_ifwi-dbg-00.bin
+  -rwxrwxrwx 1 root root    4194304 Feb 13  2015 edison_ifwi-dbg-00-dfu.bin
+  -rwxrwxrwx 1 root root    4194468 Feb 13  2015 edison_ifwi-dbg-01.bin
+  -rwxrwxrwx 1 root root    4194304 Feb 13  2015 edison_ifwi-dbg-01-dfu.bin
+  -rwxrwxrwx 1 root root    4194468 Feb 13  2015 edison_ifwi-dbg-02.bin
+  -rwxrwxrwx 1 root root    4194304 Feb 13  2015 edison_ifwi-dbg-02-dfu.bin
+  -rwxrwxrwx 1 root root    4194468 Feb 13  2015 edison_ifwi-dbg-03.bin
+  -rwxrwxrwx 1 root root    4194304 Feb 13  2015 edison_ifwi-dbg-03-dfu.bin
+  -rwxrwxrwx 1 root root    4194468 Feb 13  2015 edison_ifwi-dbg-04.bin
+  -rwxrwxrwx 1 root root    4194304 Feb 13  2015 edison_ifwi-dbg-04-dfu.bin
+  -rwxrwxrwx 1 root root    4194468 Feb 13  2015 edison_ifwi-dbg-05.bin
+  -rwxrwxrwx 1 root root    4194304 Feb 13  2015 edison_ifwi-dbg-05-dfu.bin
+  -rwxrwxrwx 1 root root    4194468 Feb 13  2015 edison_ifwi-dbg-06.bin
+  -rwxrwxrwx 1 root root    4194304 Feb 13  2015 edison_ifwi-dbg-06-dfu.bin
+b ------ rootfs ---------------------------------------------------------------------
+  -rwxrwxrwx 1 root root 1610612736 Dec  3  2015 edison-image-edison.ext4   <- rootfs
+c ------ kernel ----------------------------------------------------------------------
+  -rwxrwxrwx 1 root root    5980160 Feb 27  2015 edison-image-edison.hddimg <- boot part (kernel)
+d ------ flash utils ----------------------------------------------------------------
+  -rwxrwxrwx 1 root root        780 Feb 13  2015 filter-dfu-out.js
+  -rwxrwxrwx 1 root root       7411 Feb 13  2015 flashall.bat
+  -rwxrwxrwx 1 root root       6592 Feb 13  2015 flashall.sh
+  -rwxrwxrwx 1 root root      42671 Dec  2  2015 flash.log
+  -rwxrwxrwx 1 root root      38772 Mar  9  2015 INSTALL.rtf
+  drwxrwxrwx 1 root root          0 Feb 13  2015 mnt
+  -rwxrwxrwx 1 root root      14747 Feb 13  2015 ota_update.scr
+  -rwxrwxrwx 1 root root      18825 Feb 13  2015 package-list.txt
+  -rwxrwxrwx 1 root root        712 Feb 13  2015 pft-config-edison.xml
+e ----- uboot bootloader ------------------------------------------------------------
+  -rwxrwxrwx 1 root root     245760 Feb 13  2015 u-boot-edison.bin      uboot
+  -rwxrwxrwx 1 root root    6291968 Feb 13  2015 u-boot-edison.img
+  drwxrwxrwx 1 root root       4096 Aug 16  2015 u-boot-envs
+
+
+---- Edbot Config as of 9-1-2016 ------ 
+/         sdcard   all of rootfs except f
+/home      emmc
+/boot      emmc
+uboot      emmc
+fw         emmc
+
+0. connect to edison using usb serial console:
+
+ ubu1404 <-- usb cable --> J3 edison
+
+$ screen /dev/ttyUSB0 115200 
+
+Ctrl-a d  detach from screen terminal & then you can reconnect to it if u want
+Ctrl-a k  kill screen terminal
+
+Ctrl-a esc  pg-up/pg-dwn or up/down arrow to scroll thru the screen console buffer
+ret-ret     2 returns to get back to screen termina;
+
+
+1. ---- uuid's ---- 
+
+
+iqdean@ubilinux:~$ blkid
+/dev/mmcblk0p5: UUID="6a7d7dae-b5f5-43fa-9211-4c9c029c701e" TYPE="ext4" 
+/dev/mmcblk0p7: SEC_TYPE="msdos" UUID="260F-37DF" TYPE="vfat" 
+/dev/mmcblk0p8: UUID="e2cba1bd-9c9b-403b-b88b-87c3fdc1cc58" TYPE="ext4" 
+/dev/mmcblk0p9: LABEL="Edison" UUID="2612-613A" TYPE="vfat" 
+/dev/mmcblk0p10: UUID="2880b5fe-ca7f-4842-80e4-daba750bde84" TYPE="ext4" 
+/dev/mmcblk1p1: UUID="317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b" TYPE="ext4" 
+
+2. --- partitions ----
+
+iqdean@ubilinux:~$ sudo parted -l
+[sudo] password for iqdean: 
+[  157.074126] end_request: I/O error, dev mmcblk0rpmb, sector 0
+Error: /dev/mmcblk0rpmb: unrecognised disk label[  157.166470] end_request: I/O error, dev mmcblk0rpmb, sector 0
+
+Warning: Error fsyncing/closing /dev/mmcblk0rpmb: Input/output error      
+Retry/Ignore? I                                                           
+
+Error: /dev/mmcblk0boot0: unrecognised disk label                         
+
+Error: /dev/mmcblk0boot1: unrecognised disk label                         
+
+Model: MMC H4G1d (sd/mmc)
+Disk /dev/mmcblk0: 3909MB
+Sector size (logical/physical): 512B/512B
+Partition Table: gpt
+
+Number  Start   End     Size    File system  Name         Flags
+ 1      1049kB  3146kB  2097kB               u-boot0
+ 2      3146kB  4194kB  1049kB               u-boot-env0
+ 3      4194kB  6291kB  2097kB               u-boot1
+ 4      6291kB  7340kB  1049kB               u-boot-env1
+ 5      7340kB  8389kB  1049kB  ext4         factory
+ 6      8389kB  33.6MB  25.2MB               panic
+ 7      33.6MB  67.1MB  33.6MB  fat16        boot
+ 8      67.1MB  1678MB  1611MB  ext4         rootfs
+ 9      1678MB  2483MB  805MB   fat32        update
+10      2483MB  3909MB  1426MB  ext4         home
+
+
+Model: SD SP16G (sd/mmc)
+Disk /dev/mmcblk1: 15.9GB
+Sector size (logical/physical): 512B/512B
+Partition Table: msdos
+
+Number  Start   End     Size    Type     File system  Flags
+ 1      1049kB  15.9GB  15.9GB  primary  ext4
+
+3 --- mounts ----
+
+iqdean@ubilinux:~$ cat /etc/fstab
+#rootfs              /                   auto       nodev,noatime,discard,barrier=1,data=ordered,noauto_da_alloc    1  1
+/dev/root            /                   ext4       defaults,noatime      0  0
+proc                 /proc               proc       defaults              0  0
+devpts               /dev/pts            devpts     mode=0620,gid=5       0  0
+#usbdevfs            /proc/bus/usb       usbdevfs   auto                  0  0
+debugfs              /sys/kernel/debug   debugfs    auto                  0  0
+tmpfs                /run                tmpfs      mode=0755,nodev,nosuid,strictatime 0  0
+#tmpfs                /var/volatile       tmpfs      defaults              0  0
+tmpfs                /tmp                tmpfs      defaults              0  0
+
+/dev/mmcblk0p7      /boot       auto    defaults     1   1
+/dev/mmcblk0p10     /home       auto    defaults     1   1
+
+4 ---- disk usage -----
+
+iqdean@ubilinux:~$ df -h
+Filesystem       Size  Used Avail Use% Mounted on
+
+rootfs            15G  1.4G   13G  10% /          <-- on sdcard, ros         /opt/ros/indigo
+                                                                 ros deps    /usr/lib, /usr/local/lib
+/dev/root         15G  1.4G   13G  10% /
+devtmpfs         480M     0  480M   0% /dev
+tmpfs             97M  312K   96M   1% /run
+tmpfs            5.0M     0  5.0M   0% /run/lock
+tmpfs            193M     0  193M   0% /run/shm
+tmpfs            481M     0  481M   0% /tmp
+/dev/mmcblk0p7    32M  5.3M   27M  17% /boot     <-- on emmc,  kernel
+/dev/mmcblk0p10  1.3G  177M  1.1G  14% /home     <-- on emmc,  /home/iqdean  edbot src   /home/iqdean/catkin_ws
+                                                                             edbot dev   /home/iqdean/*
+
+---- Ubilinux stock img is 100% on emmc & has its own rootfs
+
+---- uboot 
+- bootargs env defines where rootfs will be    virgin ubilinux install uses emmc /dev/mmcblk0p8 as rootfs
+- setenv is used to set uboot env variables
+- printenv can be used to dump env variales
+- setenv save   saves uboot env variables to emmc(0)
+REF: http://www.denx.de/wiki/DULG/Manual
+
+--- screen scroll side track ----
+
+Screen has its own scroll buffer, as it is a terminal multiplexer and has to deal with several buffers.
+
+Maybe there's a better way, but I'm used to scrolling using the "copy mode" (which you can use to copy text using screen itself, although that requires the paste command too):
+
+Hit your screen prefix combination (C-a / control+A by default), then hit Escape.
+Move up/down with the arrow keys (↑ and ↓).
+When you're done, hit Return twice to get back to the end of the scroll buffer.
+(If you move the cursor after hitting Return once, you'll be selecting text to copy, and hitting Return the second time will copy it. Then you can paste with C-a followed by ])
+
+Of course, you can always use more and less, two commonly used pagers, which may be enough for some commands.
+
+--- end screen scroll sidetrack -----
+
+     ----------------------------
+---- to backup edbot disk images: ----
+     ----------------------------
+
+REF: http://www.backuphowto.info/linux-backup-hard-disk-clone-dd
+     http://www.techrepublic.com/blog/linux-and-open-source/drive-and-partition-backups-with-dd/
+     https://help.ubuntu.com/community/DriveImaging
+
+backup:
+sudo dd if=/dev/sda | bzip2 > /media/usb/image.bz2       Note: /dev/sda can be /dev/sda1 to backup a  partition
+
+restore:
+bzcat /media/usb/image.bz2 | dd of=/dev/sda                    /dev/sda can be /dev/sdc1 to restore a partition
+                                                               You must be sure that the capacity of /dev/sdc1 is larger than /dev/sda1
+
+1. create disk img of rootfs on sdcard		edbot-rootfs-20160901.img.bz2 
+
+1.1 power off the robot, pull the sdcard, insert into usb sdcard reader and backit up on ubu1404 workstation
+    copy edbot-rootfs-<date>.img.bz2 to  usb hd holding edision img backups
+
+on ubu1404, sdcard shows up a /dev/sdc, so we need to run:
+$ sudo dd if=/dev/sdc | bzip2 > /<path_to_media>/edbot-rootfs-20160902.img.bz2
+t1:
+iqdean@hpdm4:~$ sudo dd if=/dev/sdc | bzip2 > /media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups/edbot-sdcard-20160902.img.bz2
+31116288+0 records in
+31116288+0 records out
+15931539456 bytes (16 GB) copied, 1266.05 s, 12.6 MB/s
+
+t1.tab1: to see what's happening:
+iqdean@hpdm4:~$ ls -al /media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups/
+total 730908
+drwxr-xr-x 2 iqdean iqdean      4096 Sep  2 09:47 .
+drwxr-xr-x 6 iqdean iqdean      4096 Sep  2 09:39 ..
+-rw-rw-r-- 1 iqdean iqdean 747700566 Sep  2 10:08 edbot-sdcard-20160902.img.bz2
+
+
+2. create disk img of /home on emmc		edbot-home-20160901.img.bz2      <- this needs to go on the sdcard, than all u gotta do is
+                                                                                     make disk img of card 
+2.1 this needs to happen on the robot
+2.1.1 on edison board, flip sw to enable usb host mode, plug in a pwd usb hub, connect usb hd to the hub, power up ed
+$ sudo fdisk -l     < usbhd shows up as volume /dev/sda with 1 120GB ext3 partition at /dev/sda1
+
+iqdean@ubilinux:~$ sudo mkdir /mnt/usbhd
+iqdean@ubilinux:~$ sudo mount -t ext3 /dev/sda1 /mnt/usbhd
+
+iqdean@ubilinux:~$ ls -al /mnt/usbhd
+drwxr-xr-x 6 iqdean iqdean  4096 Feb 16  2016 acer-c720-bkups
+drwxr-xr-x 2 iqdean iqdean  4096 Sep  2 16:47 edbot-bkups
+drwxr-xr-x 5 iqdean iqdean  4096 Nov 16  2015 edison-bkups
+drwx------ 2 iqdean iqdean 16384 Nov 15  2015 lost+found
+
+iqdean@ubilinux:~$ ls -al /mnt/usbhd/edbot-bkups
+-rw-rw-r-- 1 iqdean iqdean 747700566 Sep  2 17:08 edbot-sdcard-20160902.img.bz2
+
+2.2 backup /home partition to edbot-home-<date>.img.bz2 on usb hd
+
+2.2.1 based on $ sudo parted -l & $ cat /etc/fstab, ubilinux home partition is on /dev/mmcblk0p10 
+
+$ sudo parted -l
+...
+Disk /dev/mmcblk0: 3909MB
+Sector size (logical/physical): 512B/512B
+Partition Table: gpt
+
+Number  Start   End     Size    File system  Name         Flags
+ 1      1049kB  3146kB  2097kB               u-boot0
+ 2      3146kB  4194kB  1049kB               u-boot-env0
+ 3      4194kB  6291kB  2097kB               u-boot1
+ 4      6291kB  7340kB  1049kB               u-boot-env1
+ 5      7340kB  8389kB  1049kB  ext4         factory
+ 6      8389kB  33.6MB  25.2MB               panic
+ 7      33.6MB  67.1MB  33.6MB  fat16        boot
+ 8      67.1MB  1678MB  1611MB  ext4         rootfs
+ 9      1678MB  2483MB  805MB   fat32        update
+10      2483MB  3909MB  1426MB  ext4         home
+
+$ cat /etc/fstab
+
+iqdean@ubilinux:~$ cat /etc/fstab
+#rootfs              /                   auto       nodev,noatime,discard,barrier=1,data=ordered,noauto_da_alloc    1  1
+/dev/root            /                   ext4       defaults,noatime      0  0
+proc                 /proc               proc       defaults              0  0
+devpts               /dev/pts            devpts     mode=0620,gid=5       0  0
+#usbdevfs            /proc/bus/usb       usbdevfs   auto                  0  0
+debugfs              /sys/kernel/debug   debugfs    auto                  0  0
+tmpfs                /run                tmpfs      mode=0755,nodev,nosuid,strictatime 0  0
+#tmpfs                /var/volatile       tmpfs      defaults              0  0
+tmpfs                /tmp                tmpfs      defaults              0  0
+
+/dev/mmcblk0p7      /boot       auto    defaults     1   1
+/dev/mmcblk0p10     /home       auto    defaults     1   1 
+
+2.2.2 create ext4 disk image of /home dir on emmc
+$ sudo dd if=/dev/mmcblk0p10 | bzip2 > /mnt/usbhd/edbot-bkups/edbot-home-20160902.img.bz2
+2785247+0 records in
+2785247+0 records out
+1426046464 bytes (1.4 GB) copied, 404.347 s, 3.5 MB/s
+
+iqdean@ubilinux:~$ ls -al /mnt/usbhd/edbot-bkups/
+-rw-r--r-- 1 iqdean iqdean  41193704 Sep  2 18:34 edbot-home-20160902.img.bz2
+-rw-rw-r-- 1 iqdean iqdean 747700566 Sep  2 17:08 edbot-sdcard-20160902.img.bz2
+
+> power off edison & flip sw to disable usb host mode, unplug the usb hub/usb hd 
+
+
+2.2.3 move /home on emmc to /home on sdcard
+1a) pull sdcard from edision and plug it into usb sdcard reader
+   plug sdcard reader into ubu1404 workstation
+   plug usbhd holding edision backup imgs into usb1404 workstation      /media/<edbot-sdcard>
+
+1b) loopback mount the edbot-home-<date>.img file to /mnt/edbot-home
+
+   bunzip2 edbot-home-<date>.img.bz2  to get back *.img file
+   mkdir /mnt/edbot-home
+   mount -t ext4 -o loop /path/to/edbot-home-<date>.img /mnt/edbot-home
+
+iqdean@hpdm4:~$ sudo blkid
+/dev/sda1: LABEL="SYSTEM" UUID="C646174C46173D1D" TYPE="ntfs" 
+/dev/sda2: UUID="8C365D65365D5176" TYPE="ntfs" 
+/dev/sda3: UUID="e94f45f3-039c-43a6-9db8-1ffd96694c31" TYPE="ext3" 
+/dev/sda4: UUID="d763bb30-fe2a-4a9b-b995-b737340c6941" TYPE="swap" 
+/dev/sdb1: UUID="317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b" TYPE="ext4"     <--- 120G usbhd
+/dev/sdd1: UUID="26689795-c2c6-4ab9-aaa3-84dccc817016" TYPE="ext3"     <--- 15G  sdcard
+
+iqdean@hpdm4:~$ ls -al /media/iqdean/
+
+drwxr-xr-x   6 iqdean iqdean 4096 Sep  2 09:39 26689795-c2c6-4ab9-aaa3-84dccc817016
+drwxr-xr-x  24 root   root   4096 Dec  3  2015 317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b
+
+iqdean@hpdm4:~$ ls -al /media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups/
+...
+-rw-r--r-- 1 iqdean iqdean  41193704 Sep  2 11:34 edbot-home-20160902.img.bz2
+-rw-rw-r-- 1 iqdean iqdean 747700566 Sep  2 10:08 edbot-sdcard-20160902.img.bz2
+
+iqdean@hpdm4:/media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups$ bunzip2 edbot-home-20160902.img.bz2 
+iqdean@hpdm4:/media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups$ ls -al
+...
+-rw-r--r-- 1 iqdean iqdean 1426046464 Sep  2 11:34 edbot-home-20160902.img
+-rw-rw-r-- 1 iqdean iqdean  747700566 Sep  2 10:08 edbot-sdcard-20160902.img.bz2
+
+iqdean@hpdm4:/media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups$ sudo mkdir /mnt/edbot-hme
+iqdean@hpdm4:/media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups$ sudo mount -t ext4 -o loop ./edbot-home-20160902.img /mnt/edbot-hme
+
+iqdean@hpdm4:~$ ls -al /mnt/edbot-hme/
+total 32
+drwxr-xr-x 5 root   root    4096 Dec  4  2015 .
+drwxr-xr-x 3 root   root    4096 Sep  2 11:55 ..
+drwxr-xr-x 2   1002 users   4096 Dec  3  2015 edison
+drwxr-xr-x 9 iqdean iqdean  4096 Sep  1 19:26 iqdean
+drwx------ 2 root   root   16384 Dec  3  2015 lost+found
+
+1c) sudo cp -R /mnt/edbot-home/home /media/<edbot-sdcard>/home
+
+iqdean@hpdm4:~$ ls -al /media/iqdean/317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b/home/
+total 8
+drwxr-xr-x  2 root root 4096 Jul  7  2014 .
+drwxr-xr-x 24 root root 4096 Dec  3  2015 ..
+
+iqdean@hpdm4:~$ sudo cp -a /mnt/edbot-hme/* /media/iqdean/317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b/home/
+                         \___ cp recurrsively with permissions & ownerships
+
+iqdean@hpdm4:~$ ls -al /media/iqdean/317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b/home/total 20
+drwxr-xr-x  5 root   root   4096 Sep  2 12:08 .
+drwxr-xr-x 24 root   root   4096 Dec  3  2015 ..
+drwxr-xr-x  2   1002 users  4096 Dec  3  2015 edison
+drwxr-xr-x  9 iqdean iqdean 4096 Sep  1 19:26 iqdean
+drwx------  2 root   root   4096 Dec  3  2015 lost+found  <-- we don't need this on sdcard cuz /home isn't a standalone partition
+
+iqdean@hpdm4:/media/iqdean/317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b/home$ sudo rm -rf lost+found
+iqdean@hpdm4:/media/iqdean/317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b/home$ ls -al
+total 16
+drwxr-xr-x  4 root   root   4096 Sep  2 12:09 .
+drwxr-xr-x 24 root   root   4096 Dec  3  2015 ..
+drwxr-xr-x  2   1002 users  4096 Dec  3  2015 edison
+drwxr-xr-x  9 iqdean iqdean 4096 Sep  1 19:26 iqdean
+
+2 update /media/<edbot-sdcard>/etc/fstab 
+
+
+iqdean@hpdm4:~$ cat /media/iqdean/317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b/etc/fstab
+#rootfs              /                   auto       nodev,noatime,discard,barrier=1,data=ordered,noauto_da_alloc    1  1
+/dev/root            /                   ext4       defaults,noatime      0  0
+proc                 /proc               proc       defaults              0  0
+devpts               /dev/pts            devpts     mode=0620,gid=5       0  0
+#usbdevfs            /proc/bus/usb       usbdevfs   auto                  0  0
+debugfs              /sys/kernel/debug   debugfs    auto                  0  0
+tmpfs                /run                tmpfs      mode=0755,nodev,nosuid,strictatime 0  0
+#tmpfs                /var/volatile       tmpfs      defaults              0  0
+tmpfs                /tmp                tmpfs      defaults              0  0
+
+/dev/mmcblk0p7      /boot       auto    defaults     1   1
+/dev/mmcblk0p10     /home       auto    defaults     1   1
+^
+^______________ comment out this line to use /home off sdcard instead of /home off emmc
+
+
+iqdean@hpdm4:/media/iqdean/317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b$ sudo nano ./etc/fstab
+iqdean@hpdm4:/media/iqdean/317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b$ sudo cat ./etc/fstab
+#rootfs              /                   auto       nodev,noatime,discard,barrier=1,data=ordered,noauto_da_alloc    1  1
+/dev/root            /                   ext4       defaults,noatime      0  0
+proc                 /proc               proc       defaults              0  0
+devpts               /dev/pts            devpts     mode=0620,gid=5       0  0
+#usbdevfs            /proc/bus/usb       usbdevfs   auto                  0  0
+debugfs              /sys/kernel/debug   debugfs    auto                  0  0
+tmpfs                /run                tmpfs      mode=0755,nodev,nosuid,strictatime 0  0
+#tmpfs                /var/volatile       tmpfs      defaults              0  0
+tmpfs                /tmp                tmpfs      defaults              0  0
+/dev/mmcblk0p7      /boot       auto    defaults     1   1
+#/dev/mmcblk0p10     /home       auto    defaults     1   1
+
+
+3 move edbot-sdcard back to edison and verify it boots ok 
+(note: uboot is still cfg w 'setenv myrootfs /dev/mmcblk1p1', so it should boot off sdcard)
+
+3.1 boot off edbot sdcard w /home on sdcard  ... WORKS!!!...
+
+Debian GNU/Linux 7 ubilinux ttyMFD2
+
+ubilinux login: iqdean
+Password:       csolinux
+
+Last login: Sat Jan  1 00:00:42 UTC 2000 on ttyMFD2
+Linux ubilinux 3.10.17-yocto-standard-r2 #7 SMP PREEMPT Thu Feb 26 09:57:06 UTC 2015 i686
+
+Welecome to Edbot Research Robot
+
+Edbot is powered by a Intel Edison board
+
+using a few       .~.       .~.
+Tux Penguins      /V\       /V\       & lots of python 
+from Debian      // \\     // \\      & c code           _,.--.
+Ubilinux        /(   )\   /(   )\    --..,_           .'`__ o  `;__,
+                 ^`~'^     ^`~'^       `'.'.       .'.'`  '---'`  ' 
+some               ______    ____         '.`-...-'.'
+Indigo Turtles    /      \  |  o |          `-...-'
+from ROS         |        |/ ___\|
+                 |_________/           
+                 |_|_| |_|_| 
+
+iqdean@ubilinux:~$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+rootfs           15G  1.6G   13G  12% /
+/dev/root        15G  1.6G   13G  12% /
+devtmpfs        480M     0  480M   0% /dev
+tmpfs            97M  320K   96M   1% /run
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           193M     0  193M   0% /run/shm
+tmpfs           481M     0  481M   0% /tmp
+/dev/mmcblk0p7   32M  5.3M   27M  17% /boot
+
+iqdean@ubilinux:~$ mount
+/dev/root on / type ext4 (rw,noatime,data=ordered)
+devtmpfs on /dev type devtmpfs (rw,relatime,size=491448k,nr_inodes=122862,mode=755)
+tmpfs on /run type tmpfs (rw,nosuid,nodev,noexec,size=98352k,mode=755)
+tmpfs on /run/lock type tmpfs (rw,nosuid,nodev,noexec,relatime,size=5120k)
+proc on /proc type proc (rw,nosuid,nodev,noexec,relatime)
+sysfs on /sys type sysfs (rw,nosuid,nodev,noexec,relatime)
+tmpfs on /run/shm type tmpfs (rw,nosuid,nodev,noexec,relatime,size=196700k)
+devpts on /dev/pts type devpts (rw,nosuid,noexec,relatime,gid=5,mode=620)
+debugfs on /sys/kernel/debug type debugfs (rw,relatime)
+tmpfs on /tmp type tmpfs (rw,relatime)
+/dev/mmcblk0p7 on /boot type vfat (rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro)
+
+iqdean@ubilinux:~$ du . -h
+...
+175M    .
+
+
+
+4. NOW THAT we got /home from emmc onto /home on sdcard
+--------------------------------------------------------  
+a) ubilinux image will have everything in emmc (firmware, bootloader, kernel)
+b) sdcard image will have everything rootfs (including /home dir)
+
+5. To backup:    pwr dwn robot, pull the sdcard from edison, insert into usb sdcard reader, plug it into u1404 workstation and image it
+-------------
+5.1 pwr dwn robot, pull the sdcard from edison, insert into usb sdcard reader, plug in sdcard reader, plug in usbhd, figure out where ea is
+
+5.2 create disk img on usbhd from sdcard
+
+                          16GB edbot                    120GB
+                           -sdcard-            ------- wd usbhd ---------------------------------
+iqdean@hpdm4:~$ sudo dd if=/dev/sdb | bzip2 > /media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups/edbot-sdcard-20160902-1.img.bz2
+31116288+0 records in
+31116288+0 records out
+15931539456 bytes (16 GB) copied, 1277.96 s, 12.5 MB/s
+                                     \___________________  1278/60 = ~22 minutes
+
+5.3 see what we got on the usbhd
+
+iqdean@hpdm4:/media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups$ ls -alt
+
+-rw-rw-r-- 1 iqdean iqdean 797589014 Sep  2 13:00 edbot-sdcard-20160902-1.img.bz2    <-- rootfs-w-home... this is 1st full backup
+
+-rw-r--r-- 1 iqdean iqdean  41155690 Sep  2 12:02 edbot-home-20160902.img.bz2        <--- /home from emmc 
+-rw-rw-r-- 1 iqdean iqdean 747700566 Sep  2 10:08 edbot-sdcard-20160902.img.bz2      <--- /rootfs - /home 
+
+
+
+6. To restore,
+----------- 
+
+6.1 
+a) create sdcard from latest backup image of sdcard
+
+plug in usb sdcard reader with blank 16GB sdcard 
+
+$ mount                                                 < see where it ended up
+...
+/dev/sdb1 on /media/iqdean/3461-6537 type vfat (rw,nosuid,nodev,uid=1000,gid=1000,shortname=mixed,dmask=0077,utf8=1,showexec,flush,uhelper=udisks2)
+
+iqdean@hpdm4:~$ sudo umount /media/iqdean/3461-6537     < unmount it
+
+iqdean@hpdm4:~$ sudo fdisk -l /dev/sdb                  < it has a FAT32 partition on it
+Disk /dev/sdb: 15.9 GB, 15931539456 bytes 
+255 heads, 63 sectors/track, 1936 cylinders, total 31116288 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x00000000
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1            8192    31116287    15554048    c  W95 FAT32 (LBA)
+
+$ sudo fdisk /dev/sdb                                  < so use fdisk to creat a ext3 partition on the blank sdcard
+
+iqdean@hpdm4:~$ sudo fdisk -l /dev/sdb
+
+Disk /dev/sdb: 15.9 GB, 15931539456 bytes
+230 heads, 21 sectors/track, 6442 cylinders, total 31116288 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x00000000
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1            2048    31116287    15557120   83  Linux
+
+$ sudo mkfs.ext4 /dev/sdb1                            < then create a ext4 filesystem on /dev/sdb1
+
+---- clone sdcard from backup image  edbot-sdcard-20160902-1.img.bz2
+
+PLUG IN USBHD with edbot sdcard backups on it, figure out where it ends up at:
+-------------
+
+iqdean@hpdm4:/media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups$ ls -lt
+total 1550800
+-rw-rw-r-- 1 iqdean iqdean 797589014 Sep  2 13:00 edbot-sdcard-20160902-1.img.bz2
+
+GET A BLANK SDCARD
+------------------
+use a brand new sdcard       <--- 16GB SANDISK EXTREME PLUS  (the cheap SanDisk Ultra cards are JUNK!!) 
+don't format or mkfs.ext4 on it
+write to /dev/sdb instead of /dev/sdb1 < the backup was of /dev/sdb, not /dev/sdb1 (see above)
+make sure the sdcard IS NOT mounted    < brand new sdcard will automount, so do following
+make sure the usbhd  IS mounted          $ mount                   to find /dev/sdx of the sdcard
+                                         $ sudo umount /dev/sdx    to unmount it
+
+WRITE BACKUP IMAGE TO SDCARD
+----------------------------
+iqdean@hpdm4:~$ bzcat /media/iqdean/26689795-c2c6-4ab9-aaa3-84dccc817016/edbot-bkups/edbot-sdcard-20160902-1.img.bz2 | sudo dd of=/dev/sdb
+31116288+0 records in
+31116288+0 records out
+15931539456 bytes (16 GB) copied, 3661.7 s, 4.4 MB/s
+                                    \__________________ 3662/60 = ~62 minutes
+
+
+iqdean@hpdm4:~$ ls /mnt
+edbot-hme  sdcard
+iqdean@hpdm4:~$ sudo mount -t ext4 /dev/sdb /mnt/sdcard
+[sudo] password for iqdean: 
+mount: wrong fs type, bad option, bad superblock on /dev/sdb,
+       missing codepage or helper program, or other error
+       In some cases useful info is found in syslog - try
+       dmesg | tail  or so
+
+??? Hmm ???
+---- unplug and plug back in usb sdcard reader into a diff usb port on u1404:   it automounts fine & seems to be ok
+
+CHECK EXT4 FS INTEGRITY ON SDCARD
+----------------------------------
+
+---- run fsck.ext4 on it: REF  http://www.thegeekstuff.com/2012/08/fsck-command-examples/?utm_source=feedburner
+
+----
+
+iqdean@hpdm4:~$ sudo parted -l /dev/sdb
+Model: ATA WDC WD6400BPVT-6 (scsi)
+Disk /dev/sda: 640GB
+Sector size (logical/physical): 512B/4096B
+Partition Table: msdos
+
+Number  Start   End    Size    Type     File system     Flags
+ 1      1049kB  210MB  209MB   primary  ntfs            boot
+ 2      210MB   625GB  625GB   primary  ntfs
+ 3      625GB   640GB  14.9GB  primary  ext3
+ 4      640GB   640GB  108MB   primary  linux-swap(v1)
+
+
+Model: Generic USB SD Reader (scsi)
+Disk /dev/sdb: 15.9GB
+Sector size (logical/physical): 512B/512B
+Partition Table: msdos
+
+Number  Start   End     Size    Type     File system  Flags
+ 1      1049kB  15.9GB  15.9GB  primary  ext4
+
+----
+iqdean@hpdm4:~$ mount
+...
+/dev/sdb1 on /media/iqdean/317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b type ext4 (rw,nosuid,nodev,uhelper=udisks2)
+
+iqdean@hpdm4:~$ sudo umount /media/iqdean/317e4bc1-aa8f-4ddf-a4e8-7a2b3029af6b 
+
+iqdean@hpdm4:~$ which fsck.ext4
+/sbin/fsck.ext4
+
+iqdean@hpdm4:~$ sudo fsck.ext4 /dev/sdb1
+e2fsck 1.42.9 (4-Feb-2014)
+/dev/sdb1: clean, 94190/972944 files, 492082/3889280 blocks
+
+iqdean@hpdm4:~$ sudo fsck.ext4 /dev/sdb1 -f          <-- Force fs check even if it's clean
+e2fsck 1.42.9 (4-Feb-2014)
+Pass 1: Checking inodes, blocks, and sizes
+Pass 2: Checking directory structure
+Pass 3: Checking directory connectivity
+Pass 4: Checking reference counts
+Pass 5: Checking group summary information
+/dev/sdb1: 94190/972944 files (0.1% non-contiguous), 492082/3889280 blocks
+
+---- see if the cloned sdcard boots using ubilinux uboot cfgd to boot off sdcard ----
+
+iqdean@hpdm4:~$ groups
+iqdean adm dialout cdrom sudo dip plugdev lpadmin sambashare
+
+iqdean@hpdm4:~$ ls -al /dev/ttyUSB*
+crw-rw---- 1 root dialout 188, 0 Sep  3 10:18 /dev/ttyUSB0
+
+iqdean@hpdm4:~$ putty      < putty works on ubu1404 as normal user, but to copy and paste need 3 botton mouse
+
+---- cloned sdcard boots ok, $ roslaunch edbot diffdrv.launch  works 
+
+---- NOW reflash ubilinux into emmc, cfg uboot to boot off sdcard and see if we end up at the same place we are now ----
+
+6.2 
+b) flash ubilinux to emmc
+--------------------------
+
+REF: https://learn.sparkfun.com/tutorials/loading-debian-ubilinux-on-the-edison/install-ubilinux
+
+On Linux, if you get an error like “dfu-util: command not found” when trying to install Ubilinux then 
+you need to install dfu-util. Run the command:
+
+sudo apt-get install dfu-util
+
+iqdean@hpdm4:/media/8C365D65365D5176/u1204/intel-edison/ubilinux/toFlash$ which dfu-util
+/usr/bin/dfu-util
+
+
+SW1 set for J16
+  edison        ubu1404 ws
+   J3  <--usb---> PC   term1:  <anydir             > 1 $ sudo screen /dev/ttyUSB0 115200
+   J16 <--usb---> PC   term2:  <ubilinx toFlash dir> 2 $ sudo flashall.sh                   
+                                                     3 plugging in J16 pwrs up ed 
+
+tar xvfz ubilinux-edison-150309.tar.gz
+cd toFlash
+sudo ./flashall.sh
+
+You will see a message like “Now waiting for dfu device.” At that, plug in your Edison 
+(Use J16 for the Intel Arduino and Mini-Breakout boards. Use “OTG” for the SparkFun Edison Base Block). 
+You should see the script start to flash the Edison in the terminal. 
+Wait while that finishes (it could take a few minutes).
+
+t2:
+iqdean@hpdm4:/media/8C365D65365D5176/u1204/intel-edison/ubilinux/toFlash$ sudo ./flashall.sh
+Using U-Boot target: edison-blankcdc
+Now waiting for dfu device 8087:0a99
+Please plug and reboot the board
+Flashing IFWI
+##################################################] finished!
+##################################################] finished!
+Flashing U-Boot
+##################################################] finished!
+Flashing U-Boot Environment
+##################################################] finished!
+Flashing U-Boot Environment Backup
+###############################################] finished!
+Rebooting to apply partition changes
+Now waiting for dfu device 8087:0a99
+Flashing boot partition (kernel)
+##################################################] finished!
+Flashing rootfs, (it can take up to 10 minutes... Please be patient)
+##################################################] finished!
+Rebooting
+U-boot & Kernel System Flash Success...
+Your board needs to reboot to complete the flashing procedure, please do not unplug it for 2 minutes.
+
+t1: you can watch ubilinux getting flashed, then it reboots, bunch more setup stuff happens, then it reboots again to
+
+ubilinux login: root
+Password:       edison
+
+Linux ubilinux 3.10.17-yocto-standard-r2 #7 SMP PREEMPT Thu Feb 26 09:57:06 UTC 2015 i686
+
+root@ubilinux:~# df -h
+Filesystem       Size  Used Avail Use% Mounted on
+rootfs           1.4G  813M  503M  62% /
+/dev/root        1.4G  813M  503M  62% /
+devtmpfs         480M     0  480M   0% /dev
+tmpfs             97M  292K   96M   1% /run
+tmpfs            5.0M     0  5.0M   0% /run/lock
+tmpfs            193M     0  193M   0% /run/shm
+tmpfs            481M     0  481M   0% /tmp
+/dev/mmcblk0p7    32M  5.3M   27M  17% /boot
+/dev/mmcblk0p10  1.3G  2.0M  1.3G   1% /home
+
+6.3 Config uboot to use rootfs off sdcard instead of emmc
+
+--- BEFORE: stock ubilinux uboot configuration -----
+
+boot > printenv
+boot_target_cmd=run do_flash_os;run do_probe_dfu;run do_compute_target;run mmc-bootargs;run load_kernel;zboot ${loadaddr}
+bootargs_console=console=ttyMFD2 earlyprintk=ttyMFD2,keep
+bootargs_debug=loglevel=4
+bootargs_ethconfig=cdc
+bootargs_target=first-install
+bootcmd=echo "Target:${target_name}"; run do_partition; run do_handle_bootargs_mode;
+bootdelay=1
+dfu_alt_info_ram=kernel ram ${loadaddr} 0x800000
+dfu_alt_info_reset=reset ram 0x0 0x0
+dfu_to_sec=3
+do_boot=run boot_target_cmd;
+do_bootargs_rootfs=setenv bootargs_rootfs rootwait root=PARTUUID=${uuid_rootfs} rootfstype=ext4
+do_compute_target=if itest.b ${first_install_retry} -gt ${first_install_max_retries} || itest.b ${ota_update_retry} -gt ${ota_update_max_retries}; then echo "Switch to Rescue target"; setenv bootargs_target rescue; saveenv; fi
+do_dfu_alt_info_ifwi=setenv dfu_alt_info "ifwi${hardware_id} mmc 0 8192 mmcpart 1;ifwib${hardware_id} mmc 0 8192 mmcpart 2"
+do_dfu_alt_info_mmc=setenv dfu_alt_info "ifwi${hardware_id} mmc 0 8192 mmcpart 1;ifwib${hardware_id} mmc 0 8192 mmcpart 2;u-boot0 part 0 1;u-boot-env0 part 0 2;u-boot1 part 0 3;u-boot-env1 part 0 4;boot part 0 7;rootfs part 0 8;update part 0 9;home part 0 10;vmlinuz fat 0 7;initrd fat 0 7"
+do_dnx=setenv dfu_alt_info ${dfu_alt_info_ram};dfu 0 ram 0 ram;run bootcmd
+do_fallback=echo "Unknown boot mode: $bootargs_mode"; env delete -f bootargs_mode; saveenv; echo "Resetting to default boot mode and reboot..."; reset;
+do_flash=run do_force_flash_os;
+do_flash_ifwi=run do_dfu_alt_info_ifwi ; dfu 0 mmc 0
+do_flash_os=if itest.b ${do_flash_os_done} -eq 1 ; then echo "Flashing already done..." ; else run do_force_flash_os; fi
+do_flash_os_done=1
+do_flashall=run do_partition;run do_flash_ifwi;run do_flash_os
+do_force_flash_os=run do_dfu_alt_info_mmc ; sleep 1 ; setenv do_flash_os_done 1 ; saveenv ; dfu 0 mmc 0
+do_force_partition=echo "Partitioning using GPT"; gpt write mmc 0 ${partitions} ; mmc rescan; setenv do_partition_done 1 ; saveenv
+do_handle_bootargs_mode=run do_preprocess_bootargs_mode; if itest.s $bootargs_mode == "ota" ; then run do_ota; fi; if itest.s $bootargs_mode == "boot" ; then run do_boot; fi; if itest.s $bootargs_mode == "flash"; then run do_flash; fi; run do_fallback; exit;
+do_load_ota_scr=if fatload mmc 0:9 $ota_script_addr ota_update.scr ; then setenv ota_status 0 ; else setenv ota_status 1 ; fi
+do_ota=run do_ota_init ; run do_load_ota_scr ; run do_source_ota_scr ; run do_ota_clean
+do_ota_clean=saveenv ; reset
+do_ota_init=setenv ota_status 1 ; env delete -f bootargs_mode
+do_partition=if itest.b ${do_partition_done} -eq 1; then echo "Partitioning already done..."; else run do_force_partition ; fi
+do_partition_done=1
+do_preprocess_bootargs_mode=if env exists bootargs_mode ; then ; else setenv bootargs_mode "boot" ;fi;
+do_probe_dfu=run do_dfu_alt_info_mmc ; dfu 0 mmc 0 $dfu_to_sec
+do_source_ota_scr=if test $ota_status -eq 0 ; then if source $ota_script_addr ; then setenv ota_status 0 ; else setenv ota_status 2 ; fi ; fi
+first_install_max_retries=3
+first_install_retry=0
+hardware_id=00
+init_dfu=run do_dfu_alt_info_mmc ; saveenv
+load_kernel=fatload mmc 0:7 ${loadaddr} vmlinuz
+loadaddr=0x100000
+mmc-bootargs=run do_bootargs_rootfs; setenv bootargs ${bootargs_rootfs} ${bootargs_console} ${bootargs_debug} g_multi.ethernet_config=${bootargs_ethconfig} systemd.unit=${bootargs_target}.target hardware_id=${hardware_id} g_multi.iSerialNumber=${serial#} g_multi.dev_addr=${usb0addr}
+ota_script_addr=0x100000
+ota_update_max_retries=3
+ota_update_retry=0
+partitions=uuid_disk=${uuid_disk};name=u-boot0,start=1MiB,size=2MiB,uuid=${uuid_uboot0};name=u-boot-env0,size=1MiB,uuid=${uuid_uboot_env0};name=u-boot1,size=2MiB,uuid=${uuid_uboot1};name=u-boot-env1,size=1MiB,uuid=${uuid_uboot_env1};name=factory,size=1MiB,uuid=${uuid_factory};name=panic,size=24MiB,uuid=${uuid_panic};name=boot,size=32MiB,uuid=${uuid_boot};name=rootfs,size=1536MiB,uuid=${uuid_rootfs};name=update,size=768MiB,uuid=${uuid_update};name=home,size=-,uuid=${uuid_home};
+serial#=cafde75ed4f58a507634481e7daab195
+stderr=serial
+stdin=serial
+stdout=serial
+target_name=blank
+usb0addr=02:00:86:aa:b1:95
+uuid_boot=db88503d-34a5-3e41-836d-c757cb682814
+uuid_disk=21200400-0804-0146-9dcc-a8c51255994f
+uuid_factory=333a128e-d3e3-b94d-92f4-d3ebd9b3224f
+uuid_home=f13a0978-b1b5-1a4e-8821-39438e24b627
+uuid_panic=f20aa902-1c5d-294a-9177-97a513e3cae4
+uuid_rootfs=012b3303-34ac-284d-99b4-34e03a2335f4   <<< NOTE: here be PARTUUID for myrootfs_emmc below
+uuid_uboot0=d117f98e-6f2c-d04b-a5b2-331a19f91cb2
+uuid_uboot1=8a4bb8b4-e304-ae48-8536-aff5c9c495b1
+uuid_uboot_env0=25718777-d0ad-7443-9e60-02cb591c9737
+uuid_uboot_env1=08992135-13c6-084b-9322-3391ff571e19
+uuid_update=faec2ecf-8544-e241-b19d-757e796da607
+
+Environment size: 4793/65531 bytes
+boot >
+
+6.3.1 configure uboot to boot off sdcard
+
+boot > setenv mmc-bootargs 'setenv bootargs root=${myrootfs} rootdelay=3 rootfstype=ext4 ${bootargs_console} ${bootargs_debug} systemd.unit=${bootargs_target}.target hardware_id=${hardware_id} g_multi.iSerialNumber=${serial#} g_multi.dev_addr=${usb0addr}'
+boot > setenv myrootfs_sdcard /dev/mmcblk1p1
+boot > setenv myrootfs_emmc PARTUUID=012b3303-34ac-284d-99b4-34e03a2335f4
+boot > setenv do_boot_emmc 'setenv myrootfs ${myrootfs_emmc}; run do_boot'
+boot > setenv do_boot_sdcard 'setenv myrootfs ${myrootfs_sdcard}; run do_boot'
+boot > setenv myrootfs /dev/mmcblk1p1
+boot > saveenv
+Saving Environment to MMC...
+Writing to MMC(0)... done
+
+boot > run do_boot_emmc
+
+login as root:edision & $ shutdown -h now
+plug in sdcard created from latest edbot rootfs backup
+power on
+
+******************************
+PSH KERNEL VERSION: b0182929
+                WR: 20104000
+******************************
+
+SCU IPC: 0x800000d0  0xfffce92c
+
+PSH miaHOB version: TNG.B0.VVBD.0000000c
+
+microkernel built 10:14:01 Jan 13 2015
+
+******* PSH loader *******
+PCM page cache size = 192 KB
+Cache Constraint = 0 Pages
+Arming IPC driver ..
+Adding page store pool ..
+PagestoreAddr(IMR Start Address) = 0x04899000
+pageStoreSize(IMR Size)          = 0x00080000
+
+*** Ready to receive application ***
+
+
+U-Boot 2014.04 (Feb 09 2015 - 15:40:31)
+
+       Watchdog enabled
+DRAM:  980.6 MiB
+MMC:   tangier_sdhci: 0
+In:    serial
+Out:   serial
+Err:   serial
+Hit any key to stop autoboot:  0
+Target:blank
+Partitioning already done...
+Flashing already done...
+GADGET DRIVER: usb_dnl_dfu
+reading vmlinuz
+5299520 bytes read in 131 ms (38.6 MiB/s)
+Valid Boot Flag
+Setup Size = 0x00003c00
+Magic signature found
+Using boot protocol version 2.0c
+Linux kernel version 3.10.17-yocto-standard-r2 (root@p32mac) #7 SMP PREEMPT Thu Feb 26 09:57:06 UTC 2015
+Building boot_params at 0x00090000
+Loading bzImage at address 00100000 (5284160 bytes)
+Magic signature found
+Kernel command line: "root=/dev/mmcblk1p1 rootdelay=3 rootfstype=ext4 console=ttyMFD2 earlyprintk=ttyMFD2,keep loglevel=4 systemd.unit=first-install.target hardware_id=00 g_multi.iSerialNumber=cafde75ed4f58a507634481e7daab195 g_multi.dev_addr=02:00:86:aa:b1:95"
+
+Starting kernel ...
+
+[    1.645854] pmic_ccsm pmic_ccsm: Error reading battery profile from battid frmwrk
+[    1.654286] pmic_ccsm pmic_ccsm: Battery Over heat exception
+INIT: version 2.88 booting
+[info] Using makefile-style concurrent boot in runlevel S.
+[ ok ] Starting the hotplug events dispatcher: udevd.
+[ ok ] Synthesizing the initial hotplug events...done.
+[ ok ] Waiting for /dev to be fully populated...done.
+[ ok ] Activating swap...done.
+[ ok ] Cleaning up temporary files... /tmp.
+[info] Loading kernel module bcm_bt_lpm.
+[info] Loading kernel module bcm4334x.
+[info] Loading kernel module g_multi.
+[info] Loading kernel module uvcvideo.
+[info] Loading kernel module ftdi_sio.
+[ ok ] Activating lvm and md swap...done.
+[....] Checking file systems...fsck from util-linux 2.20.1
+dosfsck 3.0.13, 30 Jun 2012, FAT32, LFN
+/dev/mmcblk0p7: 4 files, 2676/16343 clusters
+done.
+[ ok ] Mounting local filesystems...done.
+[ ok ] Activating swapfile swap...done.
+[ ok ] Cleaning up temporary files....
+[ ok ] Setting kernel variables ...done.
+[....] Configuring network interfaces...Internet Systems Consortium DHCP Client 4.2.2
+Copyright 2004-2011 Internet Systems Consortium.
+All rights reserved.
+For info, please visit https://www.isc.org/software/dhcp/
+
+Listening on LPF/wlan0/78:4b:87:a6:98:77
+Sending on   LPF/wlan0/78:4b:87:a6:98:77
+Sending on   Socket/fallback
+DHCPREQUEST on wlan0 to 255.255.255.255 port 67
+DHCPDISCOVER on wlan0 to 255.255.255.255 port 67 interval 3
+DHCPREQUEST on wlan0 to 255.255.255.255 port 67
+DHCPOFFER from 10.0.0.1
+DHCPACK from 10.0.0.1
+bound to 10.0.0.157 -- renewal in 274026 seconds.
+done.
+[ ok ] Cleaning up temporary files....
+INIT: Entering runlevel: 2
+[info] Using makefile-style concurrent boot in runlevel 2.
+[ ok ] Starting enhanced syslogd: rsyslogd.
+Starting very small Busybox based DHCP server: Starting /usr/sbin/udhcpd...
+udhcpd.
+[ ok ] Starting periodic command scheduler: cron.
+[ ok ] Starting NTP server: ntpd.
+[ ok ] Starting system message bus: dbus.
+[ ok ] Starting OpenBSD Secure Shell server: sshd.
+[ ok ] Starting Avahi mDNS/DNS-SD Daemon: avahi-daemon.
+[   24.431739] intel_scu_watchdog_evo: watchdog_stop
+Starting galileod
+
+Debian GNU/Linux 7 ubilinux ttyMFD2
+
+ubilinux login: iqdean
+Password:       csolinux
+
+Last login: Sat Sep  3 17:25:47 UTC 2016 on ttyMFD2
+Linux ubilinux 3.10.17-yocto-standard-r2 #7 SMP PREEMPT Thu Feb 26 09:57:06 UTC 2015 i686
+
+Welecome to Edbot Research Robot
+
+Edbot is powered by a Intel Edison board
+
+using a few       .~.       .~.
+Tux Penguins      /V\       /V\       & lots of python
+from Debian      // \\     // \\      & c code           _,.--.
+Ubilinux        /(   )\   /(   )\    --..,_           .'`__ o  `;__,
+                 ^`~'^     ^`~'^       `'.'.       .'.'`  '---'`  '
+some               ______    ____         '.`-...-'.'
+Indigo Turtles    /      \  |  o |          `-...-'
+from ROS         |        |/ ___\|
+                 |_________/
+                 |_|_| |_|_|
+
+iqdean@ubilinux:~$
+
+iqdean@ubilinux:~$ which roslaunch
+/opt/ros/indigo/bin/roslaunch
+iqdean@ubilinux:~$ roslaunch edbot diffdrv.launch
+... logging to /home/iqdean/.ros/log/fee6ebc2-7216-11e6-91e2-784b87a69877/roslaunch-ubilinux-2020.log
+Checking log directory for disk usage. This may take awhile.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+
+started roslaunch server http://ubilinux:40823/
+
+SUMMARY
+========
+
+PARAMETERS
+ * /rosbridge_websocket/address:
+ * /rosbridge_websocket/authenticate: False
+ * /rosbridge_websocket/delay_between_messages: 0
+ * /rosbridge_websocket/fragment_timeout: 600
+ * /rosbridge_websocket/max_message_size: None
+ * /rosbridge_websocket/port: 9090
+ * /rosbridge_websocket/retry_startup_delay: 5
+ * /rosdistro: indigo
+ * /rosversion: 1.11.20
+
+NODES
+  /
+    diffdrv (edbot/diffdrv.py)
+    rosapi (rosapi/rosapi_node)
+    rosbridge_websocket (rosbridge_server/rosbridge_websocket)
+
+auto-starting new master
+process[master]: started with pid [2033]
+ROS_MASTER_URI=http://localhost:11311
+
+setting /run_id to fee6ebc2-7216-11e6-91e2-784b87a69877
+process[rosout-1]: started with pid [2046]
+started core service [/rosout]
+process[rosbridge_websocket-2]: started with pid [2049]
+process[rosapi-3]: started with pid [2050]
+process[diffdrv-4]: started with pid [2051]
+registered capabilities (classes):
+ - rosbridge_library.capabilities.call_service.CallService
+ - rosbridge_library.capabilities.advertise.Advertise
+ - rosbridge_library.capabilities.publish.Publish
+ - rosbridge_library.capabilities.subscribe.Subscribe
+ - <class 'rosbridge_library.capabilities.defragmentation.Defragment'>
+ - rosbridge_library.capabilities.advertise_service.AdvertiseService
+ - rosbridge_library.capabilities.service_response.ServiceResponse
+ - rosbridge_library.capabilities.unadvertise_service.UnadvertiseService
+[INFO] [WallTime: 1472935384.666089] Rosbridge WebSocket server started on port 9090
+
+CTRL-C, $ sudo shutdown -h now
+
+---- END verify edbot fw/bootloader/kernel/rootfs backup/restore procedure -----
+     IT WORKS!! now we just need to summarize the key steps in a BKM and
+                do routine backups of edbot sdcard IN ADDITION to git
+
+
+c) cfg uboot to boot from sdcard instead of emmc
+
+---- to restore:
+
+1. prep a new sdcard with rootfs     <---	edbot-roofs-<date>.bz2
+
+2. flashall.sh ubilinux stk img                 ubilinux-edison-150309.tar.gz
+
+3. from uboot boot> cfg uboot to boot off sdcard
+
+boot > printenv
+...
+uuid_rootfs=012b3303-34ac-284d-99b4-34e03a2335f4           << NOTE: here be uuid of rootfs on emmc which u need for myrootfs_emmc
+...
+
+boot > setenv mmc-bootargs 'setenv bootargs root=${myrootfs} rootdelay=3 rootfstype=ext4 ${bootargs_console} ${bootargs_debug} systemd.unit=${bootargs_target}.target hardware_id=${hardware_id} g_multi.iSerialNumber=${serial#} g_multi.dev_addr=${usb0addr}'
+boot > setenv myrootfs_sdcard /dev/mmcblk1p1
+boot > setenv myrootfs_emmc PARTUUID=012b3303-34ac-284d-99b4-34e03a2335f4 
+boot > setenv do_boot_emmc 'setenv myrootfs ${myrootfs_emmc}; run do_boot'
+boot > setenv do_boot_sdcard 'setenv myrootfs ${myrootfs_sdcard}; run do_boot'
+
+boot > setenv myrootfs /dev/mmcblk1p1   \
+       OR                                > sets default rootfs for autoboot mode
+       setenv myrootfs myrootfs_emmc    /
+
+boot > saveenv
+Saving Environment to MMC...
+Writing to MMC(0)... done
+
+boot > run do_boot_sdcard	< boots ok
+or
+boot > run do_boot_emmc         
+----
+
+4. printenv to see uboot env vars w everything setup to bootoff sdcard
+
+--- from uboot boot> printev -----
+
+boot > printenv
+boot_target_cmd=run do_flash_os;run do_probe_dfu;run do_compute_target;run mmc-bootargs;run load_kernel;zboot ${loadaddr}
+bootargs_console=console=ttyMFD2 earlyprintk=ttyMFD2,keep
+bootargs_debug=loglevel=4
+bootargs_ethconfig=cdc
+bootargs_target=first-install
+bootcmd=echo "Target:${target_name}"; run do_partition; run do_handle_bootargs_mode;
+bootdelay=1
+dfu_alt_info_ram=kernel ram ${loadaddr} 0x800000
+dfu_alt_info_reset=reset ram 0x0 0x0
+dfu_to_sec=3
+do_boot=run boot_target_cmd;
+
+do_boot_emmc=setenv myrootfs ${myrootfs_emmc}; run do_boot
+do_boot_sdcard=setenv myrootfs ${myrootfs_sdcard}; run do_boot
+
+do_bootargs_rootfs=setenv bootargs_rootfs rootwait root=PARTUUID=${uuid_rootfs} rootfstype=ext4
+do_compute_target=if itest.b ${first_install_retry} -gt ${first_install_max_retries} || itest.b ${ota_update_retry} -gt ${ota_update_max_retries}; then e
+cho "Switch to Rescue target"; setenv bootargs_target rescue; saveenv; fi
+do_dfu_alt_info_ifwi=setenv dfu_alt_info "ifwi${hardware_id} mmc 0 8192 mmcpart 1;ifwib${hardware_id} mmc 0 8192 mmcpart 2"
+do_dfu_alt_info_mmc=setenv dfu_alt_info "ifwi${hardware_id} mmc 0 8192 mmcpart 1;ifwib${hardware_id} mmc 0 8192 mmcpart 2;u-boot0 part 0 1;u-boot-env0 pa
+rt 0 2;u-boot1 part 0 3;u-boot-env1 part 0 4;boot part 0 7;rootfs part 0 8;update part 0 9;home part 0 10;vmlinuz fat 0 7;initrd fat 0 7"
+do_dnx=setenv dfu_alt_info ${dfu_alt_info_ram};dfu 0 ram 0 ram;run bootcmd
+do_fallback=echo "Unknown boot mode: $bootargs_mode"; env delete -f bootargs_mode; saveenv; echo "Resetting to default boot mode and reboot..."; reset;
+do_flash=run do_force_flash_os;
+do_flash_ifwi=run do_dfu_alt_info_ifwi ; dfu 0 mmc 0
+do_flash_os=if itest.b ${do_flash_os_done} -eq 1 ; then echo "Flashing already done..." ; else run do_force_flash_os; fi
+do_flash_os_done=1
+do_flashall=run do_partition;run do_flash_ifwi;run do_flash_os
+do_force_flash_os=run do_dfu_alt_info_mmc ; sleep 1 ; setenv do_flash_os_done 1 ; saveenv ; dfu 0 mmc 0
+do_force_partition=echo "Partitioning using GPT"; gpt write mmc 0 ${partitions} ; mmc rescan; setenv do_partition_done 1 ; saveenv
+do_handle_bootargs_mode=run do_preprocess_bootargs_mode; if itest.s $bootargs_mode == "ota" ; then run do_ota; fi; if itest.s $bootargs_mode == "boot" ; then run do_boot; fi; if itest.s $bootargs_mode == "flash"; then run do_flash; fi; run do_fallback; exit;
+do_load_ota_scr=if fatload mmc 0:9 $ota_script_addr ota_update.scr ; then setenv ota_status 0 ; else setenv ota_status 1 ; fi
+do_ota=run do_ota_init ; run do_load_ota_scr ; run do_source_ota_scr ; run do_ota_clean
+do_ota_clean=saveenv ; reset
+do_ota_init=setenv ota_status 1 ; env delete -f bootargs_mode
+do_partition=if itest.b ${do_partition_done} -eq 1; then echo "Partitioning already done..."; else run do_force_partition ; fi
+do_partition_done=1
+do_preprocess_bootargs_mode=if env exists bootargs_mode ; then ; else setenv bootargs_mode "boot" ;fi;
+do_probe_dfu=run do_dfu_alt_info_mmc ; dfu 0 mmc 0 $dfu_to_sec
+do_source_ota_scr=if test $ota_status -eq 0 ; then if source $ota_script_addr ; then setenv ota_status 0 ; else setenv ota_status 2 ; fi ; fi
+first_install_max_retries=3
+first_install_retry=0
+hardware_id=00
+init_dfu=run do_dfu_alt_info_mmc ; saveenv
+load_kernel=fatload mmc 0:7 ${loadaddr} vmlinuz
+loadaddr=0x100000
+
+mmc-bootargs=setenv bootargs root=${myrootfs} rootdelay=3 rootfstype=ext4 ${bootargs_console} ${bootargs_debug} systemd.unit=${bootargs_target}.target hardware_id=${hardware_id} g_multi.iSerialNumber=${serial#} g_multi.dev_addr=${usb0addr}
+myrootfs=/dev/mmcblk1p1
+myrootfs_emmc=PARTUUID=012b3303-34ac-284d-99b4-34e03a2335f4
+myrootfs_sdcard=/dev/mmcblk1p1
+
+ota_script_addr=0x100000
+ota_update_max_retries=3
+ota_update_retry=0
+partitions=uuid_disk=${uuid_disk};name=u-boot0,start=1MiB,size=2MiB,uuid=${uuid_uboot0};name=u-boot-env0,size=1MiB,uuid=${uuid_uboot_env0};name=u-boot1,size=2MiB,uuid=${uuid_uboot1};name=u-boot-env1,size=1MiB,uuid=${uuid_uboot_env1};name=factory,size=1MiB,uuid=${uuid_factory};name=panic,size=24MiB,uuid=${uuid_panic};name=boot,size=32MiB,uuid=${uuid_boot};name=rootfs,size=1536MiB,uuid=${uuid_rootfs};name=update,size=768MiB,uuid=${uuid_update};name=home,size=-,uuid=${uuid_home};
+serial#=cafde75ed4f58a507634481e7daab195
+stderr=serial
+stdin=serial
+stdout=serial
+target_name=blank
+usb0addr=02:00:86:aa:b1:95
+uuid_boot=db88503d-34a5-3e41-836d-c757cb682814
+uuid_disk=21200400-0804-0146-9dcc-a8c51255994f
+uuid_factory=333a128e-d3e3-b94d-92f4-d3ebd9b3224f
+uuid_home=f13a0978-b1b5-1a4e-8821-39438e24b627
+uuid_panic=f20aa902-1c5d-294a-9177-97a513e3cae4
+uuid_rootfs=012b3303-34ac-284d-99b4-34e03a2335f4           << NOTE: here be uuid of rootfs on emmc which u need for myrootfs_emmc
+uuid_uboot0=d117f98e-6f2c-d04b-a5b2-331a19f91cb2
+uuid_uboot1=8a4bb8b4-e304-ae48-8536-aff5c9c495b1
+uuid_uboot_env0=25718777-d0ad-7443-9e60-02cb591c9737
+uuid_uboot_env1=08992135-13c6-084b-9322-3391ff571e19
+uuid_update=faec2ecf-8544-e241-b19d-757e796da607
+
+Environment size: 4996/65531 bytes
+boot >
+
+---- to boot off the rootfs on the emmc (instead of the sdcard) -----
+
+boot > run do_boot_emmc      root:edison    works
+                             root:ubilinux  doesn't work
+
+root@ubilinux:~# df -h
+Filesystem       Size  Used Avail Use% Mounted on
+rootfs           1.4G  815M  502M  62% /
+/dev/root        1.4G  815M  502M  62% /
+devtmpfs         480M     0  480M   0% /dev
+tmpfs             97M  304K   96M   1% /run
+tmpfs            5.0M     0  5.0M   0% /run/lock
+tmpfs            193M     0  193M   0% /run/shm
+tmpfs            481M     0  481M   0% /tmp
+/dev/mmcblk0p7    32M  5.3M   27M  17% /boot
+/dev/mmcblk0p10  1.3G  177M  1.1G  14% /home
+/dev/mmcblk1p1    15G  1.4G   13G  10% /media/sdcard
+
+root@ubilinux:~# cat /etc/fstab
+#rootfs              /                   auto       nodev,noatime,discard,barrier=1,data=ordered,noauto_da_alloc    1  1
+/dev/root            /                   ext4       defaults,noatime      0  0
+proc                 /proc               proc       defaults              0  0
+devpts               /dev/pts            devpts     mode=0620,gid=5       0  0
+#usbdevfs            /proc/bus/usb       usbdevfs   auto                  0  0
+debugfs              /sys/kernel/debug   debugfs    auto                  0  0
+tmpfs                /run                tmpfs      mode=0755,nodev,nosuid,strictatime 0  0
+#tmpfs                /var/volatile       tmpfs      defaults              0  0
+tmpfs                /tmp                tmpfs      defaults              0  0
+/dev/mmcblk0p7      /boot       auto    defaults     1   1
+/dev/mmcblk0p10     /home       auto    defaults     1   1
+/dev/mmcblk1p1      /media/sdcard   ext4    defaults        0 0
+
+root@ubilinux:~# shutdown -r now
+
+--- to boot off the rootfs on the sdcard (instead of the emmc) -------
+
+boot> run do_boot_sdcard
+
+ubilinux login: iqdean  
+Password:       csolinux
+
+Last login: Fri Sep  2 04:52:53 UTC 2016 on ttyMFD2
+Linux ubilinux 3.10.17-yocto-standard-r2 #7 SMP PREEMPT Thu Feb 26 09:57:06 UTC 2015 i686
+
+Welecome to Edbot Research Robot
+
+Edbot is powered by a Intel Edison board
+
+using a few       .~.       .~.
+Tux Penguins      /V\       /V\       & lots of python 
+from Debian      // \\     // \\      & c code           _,.--.
+Ubilinux        /(   )\   /(   )\    --..,_           .'`__ o  `;__,
+                 ^`~'^     ^`~'^       `'.'.       .'.'`  '---'`  ' 
+some               ______    ____         '.`-...-'.'
+Indigo Turtles    /      \  |  o |          `-...-'
+from ROS         |        |/ ___\|
+                 |_________/           
+                 |_|_| |_|_| 
+
+iqdean@ubilinux:~$ df -h
+Filesystem       Size  Used Avail Use% Mounted on
+rootfs            15G  1.4G   13G  10% /
+/dev/root         15G  1.4G   13G  10% /
+devtmpfs         480M     0  480M   0% /dev
+tmpfs             97M  312K   96M   1% /run
+tmpfs            5.0M     0  5.0M   0% /run/lock
+tmpfs            193M     0  193M   0% /run/shm
+tmpfs            481M     0  481M   0% /tmp
+/dev/mmcblk0p7    32M  5.3M   27M  17% /boot
+/dev/mmcblk0p10  1.3G  177M  1.1G  14% /home
+
+iqdean@ubilinux:~$ cat /etc/fstab
+#rootfs              /                   auto       nodev,noatime,discard,barrier=1,data=ordered,noauto_da_alloc    1  1
+/dev/root            /                   ext4       defaults,noatime      0  0
+proc                 /proc               proc       defaults              0  0
+devpts               /dev/pts            devpts     mode=0620,gid=5       0  0
+#usbdevfs            /proc/bus/usb       usbdevfs   auto                  0  0
+debugfs              /sys/kernel/debug   debugfs    auto                  0  0
+tmpfs                /run                tmpfs      mode=0755,nodev,nosuid,strictatime 0  0
+#tmpfs                /var/volatile       tmpfs      defaults              0  0
+tmpfs                /tmp                tmpfs      defaults              0  0
+/dev/mmcblk0p7      /boot       auto    defaults     1   1
+/dev/mmcblk0p10     /home       auto    defaults     1   1
+
+---- now back to rootfs on sdcard that has ros indigo ----
+
+

@@ -222,10 +222,61 @@ python rounding works as expected :  see 13-3-chkrounding.ods for details
 3. diffdrv.py              clean up debug/log messages otherwise the logs are going to
    SerialDataGateway.py    take up unnecessary space on the filesystem
 
+TODO: for now manually run 'rosclean purge -y' every once in a while
+> add $rosclean purge -y  to /ect/rc.local to clear ros logs
+NOTE: this is a bandaid fix, see ROS LOGGING ISSUES above for better solution 
 
 4. roslibjoy.js   right now scales linear and angular vel to -1 to +1
                   modify to scale to TBD desired linear/angular velocity ranges
                   REF: 10-3-pwron-init-of-motor-drv.txt 
+
+roslibjoy.js scaling updates:
+
+4.1 scaling                                                OK
+
+4.2 chk websocket ops over wifi:  10.0.0.157               Ok most of the time but sometimes
+                  (vs wired usb: 192.168.2.15)                unresponsive
+
+NOTE: this ok for development, but the final config 
+      needs to use
+
+WL xbox360
+
+PCWLGCA--\
+        usb
+         |
+       ac720 <-- usb eth --> edison 
+
+4.3 chg polarity on CAV to align w ros robot coord frame
+    rt hand rule about z, +cav = left turn, 
+                          -cav = rt turn OK
+4.4 end-to-end test
+
+t1: onboard robot: ubilinux edison 
+$ ssh iqdean@10.0.0.157
+$ roslaunch edbot diffdrv.launch
+
+t2: offboard: u1404 hp dm4 notebook <-usb-- wired xbox360 gc
+$ node roslibjoy.js
+
+xbox360:
+hold LB pushed & drive robot w rt joystick     <-- works great!!
+
+Thanks to Kangroo Motion Controller's selftuning feature and its
+closed loop speed control, the response & power delivered at low 
+speeds is much improved:
+
+> before the robot was having issues turning and traversing
+  over carpet, now its no problem. 
+
+--- END diffdrv node development / test ------------------------
+
+NEXT:
+
+backup edison sdcard/emmc image
+tag git repos to mark 'last know working state'
+start on odometery node to read wheel encoders and publish /odom
+
 
 
 
