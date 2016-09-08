@@ -1,0 +1,146 @@
+15-4-odometriclocalizer.txt
+----------------------------
+
+=== now that we are past the import tf error, we get back to the python code rinse and repeat cycle ====
+
+class edbotOdom(object):
+
+    def Start(self):
+        rospy.logdebug("Starting")
+
+    def Stop(self):
+        rospy.logdebug("Stopping")
+
+    def my_callback(self):
+        now = rospy.get_rostime()
+        rospy.loginfo("Current time %i %i", now.secs, now.nsecs)
+
+    def __init__(self):
+
+        rospy.init_node('edbotodom')
+        rospy.loginfo("edbotodom node init")
+
+        # subscriptions and publications
+	    self._OdometryTransformBroadcaster = tf.TransformBroadcaster()
+	    self._OdometryPublisher = rospy.Publisher("odom", Odometry, queue_size=10)
+
+        rospy.Timer(rospy.Duration(1), my_callback)
+
+if __name__ == '__main__':
+    odometry = edbotOdom()
+    try:
+        odometry.Start()
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        odometry.Stop()
+
+====
+iqdean@ubilinux:~/catkin_ws$ rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1473305343.321013] edbotodom node init
+Traceback (most recent call last):
+  File "/home/iqdean/catkin_ws/src/edbot/src/odometriclocalizer.py", line 47, in <module>
+    odometry = edbotOdom()
+  File "/home/iqdean/catkin_ws/src/edbot/src/odometriclocalizer.py", line 44, in __init__
+    rospy.Timer(rospy.Duration(1), my_callback)
+NameError: global name 'my_callback' is not defined
+====
+
+import roslib
+import rospy
+import tf
+import math
+from math import sin, cos, pi
+import sys
+
+from geometry_msgs.msg import Quaternion
+from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
+
+class edbotOdom(object):
+
+    def Start(self):
+        rospy.logdebug("Starting")
+
+    def Stop(self):
+        rospy.logdebug("Stopping")
+
+    def my_callback(self):
+        now = rospy.get_rostime()
+        rospy.loginfo("Current time %i %i", now.secs, now.nsecs)
+
+    def __init__(self):
+
+        rospy.init_node('edbotodom')
+        rospy.loginfo("edbotodom node init")
+
+        # subscriptions and publications
+		self._OdometryTransformBroadcaster = tf.TransformBroadcaster()
+		self._OdometryPublisher = rospy.Publisher("odom", Odometry, queue_size=10)
+
+if __name__ == '__main__':
+    odometry = edbotOdom()
+    try:
+        odometry.Start()
+		rospy.Timer(rospy.Duration(1), odometry.my_callback())
+        rospy.spin()
+    	except rospy.ROSInterruptException:
+        odometry.Stop()
+
+
+====
+iqdean@ubilinux:~/catkin_ws$ rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1473305808.627845] edbotodom node init
+[INFO] [WallTime: 1473305808.655293] Current time 1473305808 654911994
+Exception in thread Thread-5:
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/threading.py", line 552, in __bootstrap_inner
+    self.run()
+  File "/opt/ros/indigo/lib/python2.7/dist-packages/rospy/timer.py", line 223, in run
+    self._callback(TimerEvent(last_expected, last_real, current_expected, current_real, last_duration))
+TypeError: 'NoneType' object is not callable
+
+==== SCREW rospy.Timer(rospy.Duration(1), odometry.my_callback()) =====
+
+class edbotOdom(object):
+
+    def Start(self):
+        rospy.logdebug("Starting")
+
+    def Stop(self):
+        rospy.logdebug("Stopping")
+
+    def my_callback(self):
+        now = rospy.get_rostime()
+        rospy.loginfo("Current time %i %i", now.secs, now.nsecs)
+
+    def __init__(self):
+
+        rospy.init_node('edbotodom')
+        rospy.loginfo("edbotodom node init")
+
+        # subscriptions and publications
+	self._OdometryTransformBroadcaster = tf.TransformBroadcaster()
+	self._OdometryPublisher = rospy.Publisher("odom", Odometry, queue_size=10)
+
+if __name__ == '__main__':
+    odometry = edbotOdom()
+    try:
+        odometry.Start()
+	r = rospy.Rate(1)
+	while not rospy.is_shutdown():
+		odometry.my_callback()
+		r.sleep()
+
+    except rospy.ROSInterruptException:
+        odometry.Stop()
+
+
+iqdean@ubilinux:~/catkin_ws$ rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1473308803.845644] edbotodom node init
+[INFO] [WallTime: 1473308803.874203] Current time 1473308803 873774051
+[INFO] [WallTime: 1473308804.875922] Current time 1473308804 875526905
+[INFO] [WallTime: 1473308805.875901] Current time 1473308805 875504970
+[INFO] [WallTime: 1473308806.875814] Current time 1473308806 875418901
+[INFO] [WallTime: 1473308807.875756] Current time 1473308807 875361919
+
+

@@ -1,0 +1,360 @@
+15-edbot-odom.txt
+
+REF: http://wiki.ros.org/navigation/Tutorials/RobotSetup/Odom
+--------------------------------------------------------------
+ROS Base Controller has to publish odometry (/odom) messages so the navigation stack tf can 
+determine the robots location in the world and relate sensor data to a static map.
+
+REF: rr3a.pptx  18, 19, 20
+----------------------------
+pg 4 - Kinematics of Differential Drive System
+
+pg 18, 19, 20
+EQ1: Based on wheel diameter & wheel encoder resolution & 
+     circumference = Pi*Diameter     6.28 radians/360 deg
+
+distancePerCount = Pi * diameterWheel / countsPerRevolution         
+
+
+EQ2: When robot is moving in ~ straight line, 
+
+deltaDistance = (deltaLeftCounts + deltaRightCounts)/2.0 * distancePerCount    <- ex sample rate: delta_t = 1/20hz 
+
+EQ3: When robot is turning in place by turning it's wheels in opposite directions, 
+     it will trace a circle on the ground whose diameter is the Track Width. The
+     robot's heading changes as the wheels make thier way around this circle. The
+     robot will rotate 2xPi radians (360 degrees) when the wheels have traveresed
+     the circumference of this circle with dia = Track Width.
+
+countsPerRotation = (trackWidth/wheelDiameter)*countsPerRevolution    for 1 wheel
+
+EQ4 & EQ5: 
+if you take the difference in counts between the 2 wheels and note ea rotation is
+2xPI radians, you endup with the following 2 equs:
+
+radiansPerCount = Pi * (wheelDiameter/trackWidth)/countsPerRevolution
+
+deltaHeading = (deltaRightCounts - deltaLeftCounts) * radiansPerCount
+
+Heading = Heading +/- deltaHeading
+
+EQ6 & EQ7:
+
+deltaX = deltaDistance*cos(Heading)
+deltaY = deltaDistance*sin(Heading)
+
+
+REF3: 
+
+[3.1] ---- ARDUINO C++ CODE part of odometry code -----
+
+ROBOPROJ/2014/SWDEV/BACKUPS/u1204-hp-22sep14/drh-r108/Maple/libraries/OdometricLocalizer:
+
+  -rwx------ 1 iqdean iqdean   3106 Jul 31  2014 OdometricLocalizer.h
+
+
+/*
+  OdometricLocalizer.h - Quadrature encoder library.
+  Dr. Rainer Hessmer, December, 2010.
+  Released into the public domain.
+
+  Inspired by the code from http://www.ridgesoft.com/tutorials.htm,
+  specifically http://www.ridgesoft.com/articles/trackingposition/TrackingPosition.pdf
+*/
+
+#ifndef OdometricLocalizer_h
+#define OdometricLocalizer_h
+
+#include "RobotParams.h"
+#include "TimeInfo.h"
+
+#define TwoPI 6.28318531
+
+
+class OdometricLocalizer
+{
+private:
+    RobotParams* _pRobotParams;  // http://en.wikipedia.org/wiki/IEEE_floating-point_standard
+    TimeInfo* _pTimeInfo;        // http://leaflabs.com/docs/lang/cpp/built-in-types.html
+	double _DistancePerCount;    // double  64-bit, IEEE-754 double-precision floating-point type
+	double _RadiansPerCount;     // float   32-bit, IEEE-754 single-precision floating-point type.
+
+	long _PreviousLeftEncoderCounts;  // long = int32  32-bit integer value. Synonym for int
+ 	long _PreviousRightEncoderCounts; // uint32        unsigned 32-bit integer value. Synonym for unsigned int
+
+public:
+	OdometricLocalizer(RobotParams* pRobotParams, TimeInfo* pTimeInfo)
+	{
+		_pRobotParams = pRobotParams;
+		_pTimeInfo = pTimeInfo;
+	}
+
+	double X;  // x coord in global frame
+	double Y;  // y coord in global frame
+	double Heading;  // heading (radians) in the global frame. The value lies in (-PI, PI]
+	
+	double VLeft;   // left motor speed
+	double VRight;  // right motor speed
+	double V;  // forward speed
+	double Omega;  // angular speed (radians per sec)
+
+	// Must be periodically called
+	void Update(long leftEncoderCounts, long rightEncoderCounts)
+	{
+		long deltaLeft = leftEncoderCounts - _PreviousLeftEncoderCounts;
+		long deltaRight = rightEncoderCounts - _PreviousRightEncoderCounts;
+
+		VLeft = deltaLeft * _pRobotParams->DistancePerCount / _pTimeInfo->SecondsSinceLastUpdate;
+		VRight = deltaRight * _pRobotParams->DistancePerCount / _pTimeInfo->SecondsSinceLastUpdate;
+
+		double deltaDistance = 0.5f * (double)(deltaLeft + deltaRight) * _pRobotParams->DistancePerCount;
+		double deltaX = deltaDistance * (double)cos(Heading);
+		double deltaY = deltaDistance * (double)sin(Heading);
+
+		double deltaHeading = (double)(deltaRight - deltaLeft) * _pRobotParams->RadiansPerCount;
+
+		X += deltaX;
+		Y += deltaY;
+		Heading += deltaHeading;
+		// limit heading to -Pi <= heading < Pi
+		if (Heading > PI)
+		{
+			Heading -= TwoPI;
+		}
+		else
+		{
+			if (Heading <= -PI)
+			{
+				Heading += TwoPI;
+			}
+		}
+		
+		V = deltaDistance / _pTimeInfo->SecondsSinceLastUpdate;
+		Omega = deltaHeading / _pTimeInfo->SecondsSinceLastUpdate;
+
+		_PreviousLeftEncoderCounts = leftEncoderCounts;
+		_PreviousRightEncoderCounts = rightEncoderCounts;
+	}
+
+	void Reset()
+	{
+		X = 0.0;  // x coord in global frame
+		Y = 0.0;  // y coord in global frame
+		Heading = 0.0;  // heading (radians) in the global frame. The value lies in (-PI, PI]
+	
+		VLeft = 0.0;   // left motor speed
+		VRight = 0.0;  // right motor speed
+		V = 0.0;  // forward speed
+		Omega = 0.0;  // angular speed (radians per sec)
+
+		_PreviousLeftEncoderCounts = 0;
+		_PreviousRightEncoderCounts = 0;
+	}
+};
+
+#endif
+
+
+[3.2] ROS PYTHON NODE PART OF ODOMETRY CODE
+
+ROBOPROJ/2014/SWDEV/BACKUPS/u1204-hp-22sep14/drh-r108/ros/ardros/nodes/arduino.py
+
+class Arduino(object):
+...
+	def _HandleReceivedLine(self,  line):
+...
+			if (lineParts[0] == 'b'):
+				self._BroadcastBatteryInfo(lineParts)
+				return
+...
+        def _BroadcastOdometryInfo(self, lineParts):
+		partsCount = len(lineParts)
+		#rospy.logwarn(partsCount)
+		if (partsCount  < 6):
+			pass
+		
+		try:
+			x = int(lineParts[1]) / 1000.0
+			y = int(lineParts[2]) / 1000.0
+			theta = int(lineParts[3]) / 1000.0
+			
+			vx = int(lineParts[4]) / 1000.0
+			omega = int(lineParts[5]) / 1000.0
+			
+			#quaternion = tf.transformations.quaternion_from_euler(0, 0, theta)
+			quaternion = Quaternion()
+			quaternion.x = 0.0 
+			quaternion.y = 0.0
+			quaternion.z = sin(theta / 2.0)
+			quaternion.w = cos(theta / 2.0)
+			
+			rosNow = rospy.Time.now()
+			
+			# First, we'll publish the transform from frame odom to frame base_link over tf
+			# Note that sendTransform requires that 'to' is passed in before 'from' while
+			# the TransformListener' lookupTransform function expects 'from' first followed by 'to'.
+			self._OdometryTransformBroadcaster.sendTransform(
+				(x, y, 0), 
+				(quaternion.x, quaternion.y, quaternion.z, quaternion.w),
+				rosNow,
+				"base_link",
+				"odom"
+				)
+
+			# next, we'll publish the odometry message over ROS
+			odometry = Odometry()
+			odometry.header.frame_id = "odom"
+			odometry.header.stamp = rosNow
+			odometry.pose.pose.position.x = x
+			odometry.pose.pose.position.y = y
+			odometry.pose.pose.position.z = 0
+			odometry.pose.pose.orientation = quaternion
+
+			odometry.child_frame_id = "base_link"
+			odometry.twist.twist.linear.x = vx
+			odometry.twist.twist.linear.y = 0
+			odometry.twist.twist.angular.z = omega
+
+			self._OdometryPublisher.publish(odometry)
+				
+			#rospy.loginfo(odometry)
+		
+		except:
+			rospy.logwarn("Unexpected error:" + str(sys.exc_info()[0]))
+
+[3.2] ---- ardros Robot.pde ---------
+
+void DoWork()                                                        <--- DoWork() runs at 50hz on arduino
+{                                /----------------------/------------<--- from ISR
+  _OdometricLocalizer.Update(_LeftEncoderTicks, _RightEncoderTicks); <---- updates X,Y,Heading,V, & Omega every 50hz
+  _BatteryMonitor.Update();
+  //_SpeedController.Update(_BatteryMonitor.VoltageIsTooLow);     << TODO FIXME - this was tempfix while tuning pid loop
+  _SpeedController.Update(false);
+  IssueCommands();
+    
+  SerialUSB.print("o"); // o indicates odometry message    
+  SerialUSB.print("\t"); 
+  
+  // _OdometricLocalizer.X  is a double   double precision floating point value
+  
+  // sending side (maple)
+  // stackoverflow.com/questions/9695329/c-how-to-round-a-double-to-an-int
+  // if x is double
+  // Casting float or double to an int truncates the value... if x = 3.9995, the .9995 gets truncated and x = 3
+  // int(x*1000) preserves 3digits of precision                      3999.95     .95                      3999
+  
+  // recieving side (pc python code - ardros.py)
+  // www.python-course.eu/variables.php
+  // x = int(lineParts[1]) / 1000.0    ex:  3999/1000 = 3.999    x is a float on python side
+
+  SerialUSB.print(int(_OdometricLocalizer.X * 1000));
+  SerialUSB.print("\t"); 
+  SerialUSB.print(int(_OdometricLocalizer.Y * 1000));
+  SerialUSB.print("\t");
+  SerialUSB.print(int(_OdometricLocalizer.Heading * 1000));
+  SerialUSB.print("\t");
+  SerialUSB.print(int(_OdometricLocalizer.V * 1000));
+  SerialUSB.print("\t");
+  SerialUSB.print(int(_OdometricLocalizer.Omega * 1000));
+
+/*
+  SerialUSB.print("\t");
+  SerialUSB.print(_OdometricLocalizer.VLeft);
+  SerialUSB.print("\t");
+  SerialUSB.print(_OdometricLocalizer.VRight);
+*/
+  SerialUSB.print("\t");
+  SerialUSB.print(_LeftEncoderTicks);
+  SerialUSB.print("\t");
+  SerialUSB.print(_RightEncoderTicks);
+  SerialUSB.print("\n");
+
+  SerialUSB.print("b\t"); // b indicates battery info message
+  SerialUSB.print(_BatteryMonitor.BatteryVoltage);
+  //SerialUSB.print("\t");                            // not needed, maple -> BatteryVoltage -> PC
+  //SerialUSB.print(_BatteryMonitor.VoltageIsTooLow); // PC compares bat volt to bat params to det VoltIsTooLow
+  SerialUSB.print("\n");
+}
+
+--- so we need to create a new node 
+
+u1404/DEV-SW/github/4_edbot-ros-pkg/src/odometriclocalizer.py
+
+  -rwxrwxrwx 1 root root 3987 Aug 26 18:29 diffdrv.py
+  -rwxrwxrwx 1 root root 1225 Sep  6 21:14 odometriclocalizer.py <----- new node in this file
+  -rwxrwxrwx 1 root root 2249 Aug 26 18:32 SerialDataGateway.py
+
+----- odometriclocalizer.py -----------
+
+#!/usr/bin/env python
+'''
+Created Sept 2016
+@author: Ike Dean 
+
+ odometriclocalizer.py for edbot robot's differential drive base
+ this ros node publishs odometry messages so ros navigation stack
+ can localize the robot on a static map of the world.
+
+'''
+
+import roslib
+import rospy
+import tf
+import math
+from math import sin, cos, pi
+import sys
+
+from geometry_msgs.msg import Quaternion
+from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
+
+class edbotOdom(object):
+
+    def Start(self):
+        rospy.logdebug("Starting")
+
+    def Stop(self):
+        rospy.logdebug("Stopping")
+
+    def __init__(self):
+
+        rospy.init_node('edbotodom')
+        rospy.loginfo("edbotodom node init")
+
+        # subscriptions and publications
+	self._OdometryTransformBroadcaster = tf.TransformBroadcaster()
+	self._OdometryPublisher = rospy.Publisher("odom", Odometry)
+
+        rospy.Timer(rospy.Duration(1), my_callback)
+
+    def my_callback(self):
+        now = rospy.get_rostime()
+        rospy.loginfo("Current time %i %i", now.secs, now.nsecs)
+
+if __name__ == '__main__':
+    odometry = edbotOdom()
+    try:
+        odometry.Start()
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        odometry.Stop()
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>tf</build_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>tf</run_depend>
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,102 @@
+==== BKM ros indigo tf install on ubilinux ====
+
+-----------------------------------
+BACKGROUND REFS ON 
+Building ROS Packages from source
+-----------------------------------
+
+REF1:   http://wiki.ros.org/indigo/Installation/Source
+
+REF2:   http://answers.ros.org/question/208963/installing-package-from-source-in-indigo/
+
+You'll probably want to read up on catkin and workspaces in the catkin tutorials.
+
+For your specific case:
+
+# make sure you have sourced the correct setup.bash file for your ROS distribution already
+
+# go to workspace src space
+cd /path/to/your/catkin_ws/src
+
+# checkout the desired version of the descartes repository.
+git clone -b indigo-devel https://github.com/ros-industrial-consortium/descartes.git
+
+# we need to make sure you have all dependencies installed.
+cd /path/to/your/catkin_ws
+rosdep install --from-paths src --ignore-src --rosdistro indigo
+
+# now build
+catkin_make
+After sourcing /path/to/your/catkin_ws/devel/setup.bash you should now be able to use the Descartes packages.
+
+OR as in my case when installing tf from source
+
+# now build
+catkin_make_isolated
+after everything builds:
+source /path_to_catkin_ws/devel_isolated/setup.bash
+
+     ===========================================
+==== BKM ros indigo tf install on ubilinux       ====
+     SUMMARY OF 15-3-install-ros-tf-from-src.txt
+     ============================================
+
+iqdean@ubilinux:~/catkin_ws/src$ git clone -b indigo-devel https://github.com/ros/geometry.git
+iqdean@ubilinux:~/catkin_ws/src$ git clone https://github.com/orocos/orocos_kinematics_dynamics.git
+iqdean@ubilinux:~/catkin_ws$ sudo apt-get install libeigen3-dev
+
+iqdean@ubilinux:~/dev/python-sip$ wget https://sourceforge.net/projects/pyqt/files/sip/sip-4.18.1/sip-4.18.1.tar.gz
+$ tar -xvzf sip-4.18.1.tar.gz
+$ cd sip-4.18.1
+
+iqdean@ubilinux:~/dev/python-sip/sip-4.18.1$ python configure.py
+$ make
+$ sudo make install
+
+iqdean@ubilinux:~/dev/python-sip/sip-4.18.1$ which sip
+/usr/bin/sip
+
+iqdean@ubilinux:~/catkin_ws/src$ git clone https://github.com/ros/angles.git
+iqdean@ubilinux:~/catkin_ws/src$ git clone -b indigo-devel https://github.com/ros/geometry2.git
+iqdean@ubilinux:~/catkin_ws$ sudo apt-get install libbullet-dev
+iqdean@ubilinux:~/catkin_ws/src$ git clone -b indigo-devel https://github.com/ros/actionlib.git
+
+==== start hack... just get rid of test_tf2 and see how far it gets ? ====
+
+iqdean@ubilinux:~/catkin_ws/src/geometry2$ ls
+geometry2              test_tf2  tf2_bullet  tf2_geometry_msgs  tf2_msgs  tf2_ros          tf2_tools
+geometry_experimental  tf2       tf2_eigen   tf2_kdl            tf2_py    tf2_sensor_msgs
+iqdean@ubilinux:~/catkin_ws/src/geometry2$ mv test_tf2 ~/dev/bkup/
+iqdean@ubilinux:~/catkin_ws/src/geometry2$ ls
+geometry2              tf2         tf2_eigen          tf2_kdl   tf2_py   tf2_sensor_msgs
+geometry_experimental  tf2_bullet  tf2_geometry_msgs  tf2_msgs  tf2_ros  tf2_tools
+iqdean@ubilinux:~/catkin_ws/src/geometry2$ 
+
+==== $ catkin_make isolated
+...
+<== Finished processing package [41 of 41]: 'rosbridge_server'		<-- and 4 hours later, it builds completely
+
+    ================================================================================
+=== source devel_isolated/setup.bash                                                 ====
+    ================================================================================
+
+    catkin_make_isolated puts build outputs into catkin_ws/devel_isolated so you have
+    to source the devel_isolated/setup.bash file 
+    to OVERLAY the devel_isolated workspace onto your exiting 
+    /opt/ros/indigo and catkin_ws/devel
+    then the python 'import tf' works... now u can get on with standard code debug
+
+t1: $ source devel_isoloated/setup.bash
+    $ roscore
+
+t2: $ source devel_isolated/setup.bash
+    iqdean@ubilinux:~$ rosrun edbot src/odometriclocalizer.py
+
+iqdean@ubilinux:~/catkin_ws$ rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1473308803.845644] edbotodom node init
+[INFO] [WallTime: 1473308803.874203] Current time 1473308803 873774051
+[INFO] [WallTime: 1473308804.875922] Current time 1473308804 875526905
+[INFO] [WallTime: 1473308805.875901] Current time 1473308805 875504970
+[INFO] [WallTime: 1473308806.875814] Current time 1473308806 875418901
+[INFO] [WallTime: 1473308807.875756] Current time 1473308807 875361919
+

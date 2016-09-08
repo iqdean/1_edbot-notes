@@ -1,0 +1,720 @@
+15-3-install-ros-tf-from-src.txt
+---------------------------------
+REF: 3-install-rosbridge-from-src.txt
+
+1
+iqdean@ubilinux:~/catkin_ws/src$ git clone -b indigo-devel https://github.com/ros/geometry.git
+
+2
+~/catkin_ws$ catkin_make     
+2.1 ... builds only the edbot package due to the -DCATKIN_WHITELIST_PACKGES previously set
+
+2.2 --- figure out how to undo catkin whitelist -----
+
+http://wiki.ros.org/catkin/commands/catkin_make
+
+If you would like to build specific packages in the workspace, invoke the following in the root of your workspace:
+
+$ catkin_make -DCATKIN_WHITELIST_PACKAGES="package1;package2"
+If you want to revert back to building all packages, do the following:
+
+3.0
+$ catkin_make -DCATKIN_WHITELIST_PACKAGES=""
+
+Base path: /home/iqdean/catkin_ws
+Source space: /home/iqdean/catkin_ws/src
+Build space: /home/iqdean/catkin_ws/build
+Devel space: /home/iqdean/catkin_ws/devel
+Install space: /home/iqdean/catkin_ws/install
+####
+#### Running command: "cmake /home/iqdean/catkin_ws/src -DCATKIN_WHITELIST_PACKAGES= -DCATKIN_DEVEL_PREFIX=/home/iqdean/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/iqdean/catkin_ws/install -G Unix Makefiles" in "/home/iqdean/catkin_ws/build"
+####
+-- Using CATKIN_DEVEL_PREFIX: /home/iqdean/catkin_ws/devel
+-- Using CMAKE_PREFIX_PATH: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- This workspace overlays: /home/iqdean/catkin_ws/devel;/opt/ros/indigo
+-- Using PYTHON_EXECUTABLE: /usr/bin/python
+-- Using Debian Python package layout
+-- Using empy: /usr/bin/empy
+-- Using CATKIN_ENABLE_TESTING: ON
+-- Call enable_testing()
+-- Using CATKIN_TEST_RESULTS_DIR: /home/iqdean/catkin_ws/build/test_results
+-- Found gtest sources under '/usr/src/gtest': gtests will be built
+-- Using Python nosetests: /usr/bin/nosetests-2.7
+-- catkin 0.6.18
+-- BUILD_SHARED_LIBS is on
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- ~~  traversing 24 packages in topological order:
+-- ~~  - common_msgs (metapackage)
+-- ~~  - geometry (metapackage)
+-- ~~  - rosbridge_suite (metapackage)
+-- ~~  - actionlib_msgs
+-- ~~  - diagnostic_msgs
+-- ~~  - geometry_msgs
+-- ~~  - eigen_conversions
+-- ~~  - kdl_conversions
+-- ~~  - nav_msgs
+-- ~~  - sensor_msgs
+-- ~~  - shape_msgs
+-- ~~  - stereo_msgs
+-- ~~  - trajectory_msgs
+-- ~~  - visualization_msgs
+-- ~~  - edbot_diff_drive
+-- ~~  - edros
+-- ~~  - robot_base_controller
+-- ~~  - rosapi
+-- ~~  - rosbridge_library
+-- ~~  - rosauth
+-- ~~  - tf
+-- ~~  - edbot
+-- ~~  - rosbridge_server
+-- ~~  - tf_conversions
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- +++ processing catkin metapackage: 'common_msgs'
+-- ==> add_subdirectory(common_msgs/common_msgs)
+-- +++ processing catkin metapackage: 'geometry'
+-- ==> add_subdirectory(geometry/geometry)
+-- +++ processing catkin metapackage: 'rosbridge_suite'
+-- ==> add_subdirectory(rosbridge_suite/rosbridge_suite)
+-- +++ processing catkin package: 'actionlib_msgs'
+-- ==> add_subdirectory(common_msgs/actionlib_msgs)
+-- Using these message generators: gencpp;genlisp;genpy
+-- actionlib_msgs: 3 messages, 0 services
+-- +++ processing catkin package: 'diagnostic_msgs'
+-- ==> add_subdirectory(common_msgs/diagnostic_msgs)
+-- Using these message generators: gencpp;genlisp;genpy
+-- diagnostic_msgs: 3 messages, 2 services
+-- +++ processing catkin package: 'geometry_msgs'
+-- ==> add_subdirectory(common_msgs/geometry_msgs)
+-- Using these message generators: gencpp;genlisp;genpy
+-- geometry_msgs: 29 messages, 0 services
+-- +++ processing catkin package: 'eigen_conversions'
+-- ==> add_subdirectory(geometry/eigen_conversions)
+CMake Error at geometry/eigen_conversions/CMakeLists.txt:4 (find_package):
+  By not providing "Findorocos_kdl.cmake" in CMAKE_MODULE_PATH this project
+  has asked CMake to find a package configuration file provided by
+  "orocos_kdl", but CMake did not find one.
+
+  Could not find a package configuration file provided by "orocos_kdl" with
+  any of the following names:
+
+    orocos_kdlConfig.cmake
+    orocos_kdl-config.cmake
+
+  Add the installation prefix of "orocos_kdl" to CMAKE_PREFIX_PATH or set
+  "orocos_kdl_DIR" to a directory containing one of the above files.  If
+  "orocos_kdl" provides a separate development package or SDK, be sure it has
+  been installed.
+
+-- Configuring incomplete, errors occurred!
+Invoking "cmake" failed
+
+==== google orocos_kdl ros =====
+iqdean@ubilinux:~/catkin_ws/src$ git clone https://github.com/orocos/orocos_kinematics_dynamics.git
+$ cd ..
+~/catkin_ws$ catkin_make   <-- doesn't work says try catkin_make_isolated
+
+===== wtf is catkin_make_isolated vs catkin_make =========
+http://www.ros.org/reps/rep-0134.html
+==========================================================
+
+~/catkin_ws$ catkin_make_isolated
+...
+[100%] Built target nav_msgs_generate_messages
+<== Finished processing package [8 of 27]: 'nav_msgs'
+
+==> Processing plain cmake package: 'orocos_kdl'
+==> Creating build directory: 'build_isolated/orocos_kdl/devel'
+==> Building with env: '/home/iqdean/catkin_ws/devel_isolated/nav_msgs/env.sh'
+==> cmake /home/iqdean/catkin_ws/src/orocos_kinematics_dynamics/orocos_kdl -DCMAKE_INSTALL_PREFIX=/home/iqdean/catkin_ws/devel_isolated/orocos_kdl -G Unix Makefiles in '/home/iqdean/catkin_ws/build_isolated/orocos_kdl/devel'
+-- The C compiler identification is GNU 4.7.2
+-- The CXX compiler identification is GNU 4.7.2
+-- Check for working C compiler: /usr/bin/gcc
+-- Check for working C compiler: /usr/bin/gcc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+Orocos KDL version  (1.3.1)
+Setting build type to 'Release'
+-- Could NOT find Eigen3 (missing:  EIGEN3_INCLUDE_DIR EIGEN3_VERSION_OK) (Required is at least version "2.91.0")
+-- Performing Test HAVE_STL_CONTAINER_INCOMPLETE_TYPES
+-- Performing Test HAVE_STL_CONTAINER_INCOMPLETE_TYPES - Success
+CMake Error: The following variables are used in this project, but they are set to NOTFOUND.
+Please set them or make sure they are set and tested correctly in the CMake files:
+EIGEN3_INCLUDE_DIR (ADVANCED)
+   used as include directory in directory /home/iqdean/catkin_ws/src/orocos_kinematics_dynamics/orocos_kdl/doc
+   used as include directory in directory /home/iqdean/catkin_ws/src/orocos_kinematics_dynamics/orocos_kdl/src
+
+-- Configuring incomplete, errors occurred!
+<== Failed to process package 'orocos_kdl': 
+  Command '['/home/iqdean/catkin_ws/devel_isolated/nav_msgs/env.sh', 'cmake', '/home/iqdean/catkin_ws/src/orocos_kinematics_dynamics/orocos_kdl', '-DCMAKE_INSTALL_PREFIX=/home/iqdean/catkin_ws/devel_isolated/orocos_kdl', '-G', 'Unix Makefiles']' returned non-zero exit status 1
+
+Reproduce this error by running:
+==> cd /home/iqdean/catkin_ws/build_isolated/orocos_kdl && /home/iqdean/catkin_ws/devel_isolated/nav_msgs/env.sh cmake /home/iqdean/catkin_ws/src/orocos_kinematics_dynamics/orocos_kdl -DCMAKE_INSTALL_PREFIX=/home/iqdean/catkin_ws/devel_isolated/orocos_kdl -G 'Unix Makefiles'
+
+Command failed, exiting.
+
+====== hunt for eigen3 ============
+
+http://answers.ros.org/question/215408/eigen3-missing-error-during-ros-installation/
+Do you have eigen3 installed? I'm not familiar with MAC/homebrew, but in ubuntu you can install it with sudo apt-get install libeigen3-dev
+
+https://packages.debian.org/source/wheezy/eigen3
+The following binary packages are built from this source package:
+libeigen3-dev
+lightweight C++ template library for linear algebra
+
+===== install eigen3 using apt-get =====
+iqdean@ubilinux:~/catkin_ws$ sudo apt-get install libeigen3-dev
+...
+Setting up libeigen3-dev (3.1.0-1) ...
+
+===== see if we get anyfurther =====
+iqdean@ubilinux:~/catkin_ws$ catkin_make_isolated
+...
+<== Finished processing package [12 of 27]: 'orocos_kinematics_dynamics'
+
+==> Processing plain cmake package: 'python_orocos_kdl'
+-- Found PythonLibs: /usr/lib/libpython2.7.so (found suitable version "2.7.3", required is "2.7") 
+Traceback (most recent call last):
+  File "/home/iqdean/catkin_ws/src/orocos_kinematics_dynamics/python_orocos_kdl/cmake/FindSIP.py", line 8, in <module>
+    import sipconfig
+ImportError: No module named sipconfig
+CMake Error at cmake/FindSIP.cmake:63 (MESSAGE):
+  Could not find SIP
+Call Stack (most recent call first):
+
+===== google python sip =====
+
+iqdean@ubilinux:~/catkin_ws$ sudo apt-get install python-sip
+...
+The following NEW packages will be installed:
+  python-sip
+...
+Setting up python-sip (4.13.3-2) ...
+
+==== see if we get anyfurther =====
+
+iqdean@ubilinux:~/catkin_ws$ catkin_make_isolated
+....
+<== Finished processing package [12 of 27]: 'orocos_kinematics_dynamics'
+
+==> Processing plain cmake package: 'python_orocos_kdl'
+==> Building with env: '/home/iqdean/catkin_ws/devel_isolated/orocos_kinematics_dynamics/env.sh'
+==> cmake /home/iqdean/catkin_ws/src/orocos_kinematics_dynamics/python_orocos_kdl -DCMAKE_INSTALL_PREFIX=/home/iqdean/catkin_ws/devel_isolated/python_orocos_kdl -G Unix Makefiles in '/home/iqdean/catkin_ws/build_isolated/python_orocos_kdl/devel'
+-- Found SIP version: 4.13.3
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/iqdean/catkin_ws/build_isolated/python_orocos_kdl/devel
+==> make -j2 -l2 in '/home/iqdean/catkin_ws/build_isolated/python_orocos_kdl/devel'
+[ 11%] Generating PyKDL/sipPyKDLpart0.cpp, PyKDL/sipPyKDLpart1.cpp, PyKDL/sipPyKDLpart2.cpp, PyKDL/sipPyKDLpart3.cpp, PyKDL/sipPyKDLpart4.cpp, PyKDL/sipPyKDLpart5.cpp, PyKDL/sipPyKDLpart6.cpp, PyKDL/sipPyKDLpart7.cpp
+
+make[2]: /usr/bin/sip: Command not found                             <---- 
+make[2]: *** [PyKDL/sipPyKDLpart0.cpp] Error 127
+make[1]: *** [CMakeFiles/python_module_PyKDL.dir/all] Error 2
+make: *** [all] Error 2
+<== Failed to process package 'python_orocos_kdl': 
+  Command '['/home/iqdean/catkin_ws/devel_isolated/orocos_kinematics_dynamics/env.sh', 'make', '-j2', '-l2']' returned non-zero exit status 2
+
+Reproduce this error by running:
+==> cd /home/iqdean/catkin_ws/build_isolated/python_orocos_kdl && /home/iqdean/catkin_ws/devel_isolated/orocos_kinematics_dynamics/env.sh make -j2 -l2
+
+Command failed, exiting.
+iqdean@ubilinux:~/catkin_ws$ which sip
+iqdean@ubilinux:~/catkin_ws$ 
+
+==== uninstall the python-sip package from debian repo ====
+     since it didn't work
+
+iqdean@ubilinux:~/dev/python-sip/sip-4.18.1$ sudo apt-get purge python-sip
+
+==== try installing sip from source per following url =====
+
+http://pyqt.sourceforge.net/Docs/sip4/installation.html
+
+iqdean@ubilinux:~/dev/python-sip$ wget https://sourceforge.net/projects/pyqt/files/sip/sip-4.18.1/sip-4.18.1.tar.gz
+$ tar -xvzf sip-4.18.1.tar.gz
+$ cd sip-4.18.1
+
+iqdean@ubilinux:~/dev/python-sip/sip-4.18.1$ python configure.py
+This is SIP 4.18.1 for Python 2.7.3 on linux2.
+The SIP code generator will be installed in /usr/bin.                   <--- here be what we lookin for !!!
+The sip module will be installed in /usr/lib/python2.7/dist-packages.
+The sip.pyi stub file will be installed in /usr/lib/python2.7/dist-packages.
+The sip.h header file will be installed in /usr/include/python2.7.
+The default directory to install .sip files in is /usr/share/sip.
+Creating siplib/sip.h...
+Creating siplib/siplib.c...
+Creating siplib/siplib.sbf...
+Creating sipconfig.py...
+Creating top level Makefile...
+Creating sip code generator Makefile...
+Creating sip module Makefile...
+
+$ make
+$ sudo make install
+
+iqdean@ubilinux:~/dev/python-sip/sip-4.18.1$ which sip
+/usr/bin/sip
+
+===== see if we get any further on building ros tf library =====
+iqdean@ubilinux:~/dev/python-sip/sip-4.18.1$ cd ~/catkin_ws/
+iqdean@ubilinux:~/catkin_ws$ catkin_make_isolated 
+
+<== Finished processing package [20 of 27]: 'stereo_msgs'
+
+==> Processing catkin package: 'tf'
+...
+-- Using Python nosetests: /usr/bin/nosetests-2.7
+-- catkin 0.6.18
+-- Boost version: 1.49.0
+-- Found the following Boost libraries:
+--   thread
+--   signals
+--   system
+CMake Warning at /opt/ros/indigo/share/catkin/cmake/catkinConfig.cmake:76 (find_package):
+  Could not find a package configuration file provided by "angles" with any
+  of the following names:
+
+    anglesConfig.cmake
+    angles-config.cmake
+
+...
+
+-- Could not find the required component 'angles'. The following CMake error indicates that you either need to install the package with the same name or change your environment so that it can be found.
+CMake Error at /opt/ros/indigo/share/catkin/cmake/catkinConfig.cmake:83 (find_package):
+  Could not find a package configuration file provided by "angles" with any
+  of the following names:
+
+    anglesConfig.cmake
+    angles-config.cmake
+...
+
+iqdean@ubilinux:~/catkin_ws$ 
+
+========== ok, wtf is anglesConfig.cmake ?    google:  ros angles =======
+http://wiki.ros.org/angles
+iqdean@ubilinux:~/catkin_ws$ cd src
+iqdean@ubilinux:~/catkin_ws/src$ git clone https://github.com/ros/angles.git
+iqdean@ubilinux:~/catkin_ws/src$ cd ..
+iqdean@ubilinux:~/catkin_ws$ 
+========== see if we can get tf built ? =========
+iqdean@ubilinux:~/catkin_ws$ catkin_make_isolated 
+...
+<== Finished processing package [21 of 28]: 'stereo_msgs'
+
+==> Processing catkin package: 'tf'
+...
+-- Could not find the required component 'tf2_ros'.
+
+===== google tf2_ros > http://wiki.ros.org/tf2_ros
+
+iqdean@ubilinux:~/catkin_ws$ cd src
+iqdean@ubilinux:~/catkin_ws/src$ git clone -b indigo-devel https://github.com/ros/geometry2.git
+$ cd ..
+===== 
+~/catkin_ws$ catkin_make_isolated
+....
+<== Finished processing package [25 of 41]: 'tf2'
+
+==> Processing catkin package: 'tf2_bullet'
+
+-- checking for module 'bullet'
+--   package 'bullet' not found
+
+==== google ros bullet > 
+http://wiki.ros.org/bullet
+https://packages.debian.org/wheezy-backports/libbullet-dev
+
+iqdean@ubilinux:~/catkin_ws$ sudo apt-get install libbullet-dev
+[sudo] password for iqdean: 
+Reading package lists... Done
+Building dependency tree       
+Reading state information... Done
+The following packages were automatically installed and are no longer required:
+  libc-ares-dev libc-ares2 libv8-3.14-dev libv8-3.14.5
+Use 'apt-get autoremove' to remove them.
+The following extra packages will be installed:
+  libbulletcollision2.82 libbulletdynamics2.82 libbulletsoftbody2.82 liblinearmath2.82
+The following NEW packages will be installed:
+  libbullet-dev libbulletcollision2.82 libbulletdynamics2.82 libbulletsoftbody2.82 liblinearmath2.82
+0 upgraded, 5 newly installed, 0 to remove and 7 not upgraded.
+Need to get 1,141 kB of archives.
+After this operation, 3,353 kB of additional disk space will be used.
+Do you want to continue [Y/n]? Y
+...
+Setting up liblinearmath2.82:i386 (2.82-r2704+dfsg-2~bpo70+1) ...
+Setting up libbulletcollision2.82:i386 (2.82-r2704+dfsg-2~bpo70+1) ...
+Setting up libbulletdynamics2.82:i386 (2.82-r2704+dfsg-2~bpo70+1) ...
+Setting up libbulletsoftbody2.82:i386 (2.82-r2704+dfsg-2~bpo70+1) ...
+Setting up libbullet-dev:i386 (2.82-r2704+dfsg-2~bpo70+1) ...
+
+iqdean@ubilinux:~/catkin_ws$ catkin_make_isolated 
+...
+<== Finished processing package [28 of 41]: 'tf2_py'
+
+==> Processing catkin package: 'tf2_ros'
+...
+-- Could not find the required component 'actionlib'. 
+...
+
+=== google ros actionlib > http://wiki.ros.org/actionlib
+
+Source: git https://github.com/ros/actionlib.git (branch: indigo-devel)
+...
+iqdean@ubilinux:~/catkin_ws$ cd src
+iqdean@ubilinux:~/catkin_ws/src$ git clone -b indigo-devel https://github.com/ros/actionlib.git
+iqdean@ubilinux:~/catkin_ws/src$ cd ..
+iqdean@ubilinux:~/catkin_ws$ catkin_make_isolated 
+...
+
+<== Finished processing package [34 of 42]: 'tf2_kdl'
+
+==> Processing catkin package: 'test_tf2'
+==> Building with env: '/home/iqdean/catkin_ws/devel_isolated/tf2_kdl/env.sh'
+==> cmake /home/iqdean/catkin_ws/src/geometry2/test_tf2 -DCATKIN_DEVEL_PREFIX=/home/iqdean/catkin_ws/devel_isolated/test_tf2 -DCMAKE_INSTALL_PREFIX=/home/iqdean/catkin_ws/install_isolated -G Unix Makefiles in '/home/iqdean/catkin_ws/build_isolated/test_tf2'
+-- Configuring done
+-- Generating done
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    CATKIN_DEVEL_PREFIX
+
+
+-- Build files have been written to: /home/iqdean/catkin_ws/build_isolated/test_tf2
+==> make -j2 -l2 in '/home/iqdean/catkin_ws/build_isolated/test_tf2'
+Unhandled exception of type 'RuntimeError':
+Traceback (most recent call last):
+  File "/opt/ros/indigo/lib/python2.7/dist-packages/catkin/builder.py", line 965, in build_workspace_isolated
+    number=index + 1, of=len(ordered_packages)
+  File "/opt/ros/indigo/lib/python2.7/dist-packages/catkin/builder.py", line 670, in build_package
+    "'\n  This sometimes occurs when a non-catkin package is "
+RuntimeError: No env.sh file generated at: '/home/iqdean/catkin_ws/devel_isolated/test_tf2/env.sh'
+  This sometimes occurs when a non-catkin package is interpreted as a catkin package.
+  This can also occur when the cmake cache is stale, try --force-cmake.
+<== Failed to process package 'test_tf2': 
+  No env.sh file generated at: '/home/iqdean/catkin_ws/devel_isolated/test_tf2/env.sh'
+  This sometimes occurs when a non-catkin package is interpreted as a catkin package.
+  This can also occur when the cmake cache is stale, try --force-cmake.                      
+Command failed, exiting.
+iqdean@ubilinux:~/catkin_ws$ find . -name "test_tf2"
+./build_isolated/test_tf2
+./src/geometry2/test_tf2
+
+==== try $ catkin_make_isolated --force-cmake  =====    bombs at same spot
+
+==== start hack... just get rid of test_tf2 and see how far it gets ? ====
+
+iqdean@ubilinux:~/catkin_ws/src/geometry2$ ls
+geometry2              test_tf2  tf2_bullet  tf2_geometry_msgs  tf2_msgs  tf2_ros          tf2_tools
+geometry_experimental  tf2       tf2_eigen   tf2_kdl            tf2_py    tf2_sensor_msgs
+iqdean@ubilinux:~/catkin_ws/src/geometry2$ mv test_tf2 ~/dev/bkup/
+iqdean@ubilinux:~/catkin_ws/src/geometry2$ ls
+geometry2              tf2         tf2_eigen          tf2_kdl   tf2_py   tf2_sensor_msgs
+geometry_experimental  tf2_bullet  tf2_geometry_msgs  tf2_msgs  tf2_ros  tf2_tools
+iqdean@ubilinux:~/catkin_ws/src/geometry2$ 
+
+==== $ catkin_make isolated
+...
+<== Finished processing package [41 of 41]: 'rosbridge_server'		<-- and 4 hours later, it builds completely
+
+==== do we got the missing package now?
+iqdean@ubilinux:~/catkin_ws$ rospack find tf
+/home/iqdean/catkin_ws/src/geometry/tf
+iqdean@ubilinux:~/catkin_ws$ rospack find tf2
+/home/iqdean/catkin_ws/src/geometry2/tf2
+
+=== now we can get on with seeing if our odometriclocalizer.py node builds ???   
+
+2.2 iqdean@ubilinux:~/catkin_ws$ catkin_make -DCATKIN_WHITELIST_PACKAGES="edbot"   <--- builds ok
+
+t1: ~$ roscore
+t2: iqdean@ubilinux:~$ rosrun edbot src/odometriclocalizer.py
+Traceback (most recent call last):
+  File "/home/iqdean/catkin_ws/src/edbot/src/odometriclocalizer.py", line 14, in <module>
+    import tf                                                                      <---- but still wont run
+ImportError: No module named tf
+
+==== figure out why python still can't find 'import tf' ==========================================
+
+
+where does everything get installed to when you use catkin_make_isolated ?
+
+iqdean@ubilinux:~/catkin_ws$ ls -al
+total 40
+drwxr-xr-x  9 iqdean iqdean 4096 Sep  7 22:51 .
+drwxr-xr-x 10 iqdean iqdean 4096 Sep  7 22:55 ..
+drwxr-xr-x 16 iqdean iqdean 4096 Sep  8 01:35 build
+drwxr-xr-x 44 iqdean iqdean 4096 Sep  8 01:30 build_isolated
+-rw-r--r--  1 iqdean iqdean   98 Jun 29 03:30 .catkin_workspace
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:35 devel
+drwxr-xr-x 43 iqdean iqdean 4096 Sep  8 01:31 devel_isolated
+drwxr-xr-x  5 iqdean iqdean 4096 Jan  1  2000 install
+drwxr-xr-x  7 iqdean iqdean 4096 Jun 30 00:55 rosbridge-usage
+drwxr-xr-x 14 iqdean iqdean 4096 Sep  8 00:48 src
+-rw-r--r--  1 iqdean iqdean    0 Sep  7 22:18 tf.rosinstall
+
+iqdean@ubilinux:~/catkin_ws$ ls -al devel
+total 64
+drwxr-xr-x  5 iqdean iqdean  4096 Sep  8 01:35 .
+drwxr-xr-x  9 iqdean iqdean  4096 Sep  7 22:51 ..
+-rw-r--r--  1 iqdean iqdean    11 Sep  8 01:35 .built_by
+-rw-r--r--  1 iqdean iqdean    26 Jun 29 03:30 .catkin
+-rwxrwxr-x  1 iqdean iqdean   506 Sep  8 01:35 env.sh
+drwxr-xr-x 15 iqdean iqdean  4096 Jan  1  2000 include
+drwxr-xr-x  6 iqdean iqdean  4096 Jun 29 20:07 lib
+-rw-rw-r--  1 iqdean iqdean    68 Sep  8 01:35 .rosinstall
+-rw-rw-r--  1 iqdean iqdean   260 Sep  8 01:35 setup.bash
+-rw-rw-r--  1 iqdean iqdean  2541 Sep  8 01:35 setup.sh
+-rwxrwxr-x  1 iqdean iqdean 12403 Sep  8 01:35 _setup_util.py
+-rw-rw-r--  1 iqdean iqdean   270 Sep  8 01:35 setup.zsh
+drwxr-xr-x 20 iqdean iqdean  4096 Aug 23 16:48 share
+
+iqdean@ubilinux:~/catkin_ws$ ls -al devel_isolated/
+total 192
+drwxr-xr-x 43 iqdean iqdean 4096 Sep  8 01:31 .
+drwxr-xr-x  9 iqdean iqdean 4096 Sep  7 22:51 ..
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:21 actionlib
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:20 actionlib_msgs
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:21 angles
+-rw-r--r--  1 iqdean iqdean   20 Sep  8 01:20 .built_by
+drwxr-xr-x  2 iqdean iqdean 4096 Sep  8 01:21 common_msgs
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:21 diagnostic_msgs
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:26 edbot
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:21 edbot_diff_drive
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:21 edros
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:22 eigen_conversions
+-rwx------  1 iqdean iqdean  125 Sep  8 01:31 env.sh
+drwxr-xr-x  2 iqdean iqdean 4096 Sep  8 01:21 geometry
+drwxr-xr-x  2 iqdean iqdean 4096 Sep  8 01:22 geometry2
+drwxr-xr-x  2 iqdean iqdean 4096 Sep  8 01:22 geometry_experimental
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:22 geometry_msgs
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:23 kdl_conversions
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:22 nav_msgs
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  7 23:24 orocos_kdl
+drwxr-xr-x  2 iqdean iqdean 4096 Sep  8 01:23 orocos_kinematics_dynamics
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  7 23:54 python_orocos_kdl
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:23 robot_base_controller
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:23 rosapi
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:23 rosauth
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:29 rosbridge_library
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:31 rosbridge_server
+drwxr-xr-x  2 iqdean iqdean 4096 Sep  8 01:23 rosbridge_suite
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:24 sensor_msgs
+-rw-r--r--  1 iqdean iqdean  130 Sep  8 01:31 setup.bash              <---- devel_isolated/setup.bash
+-rw-r--r--  1 iqdean iqdean  126 Sep  8 01:31 setup.sh
+-rw-r--r--  1 iqdean iqdean  128 Sep  8 01:31 setup.zsh
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:24 shape_msgs
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:24 stereo_msgs
+drwxr-xr-x  6 iqdean iqdean 4096 Sep  8 01:26 tf
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:25 tf2
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:25 tf2_bullet
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:25 tf2_eigen
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:26 tf2_geometry_msgs
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:26 tf2_kdl
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:24 tf2_msgs
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:25 tf2_py
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:25 tf2_ros
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:27 tf2_sensor_msgs
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:27 tf2_tools
+drwxr-xr-x  4 iqdean iqdean 4096 Sep  8 01:28 tf_conversions
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:28 trajectory_msgs
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:29 visualization_msgs
+
+==== looking back thru 1-ros-on-edision.txt see :
+
+4 Build and install ROS                                             you can change install path here if u want
+iqdean@ubilinux:~/ros_catkin_ws$                                                                 -----\/-------
+sudo ./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space /opt/ros/indigo
+
+... after about an hour ...
+
+<== Finished processing package [48 of 48]: 'rosbag'
+
+==== catkin workspaces and overlays =====
+http://wiki.ros.org/catkin/conceptual_overview
+
+http://wiki.ros.org/catkin/Tutorials/using_a_workspace
+
+
+==== ROS Env Settings ===================
+$ cat ~/.bashrc
+...
+# Source ROS Indigo Environment settings
+source /opt/ros/indigo/setup.bash					1
+source /home/iqdean/catkin_ws/devel/setup.bash		2
+
+& now we got
+
+/home/iqdean/catkin_ws/devel_isolated/setup.bash    3
+
+1 source /opt/ros/indigo/setup.bash					1
+
+#!/usr/bin/env bash
+# generated from catkin/cmake/templates/setup.bash.in
+
+CATKIN_SHELL=bash
+
+# source setup.sh from same directory as this file
+_CATKIN_SETUP_DIR=$(builtin cd "`dirname "${BASH_SOURCE[0]}"`" > /dev/null && pwd)
+. "$_CATKIN_SETUP_DIR/setup.sh"
+
+2 source /home/iqdean/catkin_ws/devel/setup.bash		2
+
+#!/usr/bin/env bash
+# generated from catkin/cmake/templates/setup.bash.in
+
+CATKIN_SHELL=bash
+
+# source setup.sh from same directory as this file
+_CATKIN_SETUP_DIR=$(builtin cd "`dirname "${BASH_SOURCE[0]}"`" > /dev/null && pwd)
+. "$_CATKIN_SETUP_DIR/setup.sh"
+
+
+3 /home/iqdean/catkin_ws/devel_isolated/setup.bash    3
+
+#!/usr/bin/env bash
+# generated from catkin.builder module
+
+. "/home/iqdean/catkin_ws/devel_isolated/rosbridge_server/setup.bash"
+
+==== 
+http://wiki.ros.org/catkin/Tutorials/create_a_workspace
+
+To use a workspace:
+
+Prereq:
+
+1. $ source /opt/ros/indigo/setup.bash
+
+2. $ source devel/setup.bash
+
+To make sure your workspace is properly overlayed by the setup script,
+
+iqdean@ubilinux:~/catkin_ws$ echo $ROS_PACKAGE_PATH
+/home/iqdean/catkin_ws/src:/opt/ros/indigo/share:/opt/ros/indigo/stacks
+
+=== so now that we got yet another workspace (ie devel_isolated)
+    lets see what happens when we source that workspaces setup.bash file
+
+iqdean@ubilinux:~/catkin_ws$ source devel_isolated/setup.bash
+iqdean@ubilinux:~/catkin_ws$ echo $ROS_PACKAGE_PATH
+/home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_server:/home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_library:/home/iqdean/catkin_ws/src/common_msgs/visualization_msgs:/home/iqdean/catkin_ws/src/common_msgs/trajectory_msgs:/home/iqdean/catkin_ws/src/geometry/tf_conversions:/home/iqdean/catkin_ws/src/geometry2/tf2_tools:/home/iqdean/catkin_ws/src/geometry2/tf2_sensor_msgs:/home/iqdean/catkin_ws/src/geometry2/tf2_kdl:/home/iqdean/catkin_ws/src/geometry2/tf2_geometry_msgs:/home/iqdean/catkin_ws/src/edbot:/home/iqdean/catkin_ws/src/geometry/tf:/home/iqdean/catkin_ws/src/geometry2/tf2_ros:/home/iqdean/catkin_ws/src/geometry2/tf2_py:/home/iqdean/catkin_ws/src/geometry2/tf2_eigen:/home/iqdean/catkin_ws/src/geometry2/tf2_bullet:/home/iqdean/catkin_ws/src/geometry2/tf2:/home/iqdean/catkin_ws/src/geometry2/tf2_msgs:/home/iqdean/catkin_ws/src/common_msgs/stereo_msgs:/home/iqdean/catkin_ws/src/common_msgs/shape_msgs:/home/iqdean/catkin_ws/src/common_msgs/sensor_msgs:/home/iqdean/catkin_ws/src/rosbridge_suite/rosbridge_suite:/home/iqdean/catkin_ws/src/rosauth:/home/iqdean/catkin_ws/src/rosbridge_suite/rosapi:/home/iqdean/catkin_ws/src/robot_base_controller:/home/iqdean/catkin_ws/src/orocos_kinematics_dynamics/orocos_kinematics_dynamics:/home/iqdean/catkin_ws/src/geometry/kdl_conversions:/home/iqdean/catkin_ws/src/geometry/eigen_conversions:/home/iqdean/catkin_ws/src/common_msgs/nav_msgs:/home/iqdean/catkin_ws/src/common_msgs/geometry_msgs:/home/iqdean/catkin_ws/src/geometry2/geometry_experimental:/home/iqdean/catkin_ws/src/geometry2/geometry2:/home/iqdean/catkin_ws/src/geometry/geometry:/home/iqdean/catkin_ws/src/edros:/home/iqdean/catkin_ws/src/edbot_diff_drive:/home/iqdean/catkin_ws/src/common_msgs/diagnostic_msgs:/home/iqdean/catkin_ws/src/common_msgs/common_msgs:/home/iqdean/catkin_ws/src/angles/angles:/home/iqdean/catkin_ws/src/actionlib:/home/iqdean/catkin_ws/src/common_msgs/actionlib_msgs:/home/iqdean/catkin_ws/src:/opt/ros/indigo/share:/opt/ros/indigo/stacks
+
+iqdean@ubilinux:~/catkin_ws$ env | grep PYTHON
+PYTHONPATH=/home/iqdean/catkin_ws/devel_isolated/rosbridge_server/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/rosbridge_library/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/visualization_msgs/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/trajectory_msgs/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/tf_conversions/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/tf2_sensor_msgs/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/tf2_kdl/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/tf2_geometry_msgs/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/tf/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/tf2_ros/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/tf2_py/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/tf2_msgs/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/stereo_msgs/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/shape_msgs/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/sensor_msgs/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/rosauth/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/rosapi/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/robot_base_controller/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/python_orocos_kdl/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/nav_msgs/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/geometry_msgs/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/diagnostic_msgs/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/angles/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/actionlib/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel_isolated/actionlib_msgs/lib/python2.7/dist-packages:/home/iqdean/catkin_ws/devel/lib/python2.7/dist-packages:/opt/ros/indigo/lib/python2.7/dist-packages:/usr/local/lib/python2.7/site-packages
+
+    ================================================================================
+=== source devel_isolated/setup.bash                                                 ====
+    to OVERLAY the devel_isolated workspace onto /opt/ros/indigo and catkin_ws/devel
+    then the python 'import tf' works... now u can get on with standard code debug
+    ================================================================================
+
+t1: $ source devel_isoloated/setup.bash
+    $ roscore
+
+t2: $ source devel_isolated/setup.bash
+    iqdean@ubilinux:~$ rosrun edbot src/odometriclocalizer.py
+
+[INFO] [WallTime: 1473304746.698618] edbotodom node init
+/home/iqdean/catkin_ws/src/edbot/src/odometriclocalizer.py:38: SyntaxWarning: The publisher should be created with an explicit keyword argument 'queue_size'. Please see http://wiki.ros.org/rospy/Overview/Publishers%20and%20Subscribers for more information.
+  self._OdometryPublisher = rospy.Publisher("odom", Odometry)
+Traceback (most recent call last):
+  File "/home/iqdean/catkin_ws/src/edbot/src/odometriclocalizer.py", line 47, in <module>
+    odometry = edbotOdom()
+  File "/home/iqdean/catkin_ws/src/edbot/src/odometriclocalizer.py", line 40, in __init__
+    rospy.Timer(rospy.Duration(1), my_callback)
+NameError: global name 'my_callback' is not defined
+
+
+==== when using catkin_make_isolated, everything gets intalled to catkin_ws/devel_isolated
+     so you have to 
+
+a.1) catkin_ws$ source devel_isolated/setup.bash      <- to overlay the resulting ros packages onto your ROS_PACKAGE_PATH
+a.2) catkin_ws$ rosrun edbot src/odometriclocalizer.py  <- now python import tf works cuz above updates the PYTHON_PACKAGE_PATH
+
+OR
+
+tell catkin_make_isolated where to install everything
+REF: http://www.ros.org/reps/rep-0134.html
+&    1-ros-on-edison.txt
+
+b.1)
+
+BEFORE:
+
+iqdean@ubilinux:~/catkin_ws$ ls -al
+total 40
+drwxr-xr-x  9 iqdean iqdean 4096 Sep  7 22:51 .
+drwxr-xr-x 10 iqdean iqdean 4096 Sep  7 22:55 ..
+drwxr-xr-x 16 iqdean iqdean 4096 Sep  8 01:35 build
+drwxr-xr-x 44 iqdean iqdean 4096 Sep  8 01:30 build_isolated
+-rw-r--r--  1 iqdean iqdean   98 Jun 29 03:30 .catkin_workspace
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 01:35 devel
+drwxr-xr-x 43 iqdean iqdean 4096 Sep  8 01:31 devel_isolated
+drwxr-xr-x  5 iqdean iqdean 4096 Jan  1  2000 install
+drwxr-xr-x  7 iqdean iqdean 4096 Jun 30 00:55 rosbridge-usage
+drwxr-xr-x 14 iqdean iqdean 4096 Sep  8 00:48 src
+-rw-r--r--  1 iqdean iqdean    0 Sep  7 22:18 tf.rosinstall
+
+iqdean@ubilinux:~/catkin_ws$ sudo /<full_path_to>/catkin_make_isolated --install -DCATKIN_WHITELIST_PACKAGES="" -DCMAKE_BUILD_TYPE=Release --install-space /opt/ros/indigo
+
+AFTER:
+
+iqdean@ubilinux:~$ ls -al catkin_ws
+total 44
+drwxr-xr-x 10 iqdean iqdean 4096 Sep  8 06:11 .
+drwxr-xr-x 10 iqdean iqdean 4096 Sep  7 22:55 ..
+drwxr-xr-x 16 iqdean iqdean 4096 Sep  8 15:51 build
+drwxr-xr-x 44 iqdean iqdean 4096 Sep  8 01:30 build_isolated
+-rw-r--r--  1 iqdean iqdean   98 Jun 29 03:30 .catkin_workspace
+drwxr-xr-x  5 iqdean iqdean 4096 Sep  8 15:51 devel
+drwxr-xr-x 43 iqdean iqdean 4096 Sep  8 01:31 devel_isolated
+drwxr-xr-x  5 iqdean iqdean 4096 Jan  1  2000 install
+drwxr-xr-x  6 root   root   4096 Sep  8 06:36 install_isolated
+drwxr-xr-x  7 iqdean iqdean 4096 Jun 30 00:55 rosbridge-usage
+drwxr-xr-x 12 iqdean iqdean 4096 Sep  8 06:02 src
+
+---seems its still installing stuff to catkin_ws/install_isolated ??? instead of /opt/ros/indigo ???
+                                       \\\\\\\\/////////
+                            everything endsup here instead of /opt/ros/indigo, so option (b.1) don't work
+                            /////////\\\\\\\\\\\\\\\\\\
+byte-compiling /home/iqdean/catkin_ws/install_isolated/lib/python2.7/dist-packages/rosbridge_server/websocket_handler.py to websocket_handler.pyc
+byte-compiling /home/iqdean/catkin_ws/install_isolated/lib/python2.7/dist-packages/backports/ssl_match_hostname/__init__.py to __init__.pyc
+byte-compiling /home/iqdean/catkin_ws/install_isolated/lib/python2.7/dist-packages/backports/__init__.py to __init__.pyc
+running install_egg_info
+Writing /home/iqdean/catkin_ws/install_isolated/lib/python2.7/dist-packages/rosbridge_server-0.7.15.egg-info
+-- Installing: /home/iqdean/catkin_ws/install_isolated/lib/pkgconfig/rosbridge_server.pc
+-- Installing: /home/iqdean/catkin_ws/install_isolated/share/rosbridge_server/cmake/rosbridge_serverConfig.cmake
+-- Installing: /home/iqdean/catkin_ws/install_isolated/share/rosbridge_server/cmake/rosbridge_serverConfig-version.cmake
+-- Installing: /home/iqdean/catkin_ws/install_isolated/share/rosbridge_server/package.xml
+-- Installing: /home/iqdean/catkin_ws/install_isolated/lib/rosbridge_server/rosbridge_websocket.py
+-- Installing: /home/iqdean/catkin_ws/install_isolated/lib/rosbridge_server/rosbridge_websocket
+-- Installing: /home/iqdean/catkin_ws/install_isolated/lib/rosbridge_server/rosbridge_tcp.py
+-- Installing: /home/iqdean/catkin_ws/install_isolated/lib/rosbridge_server/rosbridge_tcp
+-- Installing: /home/iqdean/catkin_ws/install_isolated/lib/rosbridge_server/rosbridge_udp
+-- Installing: /home/iqdean/catkin_ws/install_isolated/lib/rosbridge_server/rosbridge_udp.py
+-- Installing: /home/iqdean/catkin_ws/install_isolated/share/rosbridge_server/launch/rosbridge_websocket.launch
+-- Installing: /home/iqdean/catkin_ws/install_isolated/share/rosbridge_server/launch/rosbridge_tcp.launch
+-- Installing: /home/iqdean/catkin_ws/install_isolated/share/rosbridge_server/launch/rosbridge_udp.launch
+<== Finished processing package [39 of 39]: 'rosbridge_server'
+
+--- so since this doesn't do jack squat, rm the catkin_ws/install_isolated dir so we're back to the 'BEFORE' 
+    configuration at the top of this 
+
+iqdean@ubilinux:~/catkin_ws$ sudo rm -rf install_isolated
+[sudo] password for iqdean: 
+iqdean@ubilinux:~/catkin_ws$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+rootfs           15G  1.7G   13G  12% /
+/dev/root        15G  1.7G   13G  12% /
+devtmpfs        480M     0  480M   0% /dev
+tmpfs            97M  312K   96M   1% /run
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           193M     0  193M   0% /run/shm
+tmpfs           481M     0  481M   0% /tmp
+/dev/mmcblk0p7   32M  5.3M   27M  17% /boot
+
+

@@ -1,0 +1,308 @@
+15-2-libedspi52.txt
+
+iqdean@ubilinux:~/robot/encoders$ sudo ./edspi52         <--- this reads encoders fine
+
+          mraa version: v0.8.1-21-g5cf54fd
+          uart(0): /dev/ttyMFD1
+
+          Set cs[X Y Z] = 1
+
+          Xcs WR_MDR0: 88
+          Xcs RD_MDR0:  3
+          Xcs WR_MDR1: 90
+          Xcs RD_MDR0:  0
+
+          Ycs WR_MDR0: 88
+          Ycs RD_MDR0:  3
+          Ycs WR_MDR1: 90
+          Ycs RD_MDR0:  0
+
+          Zcs WR_MDR0: 88
+          Zcs RD_MDR0:  3
+          Zcs WR_MDR1: 90
+          Zcs RD_MDR0:  0
+
+          X axis count  FFFFFFFC  736
+          Y axis count  FFFFFFF2  679
+          Z axis count         0  660
+
+
+iqdean@ubilinux:~/robot/encoders/11-7-5-libedspi52$ sudo python edspi52.py  <--- this doesn't
+****** call int edspi52_init(void) *********
+ret val :  0
+Calling mtrEnc getXYEncCount(void) 10 times ...
+X axis count	       0
+X time stamp	1473207418 463323708
+Y axis count	       0
+Y time stamp	1473207418 463541598
+X axis count	       0
+X time stamp	1473207418 465241237
+Y axis count	       0
+Y time stamp	1473207418 465311630
+X axis count	       0
+X time stamp	1473207418 466277801
+Y axis count	       0
+Y time stamp	1473207418 466348023
+X axis count	       0
+X time stamp	1473207418 467530842
+Y axis count	       0
+Y time stamp	1473207418 467601125
+X axis count	       0
+X time stamp	1473207418 468689863
+Y axis count	       0
+Y time stamp	1473207418 468760476
+X axis count	       0
+X time stamp	1473207418 469766321
+Y axis count	       0
+Y time stamp	1473207418 469836694
+X axis count	       0
+X time stamp	1473207418 470793710
+Y axis count	       0
+Y time stamp	1473207418 470864143
+X axis count	       0
+X time stamp	1473207418 474202452
+Y axis count	       0
+Y time stamp	1473207418 474752445
+X axis count	       0
+X time stamp	1473207418 476704749
+Y axis count	       0
+Y time stamp	1473207418 476775433
+X axis count	       0
+X time stamp	1473207418 477858281
+Y axis count	       0
+Y time stamp	1473207418 477928794
+Dumping queue ... qmax :  10
+q.size() - i :  10
+q.dequeue x_enc:        0 1473207418 463323708
+q.dequeue y_enc:        0 1473207418 463541598
+q.size() - i :  9
+q.dequeue x_enc:        0 1473207418 465241237
+q.dequeue y_enc:        0 1473207418 465311630
+q.size() - i :  8
+q.dequeue x_enc:        0 1473207418 466277801
+q.dequeue y_enc:        0 1473207418 466348023
+q.size() - i :  7
+q.dequeue x_enc:        0 1473207418 467530842
+q.dequeue y_enc:        0 1473207418 467601125
+q.size() - i :  6
+q.dequeue x_enc:        0 1473207418 468689863
+q.dequeue y_enc:        0 1473207418 468760476
+q.size() - i :  5
+q.dequeue x_enc:        0 1473207418 469766321
+q.dequeue y_enc:        0 1473207418 469836694
+q.size() - i :  4
+q.dequeue x_enc:        0 1473207418 470793710
+q.dequeue y_enc:        0 1473207418 470864143
+q.size() - i :  3
+q.dequeue x_enc:        0 1473207418 474202452
+q.dequeue y_enc:        0 1473207418 474752445
+q.size() - i :  2
+q.dequeue x_enc:        0 1473207418 476704749
+q.dequeue y_enc:        0 1473207418 476775433
+q.size() - i :  1
+q.dequeue x_enc:        0 1473207418 477858281
+q.dequeue y_enc:        0 1473207418 477928794
+
+---- update lib_edspi52.c to match edspi52.c  ----  & now it works!!
+
+          mraa version: v0.8.1-21-g5cf54fd
+          uart(0): /dev/ttyMFD1
+
+          Set cs[X Y Z] = 1
+
+          Xcs WR_MDR0: 88
+          Xcs RD_MDR0:  3
+          Xcs WR_MDR1: 90
+          Xcs RD_MDR0:  0
+
+          Ycs WR_MDR0: 88
+          Ycs RD_MDR0:  3
+          Ycs WR_MDR1: 90
+          Ycs RD_MDR0:  0
+
+          Zcs WR_MDR0: 88
+          Zcs RD_MDR0:  3
+          Zcs WR_MDR1: 90
+          Zcs RD_MDR0:  0
+
+          X axis count  FFFFFFFC  737
+          Y axis count  FFFFFFF2  67
+          Z axis count         0  67
+
+
+iqdean@ubilinux:~/robot/encoders/11-7-5-libedspi52$ sudo python edspi52.py
+[sudo] password for iqdean: 
+****** call int edspi52_init(void) *********
+ret val :  0
+Calling mtrEnc getXYEncCount(void) 10 times ...
+X axis count	FFFFFFFC
+X time stamp	1473208308 846973340
+Y axis count	FFFFFFF2
+Y time stamp	1473208308 847043523
+X axis count	FFFFFFFC
+X time stamp	1473208308 848911931
+Y axis count	FFFFFFF2
+Y time stamp	1473208308 848981623
+X axis count	FFFFFFFC
+X time stamp	1473208308 849915496
+Y axis count	FFFFFFF2
+Y time stamp	1473208308 849985408
+X axis count	FFFFFFFC
+X time stamp	1473208308 850941177
+Y axis count	FFFFFFF2
+Y time stamp	1473208308 851011209
+X axis count	FFFFFFFC
+X time stamp	1473208308 851996285
+Y axis count	FFFFFFF2
+Y time stamp	1473208308 852066368
+X axis count	FFFFFFFC
+X time stamp	1473208308 853068110
+Y axis count	FFFFFFF2
+Y time stamp	1473208308 853155431
+X axis count	FFFFFFFC
+X time stamp	1473208308 854113082
+Y axis count	FFFFFFF2
+Y time stamp	1473208308 854183045
+X axis count	FFFFFFFC
+X time stamp	1473208308 855100311
+Y axis count	FFFFFFF2
+Y time stamp	1473208308 855170163
+X axis count	FFFFFFFC
+X time stamp	1473208308 856275042
+Y axis count	FFFFFFF2
+Y time stamp	1473208308 856387282
+X axis count	FFFFFFFC
+X time stamp	1473208308 857541210
+Y axis count	FFFFFFF2
+Y time stamp	1473208308 857653531
+Dumping queue ... qmax :  10
+q.size() - i :  10
+q.dequeue x_enc: FFFFFFFC 1473208308 846973340 t1
+q.dequeue y_enc: FFFFFFF2 1473208308 847043523 t2 70183ns = ~70ns
+q.size() - i :  9
+q.dequeue x_enc: FFFFFFFC 1473208308 848911931 t3-t1 = 1938591ns  delta_t = 1.938591ms  \_ cuz of 
+q.dequeue y_enc: FFFFFFF2 1473208308 848981623 t4-t2 = 1938100ns  delta_t = 1.938100ms  /  the loop
+q.size() - i :  8
+q.dequeue x_enc: FFFFFFFC 1473208308 849915496
+q.dequeue y_enc: FFFFFFF2 1473208308 849985408
+q.size() - i :  7
+q.dequeue x_enc: FFFFFFFC 1473208308 850941177
+q.dequeue y_enc: FFFFFFF2 1473208308 851011209
+q.size() - i :  6
+q.dequeue x_enc: FFFFFFFC 1473208308 851996285
+q.dequeue y_enc: FFFFFFF2 1473208308 852066368
+q.size() - i :  5
+q.dequeue x_enc: FFFFFFFC 1473208308 853068110
+q.dequeue y_enc: FFFFFFF2 1473208308 853155431
+q.size() - i :  4
+q.dequeue x_enc: FFFFFFFC 1473208308 854113082
+q.dequeue y_enc: FFFFFFF2 1473208308 854183045
+q.size() - i :  3
+q.dequeue x_enc: FFFFFFFC 1473208308 855100311
+q.dequeue y_enc: FFFFFFF2 1473208308 855170163
+q.size() - i :  2
+q.dequeue x_enc: FFFFFFFC 1473208308 856275042
+q.dequeue y_enc: FFFFFFF2 1473208308 856387282
+q.size() - i :  1
+q.dequeue x_enc: FFFFFFFC 1473208308 857541210
+q.dequeue y_enc: FFFFFFF2 1473208308 857653531
+****** call int edspi52_deinit(void) *****
+
+
+--- update lib_edspi52.c to remove the debug printing ----
+
+iqdean@ubilinux:~/robot/encoders/11-7-5-libedspi52$ sudo python edspi52.py
+****** call int edspi52_init(void) *********
+ret val :  0
+Calling mtrEnc getXYEncCount(void) 10 times ...
+Dumping queue ... qmax :  10
+q.size() - i :  10
+q.dequeue x_enc: FFFFFFFC 1473208572 422235836 t1 \
+q.dequeue y_enc: FFFFFFF2 1473208572 422304426 t2 / 68590
+q.size() - i :  9
+q.dequeue x_enc: FFFFFFFC 1473208572 422434515 t3 - t1 = 198679ns = .198679ms \_ cuz there's no 
+q.dequeue y_enc: FFFFFFF2 1473208572 422502794 t4 - t2 = 198368ns = .198368ms /  printf in the loop
+q.size() - i :  8
+q.dequeue x_enc: FFFFFFFC 1473208572 422594652
+q.dequeue y_enc: FFFFFFF2 1473208572 422662891
+q.size() - i :  7
+q.dequeue x_enc: FFFFFFFC 1473208572 422749881
+q.dequeue y_enc: FFFFFFF2 1473208572 422818251
+q.size() - i :  6
+q.dequeue x_enc: FFFFFFFC 1473208572 422904820
+q.dequeue y_enc: FFFFFFF2 1473208572 422972889
+q.size() - i :  5
+q.dequeue x_enc: FFFFFFFC 1473208572 423061771
+q.dequeue y_enc: FFFFFFF2 1473208572 423129670
+q.size() - i :  4
+q.dequeue x_enc: FFFFFFFC 1473208572 423216320
+q.dequeue y_enc: FFFFFFF2 1473208572 423284018
+q.size() - i :  3
+q.dequeue x_enc: FFFFFFFC 1473208572 423370137
+q.dequeue y_enc: FFFFFFF2 1473208572 423437935
+q.size() - i :  2
+q.dequeue x_enc: FFFFFFFC 1473208572 423523823
+q.dequeue y_enc: FFFFFFF2 1473208572 423591582
+q.size() - i :  1
+q.dequeue x_enc: FFFFFFFC 1473208572 423681186
+q.dequeue y_enc: FFFFFFF2 1473208572 423748875
+****** call int edspi52_deinit(void) *****
+
+
+EXPORTIT mtrEnc getXYEncCount(void) {
+
+  int x_axis, y_axis;
+  struct timespec xt;
+  struct timespec yt;
+  mtrEnc U;
+
+  x_axis = getEncoderCount(Xcs);
+  clock_gettime(CLOCK_REALTIME, &xt);
+
+  y_axis = getEncoderCount(Ycs);
+  clock_gettime(CLOCK_REALTIME, &yt);
+
+  U.x_enc_cnt = x_axis;
+  U.x_ts_sec  = xt.tv_sec;
+  U.x_ts_ns   = xt.tv_nsec;
+
+  U.y_enc_cnt = y_axis;
+  U.y_ts_sec  = yt.tv_sec;
+  U.y_ts_ns   = yt.tv_nsec;
+/*
+  printf("X axis count\t%8X\n", x_axis );
+  printf("X time stamp\t%d %d\n", U.x_ts_sec, U.x_ts_ns );
+  printf("Y axis count\t%8X\n", y_axis );
+  printf("Y time stamp\t%d %d\n", U.y_ts_sec, U.y_ts_ns );
+*/
+  return U;
+}
+
+--- ok, not that libedspi52.so works, we can get on with updating edbot ros pkg to add a odometry node
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

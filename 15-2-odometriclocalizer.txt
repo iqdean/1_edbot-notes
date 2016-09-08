@@ -1,0 +1,170 @@
+--- so we need to create a new node 
+
+u1404/DEV-SW/github/4_edbot-ros-pkg/src/odometriclocalizer.py
+
+  -rwxrwxrwx 1 root root 3987 Aug 26 18:29 diffdrv.py
+  -rwxrwxrwx 1 root root 1225 Sep  6 21:14 odometriclocalizer.py <----- new node in this file
+  -rwxrwxrwx 1 root root 2249 Aug 26 18:32 SerialDataGateway.py
+
+----- odometriclocalizer.py -----------
+
+#!/usr/bin/env python
+'''
+Created Sept 2016
+@author: Ike Dean 
+
+ odometriclocalizer.py for edbot robot's differential drive base
+ this ros node publishs odometry messages so ros navigation stack
+ can localize the robot on a static map of the world.
+
+'''
+
+import roslib
+import rospy
+import tf
+import math
+from math import sin, cos, pi
+import sys
+
+from geometry_msgs.msg import Quaternion
+from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
+
+class edbotOdom(object):
+
+    def Start(self):
+        rospy.logdebug("Starting")
+
+    def Stop(self):
+        rospy.logdebug("Stopping")
+
+    def __init__(self):
+
+        rospy.init_node('edbotodom')
+        rospy.loginfo("edbotodom node init")
+
+        # subscriptions and publications
+	self._OdometryTransformBroadcaster = tf.TransformBroadcaster()
+	self._OdometryPublisher = rospy.Publisher("odom", Odometry)
+
+        rospy.Timer(rospy.Duration(1), my_callback)
+
+    def my_callback(self):
+        now = rospy.get_rostime()
+        rospy.loginfo("Current time %i %i", now.secs, now.nsecs)
+
+if __name__ == '__main__':
+    odometry = edbotOdom()
+    try:
+        odometry.Start()
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        odometry.Stop()
+
+See if framework builds and runs
+---------------------------------
+
+1. manually update edbot ros pkg dependencies
+
+ /home/iqdean/u1404/DEV-SW/github/4_edbot-ros-pkg:
+  total used in directory 33 available 429556164
+  drwxrwxrwx 1 root root 4096 Sep  6 21:24 .
+  drwxrwxrwx 1 root root 4096 Sep  6 18:15 ..
+  -rwxrwxrwx 1 root root 6097 Aug 23 19:21 CMakeLists.txt
+  drwxrwxrwx 1 root root 4096 Aug 29 17:35 .git
+  -rwxrwxrwx 1 root root   12 Aug 25 18:56 .gitignore
+  -rwxrwxrwx 1 root root 2161 Sep  6 21:24 package.xml    <--- update this file 
+  drwxrwxrwx 1 root root 4096 Sep  6 21:14 src
+
+....
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>tf</build_depend>               <--- add this line 
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>tf</run_depend>					<--- add this line
+
+
+2. see if we an build it
+
+2.1 make python files executable
+
+iqdean@ubilinux:~/catkin_ws$ tree src/edbot
+src/edbot
+├── CMakeLists.txt
+├── include
+│   └── edbot
+├── launch
+│   └── diffdrv.launch
+├── package.xml
+└── src
+    ├── diffdrv.py
+    ├── odometriclocalizer.py
+    ├── SerialDataGateway.py
+    └── SerialDataGateway.pyc
+
+4 directories, 7 files
+
+2.2 iqdean@ubilinux:~/catkin_ws$ catkin_make -DCATKIN_WHITELIST_PACKAGES="edbot"
+
+FUCK THIS... the barebones install of ROS Indigo doesn't have tf so the odometriclocalizer.py
+won't run due to missing dependency
+
+iqdean@ubilinux:~/catkin_ws$ rosrun edbot src/odometriclocalizer.py
+Traceback (most recent call last):
+  File "/home/iqdean/catkin_ws/src/edbot/src/odometriclocalizer.py", line 14, in <module>
+    import tf
+ImportError: No module named tf
+
+Since we installed ROS from source, rosdep install tf dist
+
+iqdean@ubilinux:~/catkin_ws$ rosdep install tf
+
+ERROR: Rosdep cannot find all required resources to answer your query
+Missing resource tf
+ROS path [0]=/opt/ros/indigo/share/ros
+ROS path [1]=/home/iqdean/catkin_ws/src
+ROS path [2]=/opt/ros/indigo/share
+ROS path [3]=/opt/ros/indigo/stacks
+
+iqdean@ubilinux:~/catkin_ws$ rosdep check edbot
+All system dependencies have been satisified
+ERROR[edbot]: No definition of [tf] for OS [debian]
+	rosdep key : tf
+	OS name    : debian
+	OS version : wheezy
+	Data: _is_ros: true
+fedora:
+  '21':
+    yum:
+      packages:
+      - ros-indigo-tf
+  heisenbug:
+    yum:
+      packages:
+      - ros-indigo-tf
+osx:
+  homebrew:
+    packages:
+    - ros/indigo/geometry
+ubuntu:
+  saucy:
+    apt:
+      packages:
+      - ros-indigo-tf
+  trusty:
+    apt:
+      packages:
+      - ros-indigo-tf
+
+----  shit heads, now we gotta install tf from source ----
+
+http://answers.ros.org/question/144956/how-to-add-package-to-source-install/
+
+http://answers.ros.org/question/109656/maintaining-a-ros-source-install-add-packages-update-release/
+
+
