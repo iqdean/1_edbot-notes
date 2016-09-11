@@ -1,0 +1,476 @@
+'''
+Created Sept 2016
+@author: Ike Dean 
+
+edspi53.py - python class to read wheel encoders using libspi52.so library
+
+libspi52.so - uses libmraa's memory mapped fast gpio to bitbang spi bus 
+connected to robogia quadrature encoder decoder
+
+'''
+
+import ctypes
+import time
+import math
+
+'''
+NOTES:
+libspi52.c returns:
+
+typedef struct {
+  uint32_t x_enc_cnt;     // x-axis encoder count
+  uint32_t x_ts_sec;      // x-axis timestamp (sec:nsec)
+  uint32_t x_ts_ns;
+  uint32_t y_enc_cnt;     // y-axis encoder count
+  uint32_t y_ts_sec;      // y-axis timestamp (sec:nsec)
+  uint32_t y_ts_ns;
+} mtrEnc;
+
+Class object names:   Name
+Class method names:   name
+'''
+
+class MotorEncoders(ctypes.Structure):
+    _fields_ = [("x_enc", ctypes.c_uint),
+                ("x_ts_sec", ctypes.c_uint),
+                ("x_ts_ns", ctypes.c_uint),
+                ("y_enc", ctypes.c_uint),
+                ("y_ts_sec", ctypes.c_uint),
+                ("y_ts_ns", ctypes.c_uint)]
+
+class Spi(object):
+
+    def start(self):
+        # initialize the library
+        self.test = self.lib.edspi52_init(None)
+
+    def stop(self):
+        # deinit the library
+        self.test = self.lib.edspi52_deinit(None)
+
+    # this function is called everytime this class is instanced
+    def __init__(self):
+        # load libedspi52.so library
+        self.lib = ctypes.cdll.LoadLibrary("./libedspi52.so")
+        # define library function arg types
+        self.lib.edspi52_init.argtypes = None
+        self.lib.edspi52_init.restype = ctypes.c_uint
+        self.lib.edspi52_deinit.argtypes = None
+        self.lib.edspi52_deinit.restype = ctypes.c_uint
+        # getXYEncCount() returns mtrEnc struct on the stack
+        self.lib.getXYEncCount.argtypes = None
+        self.lib.getXYEncCount.restype = MotorEncoders
+
+   def rdEncoders(self):
+
+        # read the wheel encoders
+        self.ei = self.lib.getXYEncCount(None)
+        print "ei.x : %8X %d %d" % (self.ei.x_enc, self.ei.x_ts_sec, self.ei.x_ts_ns)
+        print "ei.y : %8X %d %d" % (self.ei.y_enc, self.ei.y_ts_sec, self.ei.y_ts_ns)
+        return(self.ei)
+
+-----------
+
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ ls -al
+total 40
+drwxr-xr-x 2 iqdean iqdean  4096 Sep  9 04:42 .
+drwxr-xr-x 6 iqdean iqdean  4096 Aug 30 00:36 ..
+-rwxr-xr-x 1 iqdean iqdean  3809 Aug 30 05:47 diffdrv.py
+-rw-r--r-- 1 iqdean iqdean  2038 Sep  9 04:42 edspi53.py
+-rw-r--r-- 1 iqdean iqdean 10105 Sep  9 04:42 libedspi52.so
+-rwxr-xr-x 1 iqdean iqdean  1245 Sep  9 04:42 odometriclocalizer.py
+-rwxr-xr-x 1 iqdean iqdean  2251 Aug 30 06:00 SerialDataGateway.py
+-rw-r--r-- 1 iqdean iqdean  2998 Aug 30 06:03 SerialDataGateway.pyc
+
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ chmod +x edspi53.py 
+
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ sudo python
+[sudo] password for iqdean: 
+Python 2.7.3 (default, Jun 20 2016, 16:18:47) 
+[GCC 4.7.2] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import edspi53
+>>> x=edspi53.Spi()
+>>> x.start()
+>>> y=x.rdEncoders()
+x_enc: FFFFFDD2 1473447148 99703171           <-- enc counts correlate w edspi52 w latest fix to lib_edspi52.c 
+y_enc:      870 1473447148 99771369
+>>> y
+<edspi53.MotorEncoders object at 0xb750392c>
+>>> y.x_enc_cnt
+4294966738L
+>>> int(y.x_enc_cnt)
+4294966738L
+>>> y.x_ts_sec
+1473447148L
+>>> y.x_ts_ns
+99703171L
+>>> y.y_enc_cnt
+2160L
+>>> y.y_ts_sec
+1473447148L
+>>> y.y_ts_ns
+99771369L
+>>> int(y.y_ts_ns)
+99771369
+>>> 
+
+=== ok, now we gotta figure out how to deal with 2s complement math in python to process the raw encoder counts
+
+raw encoder counts are in Hexadecimal 32bit count
+
+http://stackoverflow.com/questions/1604464/twos-complement-in-python
+https://en.wikipedia.org/wiki/Two%27s_complement
+
+32bit counter     1024 counts/rev
+
+2^32 / 1024 = 4,194,304 revolutions 
+
+Wheel dia = 9.75in = .2476m
+Circumf = pi*d = pi*2*r = 3.14*.2476m = 0.777858341 m / rev * 4,194,304 revs = 3262574.35 meters = 3262.5 Km
+3262.5 Km * 0.621371 mi/Km = 2027.22 miles
+
+So, with 32bit counter & 1024 counts/rev, 
+you have to travel 2027.22 miles 
+before the 32 bit counter will rollover's over in either direction (+ or -)
+
+So, lets assume the encoder counts are 32bit 2's compliment numbers
+
+7FFF FFFF  + 7FFF FFFF =  2147483647  +max = +(2^32 - 1)
+.... ....
+0000 0001
+0000 0000
+FFFF FFFF  -1
+FFFF FDD2  -558
+.... ....
+8000 0000  -(!80000000)+1 = -8000000 -max = -(2^32)         -2147483648
+
+
+if (enc_cnt > (2^32-1)) 
+{
+   return -(!enc_cnt)+1 
+} esle {
+   enc_cnt
+}
+
+
+if (enc_cnt > 0x7FFFFFF):
+   return -((~enc_cnt & 0xFFFFFFFF)+1)
+else:
+   return (enc_cnt & 0xFFFFFFFF)
+
+
+https://docs.python.org/2/library/operator.html
+                        Syntax  function
+Bitwise And		a & b	and_(a, b)
+Bitwise Exclusive Or	a ^ b	xor(a, b)
+Bitwise Inversion	~ a	invert(a)
+Bitwise Or		a | b	or_(a, b)
+
+
+On HP DM4 Notebook:
+
+>>> import sys
+>>> sys.maxint
+9223372036854775807
+>>> print "%x" % sys.maxint
+7fffffffffffffff
+
+>>> x = 0xffffffff
+>>> -((~x & 0xFFFFFFFF)+1)
+-1
+
+>>> x = 0xfffffdd2
+>>> -((~x & 0xFFFFFFFF)+1)
+-558
+
+>>> x = 0x80000000
+>>> -((~x & 0xFFFFFFFF)+1)
+-2147483648
+
+---- on edbot ---- (edison running ubilinux) ----
+
+>>> import sys
+>>> print sys.maxint
+2147483647
+>>> print "%x" % sys.maxint
+7fffffff
+>>> x = 0xffffffff
+>>> x
+4294967295L
+>>> -((~x & 0xFFFFFFFF)+1)
+-1L
+>>> -((~x & 0xFFFFFFFF)+1)
+-1L
+>>> -((~x & 0xFFFFFFFF)+1)+1
+0L
+>>> -((~x & 0xFFFFFFFF)+1)+3
+2L
+>>> -((~x & 0xFFFFFFFF)+1)
+-1L
+>>> x = 0xfffffdd2
+>>> -((~x & 0xFFFFFFFF)+1)
+-558L
+>>> x = 0x80000000
+>>> -((~x & 0xFFFFFFFF)+1)
+-2147483648L
+>>> x.stop()
+
+------
+
+======================
+    def rdEncoders(self):
+
+        # read the wheel encoders
+        self.ei = self.lib.getXYEncCount(None)
+        print "ei.x : %8X %d %d" % (self.ei.x_enc, self.ei.x_ts_sec, self.ei.x_ts_ns)
+        print "ei.y : %8X %d %d" % (self.ei.y_enc, self.ei.y_ts_sec, self.ei.y_ts_ns)
+        return(self.ei)
+=======================
+>>> import edspi53
+>>> x = edspi53.Spi()
+>>> x.start()
+>>> o = x.rdEncoders()
+ei.x : FFFFFFFF 1473482273 834724630
+ei.y :       18 1473482273 834793091
+>>> o = x.rdEncoders()
+ei.x : FFFFFF55 1473482970 564600341
+ei.y :       BE 1473482970 564669090
+
+>>> o.x_enc
+4294967125L
+>>> hex(o.x_enc)
+'0xffffff55L'
+
+>>> o.y_enc
+190L
+>>> hex(o.y_enc)
+'0xbeL'
+
+>>> (o.x_enc > 0x7fffffff)
+True
+>>> x2c = -((~o.x_enc & 0xFFFFFFFF) + 1)
+>>> x2c
+-171L
+
+>>> x2c+171
+0L
+>>> o.y_enc
+190L
+>>> x2c + o.y_enc
+19L
+>>> -171 + 190
+19
+>>> 
+
+=== ok, we can 
+- read wheel enc
+- if neg, convert 2s complement to signed number
+
+next: discrete time sampling
+
+Init code
+t0 = 0    # curr sample
+t1 = 0    # last sample
+
+Periodic updates:
+
+t1 <- t0
+t0 <- fresh data
+
+=========================================
+
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ cat test-edspi53.py
+
+import edspi53
+
+def cpEncoderData(src,dst):
+	dst.x_enc = src.x_enc
+	dst.x_ts_sec = src.x_ts_sec
+	des.x_ts_ns = src.x_ts_ns
+        dst.y_enc = src.y_enc
+        dst.y_ts_sec = src.y_ts_sec
+        des.y_ts_ns = src.y_ts_ns
+
+def dmpEncData(src, str):
+	print str+".x : %8X %d %d" % (src.x_enc, src.x_ts_sec, src.x_ts_ns)
+	print str+".y : %8X %d %d" % (src.y_enc, src.y_ts_sec, src.y_ts_ns)
+
+# setup storage for current (t0) and previous (t1) periodic samples
+t0 = edspi53.MotorEncoders()   # module.class() edspi53.MotorEncoders()
+t1 = edspi53.MotorEncoders()
+
+# initial spi library to read wheel encoders
+spi = edspi53.Spi()
+spi.start()
+
+dmpEncData(t0,"t0")
+dmpEncData(t1,"t1")
+
+t0 = spi.rdEncoders()      # <<< assignments of 2 class objects work so               >>>>
+t1 = t0                    # <<< don't need the cpEncoderData(src,dst) function above >>>>
+
+dmpEncData(t0,"t0")
+dmpEncData(t1,"t1")
+
+spi.stop()
+
+==================
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ sudo python test-edspi53.py
+t0.x :        0 0 0
+t0.y :        0 0 0
+t1.x :        0 0 0
+t1.y :        0 0 0
+ei.x : FFFFCE6A 1473533225 521844051
+ei.y :      AD8 1473533225 521912621
+t0.x : FFFFCE6A 1473533225 521844051
+t0.y :      AD8 1473533225 521912621
+t1.x : FFFFCE6A 1473533225 521844051
+t1.y :      AD8 1473533225 521912621
+
+==================
+
+mraa_init() causes 7-4a-pyserial.py to STOP till you do 
+d, start
+d, s256
+
+ex:
+
+t1: $ sudo python 7-4a-pyserial.py  
+... get motors going ...
+d, s256 
+
+t2: $ sudo python test-edspi53.py    <--- as soon as you start test.py... the motors stop
+
+if reverse the order, than everything works:
+
+t1: $ sudo python test-edspi53.py    <--- start this 1st... mraa_init() happens, it starts sampling
+
+t2: sudo python 7-4a-pyserial.py   <-- start 2nd ... motors responde to command as expected
+                                                     while sampling the encoders via test.py
+
+but as soon as you exit test-edspi53.py and restart it, motors will stop...
+
+Intel's libmraa is a PIECE OF CRAP! ... the mraa_init() must be glitching the serial port gpio lines 
+
+=== see if libmraa works without the mraa_init() ?? ====
+
+a) update lib_edspi52.c to comment out mraa_init(), make clean, make all
+b) $ sudo python edspi52.py     <--- still works!! 
+
+=== run test-edspi53.py + edspi53.py + updated libedspi52.so 
+    with 7-4a-pyserial.py                                       see if starting test-edspi53.py  
+                                                                causes running kanagroo mc to halt motors???
+t1:
+iqdean@ubilinux:~/robot/edbot-motors/motors$ sudo python 7-4a-edpyserial.py 
+Opening Uart(0): /dev/ttyMFD1
+Enter your commands below.
+Insert "exit" to leave the application.
+00:36:49>> d,start
+00:36:53>> d,start
+00:36:56>> t,start
+00:36:59>> t,start
+00:37:01>> d,s0
+00:37:05>> t,s0
+00:37:08>> d, getp
+00:37:12>> D,P0
+
+00:37:12>> d, s256    <-- both motors driving fwd
+00:37:17>> 
+
+t2:
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ sudo python test-edspi53.py    <-- both motors STOP!!
+[sudo] password for iqdean: 
+t0.x :        0 0 0
+t0.y :        0 0 0
+t1.x :        0 0 0
+t1.y :        0 0 0
+ei.x :     5E71 1473554262 189037703
+ei.y :     5EA9 1473554262 189106663
+t0.x :     5E71 1473554262 189037703
+t0.y :     5EA9 1473554262 189106663
+t1.x :        0 0 0
+t1.y :        0 0 0
+--> 
+--- both motors STOP!!! ----------------
+in term1:
+
+t1:
+00:37:12>> d, s256
+00:37:17>> d, getp
+00:39:56>> D,E6       <--- kangaroo reports Error E6 ??
+
+00:39:56>> d, start    <--- you have to do this to recover
+00:40:00>> d, s0  
+00:40:07>> d, getp
+00:40:10>> D,P0
+
+00:40:10>> d, s256   <--- motors start driving again
+00:40:42>>
+ 
+--- after restarting the motors below in t2 ---- everything works fine
+
+--> 
+ei.x :     603E 1473554339 844228372
+ei.y :     6090 1473554339 844352350
+t0.x :     603E 1473554339 844228372
+t0.y :     6090 1473554339 844352350
+t1.x :     5E71 1473554262 189037703
+t1.y :     5EA9 1473554262 189106663
+--> 
+ei.x :    19AAF 1473554524 64017724
+ei.y :    19A2B 1473554524 64239378
+t0.x :    19AAF 1473554524 64017724
+t0.y :    19A2B 1473554524 64239378
+t1.x :     603E 1473554339 844228372
+t1.y :     6090 1473554339 844352350
+--> 
+ei.x :    27AAB 1473554582 473208282
+ei.y :    27A01 1473554582 473332905
+t0.x :    27AAB 1473554582 473208282
+t0.y :    27A01 1473554582 473332905
+t1.x :    27676 1473554581 373834059
+t1.y :    275CA 1473554581 374106956
+--> ^CTraceback (most recent call last):
+  File "test-edspi53.py", line 32, in <module>
+    raw_input('--> ')
+KeyboardInterrupt
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ sudo python test-edspi53.py   <--- till you restart this 
+t0.x :        0 0 0                                                           than motors STOP !!!
+t0.y :        0 0 0
+t1.x :        0 0 0
+t1.y :        0 0 0
+ei.x :    31206 1473554621 927130153
+ei.y :    3111E 1473554621 927198662
+t0.x :    31206 1473554621 927130153
+t0.y :    3111E 1473554621 927198662
+t1.x :        0 0 0
+t1.y :        0 0 0
+--> 
+
+HMM, so its probable one of the other mraa_gpio init functions causing the glitching ...
+
+
+WORKAROUND / WHAT THIS MEANS:
+-----------------------------
+
+1st: Load the edbot src/odometriclocalizer.py node 
+      (this has code using libedspi52.so, which calls mraa_gpio init api's, which glitchs serial port gpio's 
+       which causes kangaroo mc to halt motors and requires
+       d, start
+       d, s256 
+       cmds to get things moving again
+
+2nd: THEN Load the edbot src/diffdrv.py node
+     ( this has the code to initialize and drive kangaroo mc over the serial port)
+
+-> if you stop/restart the odometriclocalizer node, while the diff drive node is running, than you'll have
+   to repeat the above sequence to get everything working again
+
+OR, we can bake the /odom stuff into diffdrv.py that way there's only 1 node and we don't have to worry
+    about all the sequencing due to Intel's lame libmraa library
+
+
+
+ 
+ 

@@ -163,23 +163,24 @@ class Arduino(object):
 ...
 	def _HandleReceivedLine(self,  line):
 ...
-			if (lineParts[0] == 'b'):
-				self._BroadcastBatteryInfo(lineParts)
+
+			if (lineParts[0] == 'o'):                                   'o' '\t'
+				self._BroadcastOdometryInfo(lineParts)
 				return
 ...
         def _BroadcastOdometryInfo(self, lineParts):
 		partsCount = len(lineParts)
 		#rospy.logwarn(partsCount)
 		if (partsCount  < 6):
-			pass
-		
-		try:
-			x = int(lineParts[1]) / 1000.0
-			y = int(lineParts[2]) / 1000.0
-			theta = int(lineParts[3]) / 1000.0
+			pass                                                   from Robot.pde
+		                                                               &    OdometricLocalizer.h
+		try:                                                          
+			x = int(lineParts[1]) / 1000.0                        _OdometricLocalizer.X
+			y = int(lineParts[2]) / 1000.0                        _OdometricLocalizer.Y
+			theta = int(lineParts[3]) / 1000.0                    _OdometricLocalizer.Heading
 			
-			vx = int(lineParts[4]) / 1000.0
-			omega = int(lineParts[5]) / 1000.0
+			vx = int(lineParts[4]) / 1000.0                       _OdometricLocalizer.V
+			omega = int(lineParts[5]) / 1000.0                    _OdometricLocalizer.Omega
 			
 			#quaternion = tf.transformations.quaternion_from_euler(0, 0, theta)
 			quaternion = Quaternion()
