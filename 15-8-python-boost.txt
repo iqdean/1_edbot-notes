@@ -1,0 +1,278 @@
+--- see if we can modify & reuse ardros class OdometericLocalizer() ----
+    by building a shared library from c++ class and calling the class from python
+
+
+http://www.boost.org/doc/libs/1_49_0/libs/python/doc/tutorial/doc/html/python/hello.html
+http://www.bogotobogo.com/cplusplus/libraries.php
+
+http://www.boost.org/doc/libs/1_61_0/libs/python/doc/html/tutorial/tutorial/exposing.html
+http://www.shocksolution.com/python-basics-tutorials-and-examples/linking-python-and-c-with-boostpython/
+
+
+1. https://en.wikibooks.org/wiki/Python_Programming/Extending_with_C%2B%2B
+
+To install it on an Ubuntu system, you might need to run the following commands
+
+$ sudo apt-get install libboost-python-dev 
+...
+Setting up libboost-python1.54.0:amd64 (1.54.0-4ubuntu3.1) ...
+Setting up libexpat1-dev:amd64 (2.1.0-4ubuntu1.3) ...
+Setting up libpython2.7-dev:amd64 (2.7.6-8ubuntu0.2) ...
+Setting up libboost1.54-dev (1.54.0-4ubuntu3.1) ...
+Setting up libpython-dev:amd64 (2.7.5-5ubuntu3) ...
+Setting up libboost-python1.54-dev:amd64 (1.54.0-4ubuntu3.1) ...
+Setting up libboost-python-dev (1.54.0.1ubuntu1) ...
+
+$ sudo apt-get install python-dev
+...
+Setting up python2.7-dev (2.7.6-8ubuntu0.2) ...
+Setting up python-dev (2.7.5-5ubuntu3) ...
+
+
+2. https://github.com/TNG/boost-python-examples
+
+2.1 Prerequisites
+
+general
+
+CMake (>= 2.8.3)    
+$ cmake --version	says	cmake version 2.8.12.2
+
+Boost (tested with 1.4.2, but should work with >= 1.3.2)
+>> see above, looks like we be using 1.54.0
+
+Python (tested with 2.7, but should work with >= 2.2)
+$ python
+Python 2.7.6 (default, Jun 22 2015, 17:58:13) 
+
+a C++ compiler for your platform, e.g. GCC or MinGW
+$ g++ --version
+g++ (Ubuntu 4.8.4-2ubuntu1~14.04.3) 4.8.4
+
+
+The examples should work on Linux, Windows and Mac, 
+but currently have not been tested under Windows.
+
+2.2 iqdean@hpdm4:~/u1404/DEV-SW/python-boost
+
+$ git clone https://github.com/TNG/boost-python-examples.git
+
+2.3 build.sh
+-------------
+
+iqdean@hpdm4:~/u1404/DEV-SW/python-boost/boost-python-examples$ cat build.sh
+#!/bin/bash
+
+set -x
+
+cd ${0%%$(basename $0)}
+mkdir build
+cd build
+
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+    cmake -DCMAKE_BUILD_TYPE=DEBUG .. && make && make test
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    PYTHON_VERSION=`python -c "import sys;t='{v[0]}.{v[1]}'.format(v=list(sys.version_info[:2]));sys.stdout.write(t)";`
+    PYTHON_LIBRARY=/usr/local/Frameworks/Python.framework/Versions/$PYTHON_VERSION/lib/libpython$PYTHON_VERSION.dylib
+    PYTHON_INCLUDE_DIR=/usr/local/Frameworks/Python.framework/Versions/$PYTHON_VERSION/Headers/
+    cmake -DPYTHON_LIBRARY=$PYTHON_LIBRARY -DPYTHON_INCLUDE_DIR=$PYTHON_INCLUDE_DIR -DCMAKE_BUILD_TYPE=DEBUG .. && make && make test
+elif [[ "$OSTYPE" == "cygwin" ]]; then
+    : # POSIX compatibility layer and Linux environment emulation for Windows
+elif [[ "$OSTYPE" == "msys" ]]; then
+    : # shell and GNU utilities compiled for Windows as part of MinGW
+elif [[ "$OSTYPE" == "win32" ]]; then
+    : # good luck
+elif [[ "$OSTYPE" == "freebsd"* ]]; then
+    : # ...
+else
+    : # Unknown.
+fi
+
+2.4 build it
+-------------
+
+iqdean@hpdm4:~/u1404/DEV-SW/python-boost/boost-python-examples$ ./build.sh
+++ basename ./build.sh
++ cd ./
++ mkdir build
++ cd build
++ [[ linux-gnu == \l\i\n\u\x\-\g\n\u ]]
++ cmake -DCMAKE_BUILD_TYPE=DEBUG ..
+-- The C compiler identification is GNU 4.8.4
+-- The CXX compiler identification is GNU 4.8.4
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Found PythonInterp: /usr/bin/python (found version "2.7.6") 
+-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython2.7.so (found version "2.7.6") 
+-- Boost version: 1.54.0
+-- Found the following Boost libraries:
+--   python
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/iqdean/u1404/DEV-SW/python-boost/boost-python-examples/build
++ make
+Scanning dependencies of target hello
+[  6%] Building CXX object 01-HelloWorld/CMakeFiles/hello.dir/hello.cpp.o
+Linking CXX shared module hello.so
+[  6%] Built target hello
+Scanning dependencies of target classes
+[ 12%] Building CXX object 02-ExposingClasses/CMakeFiles/classes.dir/classes.cpp.o
+Linking CXX shared module classes.so
+[ 12%] Built target classes
+Scanning dependencies of target ctor
+[ 18%] Building CXX object 03-Constructors/CMakeFiles/ctor.dir/ctor.cpp.o
+Linking CXX shared module ctor.so
+[ 18%] Built target ctor
+Scanning dependencies of target member
+[ 25%] Building CXX object 04-ClassMembers/CMakeFiles/member.dir/member.cpp.o
+Linking CXX shared module member.so
+[ 25%] Built target member
+Scanning dependencies of target inheritance
+[ 31%] Building CXX object 05-Inheritance/CMakeFiles/inheritance.dir/inheritance.cpp.o
+Linking CXX shared module inheritance.so
+[ 31%] Built target inheritance
+Scanning dependencies of target virtual
+[ 37%] Building CXX object 06-VirtualFunctionsInPython/CMakeFiles/virtual.dir/virtual.cpp.o
+Linking CXX shared module virtual.so
+[ 37%] Built target virtual
+Scanning dependencies of target operators
+[ 43%] Building CXX object 07-Operators/CMakeFiles/operators.dir/operators.cpp.o
+Linking CXX shared module operators.so
+[ 43%] Built target operators
+Scanning dependencies of target policies
+[ 50%] Building CXX object 08-CallPolicies/CMakeFiles/policies.dir/policies.cpp.o
+Linking CXX shared module policies.so
+[ 50%] Built target policies
+Scanning dependencies of target overload
+[ 56%] Building CXX object 09-Overloading/CMakeFiles/overload.dir/overload.cpp.o
+Linking CXX shared module overload.so
+[ 56%] Built target overload
+Scanning dependencies of target embedding
+[ 62%] Building CXX object 10-Embedding/CMakeFiles/embedding.dir/mymodule.cpp.o
+[ 68%] Building CXX object 10-Embedding/CMakeFiles/embedding.dir/embedding.cpp.o
+Linking CXX executable embedding
+[ 68%] Built target embedding
+Scanning dependencies of target mymodule
+[ 75%] Building CXX object 10-Embedding/CMakeFiles/mymodule.dir/mymodule.cpp.o
+Linking CXX shared module mymodule.so
+[ 75%] Built target mymodule
+Scanning dependencies of target iterators
+[ 81%] Building CXX object 11-Iterators/CMakeFiles/iterators.dir/iterators.cpp.o
+Linking CXX shared module iterators.so
+[ 81%] Built target iterators
+Scanning dependencies of target myexceptions
+[ 87%] Building CXX object 12-Exceptions/CMakeFiles/myexceptions.dir/myexceptions.cpp.o
+Linking CXX shared module myexceptions.so
+[ 87%] Built target myexceptions
+Scanning dependencies of target auto_instance
+[ 93%] Building CXX object 13-AutoInstantiation/CMakeFiles/auto_instance.dir/myextension.cpp.o
+[100%] Building CXX object 13-AutoInstantiation/CMakeFiles/auto_instance.dir/auto_instance.cpp.o
+Linking CXX executable auto_instance
+[100%] Built target auto_instance
++ make test
+Running tests...
+Test project /home/iqdean/u1404/DEV-SW/python-boost/boost-python-examples/build
+      Start  1: 01-HelloWorld
+ 1/13 Test  #1: 01-HelloWorld ....................   Passed    0.10 sec
+      Start  2: 02-ExposingClasses
+ 2/13 Test  #2: 02-ExposingClasses ...............   Passed    0.03 sec
+      Start  3: 03-Constructors
+ 3/13 Test  #3: 03-Constructors ..................   Passed    0.03 sec
+      Start  4: 04-ClassMembers
+ 4/13 Test  #4: 04-ClassMembers ..................   Passed    0.03 sec
+      Start  5: 05-Inheritance
+ 5/13 Test  #5: 05-Inheritance ...................   Passed    0.02 sec
+      Start  6: 06-VirtualFunctionsInPython
+ 6/13 Test  #6: 06-VirtualFunctionsInPython ......   Passed    0.02 sec
+      Start  7: 07-Operators
+ 7/13 Test  #7: 07-Operators .....................   Passed    0.02 sec
+      Start  8: 08-CallPolicies
+ 8/13 Test  #8: 08-CallPolicies ..................   Passed    0.02 sec
+      Start  9: 09-Overloading
+ 9/13 Test  #9: 09-Overloading ...................   Passed    0.02 sec
+      Start 10: 10-Embedding
+10/13 Test #10: 10-Embedding .....................   Passed    0.21 sec
+      Start 11: 11-Iterators
+11/13 Test #11: 11-Iterators .....................   Passed    0.04 sec
+      Start 12: 12-Exceptions
+12/13 Test #12: 12-Exceptions ....................   Passed    0.03 sec
+      Start 13: 13-AutoInstantiation
+13/13 Test #13: 13-AutoInstantiation .............   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 13
+
+Total Test time (real) =   0.60 sec
+
+
+├── 02-ExposingClasses
+│   ├── classes.cpp
+│   ├── classes.py
+│   └── CMakeLists.txt
+
+├── build
+
+│   ├── 02-ExposingClasses
+│   │   ├── classes.py
+│   │   ├── classes.so
+
+│   │   ├── CMakeFiles
+│   │   │   ├── classes.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── classes.cpp.o
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── CXX.includecache
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   ├── depend.internal
+│   │   │   │   ├── depend.make
+│   │   │   │   ├── flags.make
+│   │   │   │   ├── link.txt
+│   │   │   │   └── progress.make
+│   │   │   ├── CMakeDirectoryInformation.cmake
+│   │   │   └── progress.marks
+│   │   ├── cmake_install.cmake
+│   │   ├── CTestTestfile.cmake
+│   │   └── Makefile
+
+
+iqdean@hpdm4:~/u1404/DEV-SW/python-boost/boost-python-examples/build/02-ExposingClasses
+$ cat ~/u1404/DEV-SW/python-boost/boost-python-examples/02-ExposingClasses/classes.cpp
+
+#include <boost/python.hpp>
+#include <string>
+
+struct World
+{
+    void set(std::string msg) { mMsg = msg; }
+    std::string greet() { return mMsg; }
+    std::string mMsg;
+};
+
+using namespace boost::python;
+
+BOOST_PYTHON_MODULE(classes)
+{
+    class_<World>("World")
+        .def("greet", &World::greet)
+        .def("set", &World::set)
+    ;
+};
+
+
+iqdean@hpdm4:~/u1404/DEV-SW/python-boost/boost-python-examples/build/02-ExposingClasses$ cat classes.py
+#!/usr/bin/env python
+
+import classes
+
+t = classes.World()
+t.set("bom dia!")
+print (t.greet())
+
+
+iqdean@hpdm4:~/u1404/DEV-SW/python-boost/boost-python-examples/build/02-ExposingClasses$ ./classes.py
+bom dia!

@@ -154,7 +154,7 @@ if (enc_cnt > (2^32-1))
 }
 
 
-if (enc_cnt > 0x7FFFFFF):
+if (enc_cnt > 0x7FFFFFFF):
    return -((~enc_cnt & 0xFFFFFFFF)+1)
 else:
    return (enc_cnt & 0xFFFFFFFF)
@@ -376,7 +376,6 @@ Insert "exit" to leave the application.
 00:37:12>> D,P0
 
 00:37:12>> d, s256    <-- both motors driving fwd
-00:37:17>> 
 
 t2:
 iqdean@ubilinux:~/catkin_ws/src/edbot/src$ sudo python test-edspi53.py    <-- both motors STOP!!
@@ -396,9 +395,20 @@ t1.y :        0 0 0
 in term1:
 
 t1:
-00:37:12>> d, s256
-00:37:17>> d, getp
+00:37:12>> d, s256    <-- last good command to kangaroo to start driving both motors
+                      <---both motors stop as soon as you run $ sudo python test-edspi53.py
+00:39:55>> d, getp
 00:39:56>> D,E6       <--- kangaroo reports Error E6 ??
+                      Lookup error code in Kanaroo MC Manual:
+                      E6 	Signal lost.  The Kangaroo lost communication with the PC
+                                          or microcontroller since the last command.
+                      \\\\\\\\\\\\\\\\\\\\\\\\\\///////////////////////////////////
+                      this means one of the serial port gpio lines is glitching
+                      when the edspi53.py/libedspi52.so combination is doing
+                      its INITIALIZATION routines ... the glitching appears to be
+                      isolated to the initialization routines the setup/configure 
+                      edison gpio pins.
+                      /////////////////////////\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 00:39:56>> d, start    <--- you have to do this to recover
 00:40:00>> d, s0  

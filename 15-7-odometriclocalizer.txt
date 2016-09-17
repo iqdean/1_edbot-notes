@@ -1,0 +1,90 @@
+now that we got edspi53.Spi() class working (in edspi53.py),
+we can integrate into edbot-odom node (in odometriclocalizer.py)
+
+Every 1/Rate Hz
+
+	double X;        // x coord in global frame
+	double Y;        // y coord in global frame
+	double Heading;  // heading (radians) in the global frame. 
+                            The value lies in (-PI, PI]
+	
+	double VLeft;   // left motor speed
+	double VRight;  // right motor speed
+	double V;       // forward speed
+	double Omega;   // angular speed (radians per sec)
+
+ex data set:
+          count   ts_sec    ts_ns                      ts_ns range
+t0.x :    27AAB 1473554582 473208282    < current      000 000 000
+t0.y :    27A01 1473554582 473332905                     ms   us  ns
+                                                       999 999 999 + 1ns = 1.000 000 000 sec
+t1.x :    27676 1473554581 373834059    < last
+t1.y :    275CA 1473554581 374106956
+
+
+	t0		t0.x_enc	t0.y_enc
+	current left		right
+
+
+update(leftEncoderCount, rightEncoderCount)
+{
+
+long deltaLeft = leftEncoderCounts - _PreviousLeftEncoderCounts;
+                     t0.x_enc             t1.x_enc
+long deltaRight = rightEncoderCounts - _PreviousRightEncoderCounts;
+                     t0.y_enc             t1.y_enc
+
+deltaLeft = t0.x_enc - t1.x_enc
+deltaRight= t0.y_enc - t1.y_enc
+
+deltaTime = (t0_x_ts_sec - t1_x_ts_sec) + (t0_x_ts_ns - t1_x_ts_ns)ns * (1/1e9) sec/ns
+  sec                sec                  -------- ns -------------
+
+k1 = distancePerCount
+
+VLeft = deltaLeft * k1/deltaTime
+VRight = deltaRight * k1/deltaTime
+
+deltaDistance = 0.5 * (deltaLeft + deltaRight)*k1
+
+deltaX = deltaDistance * cos(Heading);
+deltaY = deltaDistance * sin(Heading);
+
+k2 = radiansPerCount
+
+deltaHeading = (deltaRight - deltaLeft) * k2	
+
+X += deltaX
+Y += deltaY
+Heading = += deltaHeading
+
+if (Heading > PI):
+   Heading -= TwoPI
+else:
+   if (Heading <= -PI):
+      Heading += TwoPI
+
+V = deltaDistance/deltaTime
+Omega = deltaHeading/deltaTime
+
+--- code copy test-edpsi53.py -> test-odom.py
+
+    time the python code       <-- it might be better to create lib
+                                   from ardros class and have python
+                                   code use the library
+
+--- see if we can modify & reuse ardros class OdometericLocalizer()
+    by building a shared library
+
+http://www.boost.org/doc/libs/1_49_0/libs/python/doc/tutorial/doc/html/python/hello.html
+http://www.bogotobogo.com/cplusplus/libraries.php
+
+http://www.boost.org/doc/libs/1_61_0/libs/python/doc/html/tutorial/tutorial/exposing.html
+http://www.shocksolution.com/python-basics-tutorials-and-examples/linking-python-and-c-with-boostpython/
+
+
+
+
+https://github.com/TNG/boost-python-examples
+
+

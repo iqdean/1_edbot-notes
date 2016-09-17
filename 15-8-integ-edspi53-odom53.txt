@@ -1,0 +1,296 @@
+
+t1: $ sudo python test-odom53.py   \__ using odom53.py/edspi53/libspi52.so works standalone
+t2: $ sudo python 7-4a-pyserial.py /   
+
+t1: u can monitor odometry calcs
+t2: while sending drive/turn commands to the motors
+
+quirks:
+
+libspi52.so uses libmraa to bitbang spi i/f
+- libmraa init routines glitch serial port gpio pins 
+  which causes kangaroo mc to detect error E6 (serial connection disconnect)
+
+so, you have to start test-odom53.py 1st, then start 7-4a-pyserial.py
+
+---- integrate odom53/edspi53/libspi52.so into ROS node edbotodom in 
+     edbot src/odometriclocalizer.py
+
+---- Final BKM start rosnode as root -----
+
+1. start t1: $ roscore
+
+2. start t2:
+
+iqdean@ubilinux:~$ roscd edbot
+iqdean@ubilinux:~/catkin_ws/src/edbot$ sudo /bin/bash
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot# source src/startOdomAsRoot
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot# rosrun edbot src/odometriclocalizer.py
+
+[INFO] [WallTime: 1473832480.701428] edbotodom node init
+[INFO] [WallTime: 1473832480.793376] Current time 1473832480 792952060
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473832481.044411] Current time 1473832481 439848890
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473832481.294319] Current time 1473832481 293920993
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+
+
+
+
+
+
+===== RAW NOTES BEYOND HERE ======
+
+--- BKM: start odometry node usin sudo ----
+
+prereqs:
+
+1. edspi53.py 
+
+    # this function is called everytime this class is instanced
+    def __init__(self):
+        # load libedspi52.so library
+        self.lib = ctypes.cdll.LoadLibrary("/usr/local/lib/libedspi52.so")  # <<< 1.1 install library to /usr/local/lib
+        # define library function arg types                                   seems abs path works but LD_LIBRARY_PATH doesn't
+        self.lib.edspi52_init.argtypes = None
+        self.lib.edspi52_init.restype = ctypes.c_uint
+        self.lib.edspi52_deinit.argtypes = None
+        self.lib.edspi52_deinit.restype = ctypes.c_uint
+        # getXYEncCount() returns mtrEnc struct on the stack
+        self.lib.getXYEncCount.argtypes = None
+        self.lib.getXYEncCount.restype = MotorEncoders
+
+1.2 iqdean@ubilinux:~$ env | grep LD_LIB | grep /usr/local    < LD_LIBRARY_PATH doesn't have path /usr/local/lib
+
+2. start t1: $ roscore
+
+3. start t2:
+root@ubilinux:/home/iqdean# source superuser.sh
+root@ubilinux:/home/iqdean# rosrun edbot src/odometriclocalizer.py
+
+iqdean@ubilinux:~$ sudo /bin/bash
+root@ubilinux:/home/iqdean# source superuser.sh
+root@ubilinux:/home/iqdean# rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1473832480.701428] edbotodom node init
+[INFO] [WallTime: 1473832480.793376] Current time 1473832480 792952060
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473832481.044411] Current time 1473832481 439848890
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473832481.294319] Current time 1473832481 293920993
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+...
+
+1473832481.044411 - 1473832480.793376 = 0.251035  \ Walltime delta's correlate to 1/4hz rate
+                                      = 0.249908  / but the "Current Time" via rospy.gettime() is way off ??
+
+... the encoder data has it's own timestamp, so the other stuff (Walltime, "Current Time", etc)
+    doesn't really matter.
+
+ 
+
+
+
+
+--- NOTES BEYOND HERE ----
+
+
+
+
+
+
+t1: $ roscore
+
+t1: 
+~$ cp libedspi52.so to /usr/local/lib
+~$ export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH 
+
+iqdean@ubilinux:~$ rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1473820132.366334] edbotodom node init
+Segmentation fault
+
+iqdean@ubilinux:~$ sudo rosrun edbot src/odometriclocalizer.py
+sudo: rosrun: command not found
+
+http://stackoverflow.com/questions/8633461/how-to-keep-environment-variables-when-using-sudo
+
+http://askubuntu.com/questions/376199/sudo-su-vs-sudo-i-vs-sudo-bin-bash-when-does-it-matter-which-is-used
+
+sudo /bin/bash This means that you call sudo with the command /bin/bash. /bin/bash is started as non-login shell so all the dot-files are not executed, but bash itself reads .bashrc of the calling user. Your environment stays the same. Your home will not be root's home. So you are root, but in the environment of the calling user.
+
+iqdean@ubilinux:~$ sudo /bin/bash
+
+root@ubilinux:/home/iqdean# which rospack
+root@ubilinux:/home/iqdean# export PYTHONPATH=$PYTHONPATH:$(dirname $(find /usr/local -name mraa.py))
+root@ubilinux:/home/iqdean# source /opt/ros/indigo/setup.bash
+root@ubilinux:/home/iqdean# source /home/iqdean/catkin_ws/devel/setup.bash
+root@ubilinux:/home/iqdean# which rosrun
+/opt/ros/indigo/bin/rosrun
+root@ubilinux:/home/iqdean# rospack find edbot
+/home/iqdean/catkin_ws/src/edbot
+
+root@ubilinux:/home/iqdean# export LD_LIBRARY_PATH=/usr/local/bin:$LD_LIBRARY_PATH
+
+root@ubilinux:/home/iqdean# rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1473822756.201618] edbotodom node init
+Traceback (most recent call last):
+  File "/home/iqdean/catkin_ws/src/edbot/src/odometriclocalizer.py", line 62, in <module>
+    odometry = edbotOdom()    # & not being imported:                    import module.py
+  File "/home/iqdean/catkin_ws/src/edbot/src/odometriclocalizer.py", line 54, in __init__
+    self._spi = edspi53.Spi()   # instance Spi() class to read samples of 
+  File "/home/iqdean/catkin_ws/src/edbot/src/edspi53.py", line 55, in __init__
+    self.lib = ctypes.cdll.LoadLibrary("libedspi52.so")   # install library to /usr/local/lib
+  File "/usr/lib/python2.7/ctypes/__init__.py", line 443, in LoadLibrary
+    return self._dlltype(name)
+  File "/usr/lib/python2.7/ctypes/__init__.py", line 365, in __init__
+    self._handle = _dlopen(self._name, mode)
+OSError: libedspi52.so: cannot open shared object file: No such file or directory
+
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# nano edspi53.py
+
+    # this function is called everytime this class is instanced
+    def __init__(self):
+        # load libedspi52.so library
+        self.lib = ctypes.cdll.LoadLibrary("/usr/local/lib/libedspi52.so")   # install library to /usr/local/lib
+        # define library function arg types
+        self.lib.edspi52_init.argtypes = None
+        self.lib.edspi52_init.restype = ctypes.c_uint
+        self.lib.edspi52_deinit.argtypes = None
+        self.lib.edspi52_deinit.restype = ctypes.c_uint
+        # getXYEncCount() returns mtrEnc struct on the stack
+        self.lib.getXYEncCount.argtypes = None
+        self.lib.getXYEncCount.restype = MotorEncoders
+
+
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# cd ~
+root@ubilinux:~# rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1473823118.957131] edbotodom node init
+[INFO] [WallTime: 1473823119.078029] Current time 1473823119 77195882
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473823119.328355] Current time 1473823119 327960014
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473823119.578220] Current time 1473823119 577828884
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473823119.828342] Current time 1473823119 827944040
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473823120.078212] Current time 1473823120 77821016
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473823120.328215] Current time 1473823120 327825069
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473823120.578411] Current time 1473823120 578021049
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+
+Ctrl-C
+
+$ exit    <-- to get out of the sudo /bin/bash shell
+
+iqdean@ubilinux:~$ sudo -i rosrun edbot src/odometiclocalizer.py
+[sudo] password for iqdean: 
+-bash: rosrun: command not found
+
+
+--- ref: https://github.com/intel-iot-devkit/mraa/issues/105 ---
+libmraa & the edison platform are a piece of crap... this issue is another
+example of the idiotic design of the edison gpio mux-ing schema and the 
+resulting sw to control it... you gotta be root to screw with sysfs based
+controls for configuring gpio mux settings 
+
+
+--- BKM: start odometry node usin sudo ----
+
+prereqs:
+
+1. edspi53.py 
+
+    # this function is called everytime this class is instanced
+    def __init__(self):
+        # load libedspi52.so library
+        self.lib = ctypes.cdll.LoadLibrary("/usr/local/lib/libedspi52.so")  # <<< 1.1 install library to /usr/local/lib
+        # define library function arg types                                   seems abs path works but LD_LIBRARY_PATH doesn't
+        self.lib.edspi52_init.argtypes = None
+        self.lib.edspi52_init.restype = ctypes.c_uint
+        self.lib.edspi52_deinit.argtypes = None
+        self.lib.edspi52_deinit.restype = ctypes.c_uint
+        # getXYEncCount() returns mtrEnc struct on the stack
+        self.lib.getXYEncCount.argtypes = None
+        self.lib.getXYEncCount.restype = MotorEncoders
+
+1.2 iqdean@ubilinux:~$ env | grep LD_LIB | grep /usr/local    < LD_LIBRARY_PATH doesn't have path /usr/local/lib
+
+2. start t1: $ roscore
+
+3. start t2:
+
+---- Final BKM start rosnode as root -----
+iqdean@ubilinux:~$ sudo /bin/bash
+root@ubilinux:/home/iqdean# source superuser.sh
+root@ubilinux:/home/iqdean# rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1473832480.701428] edbotodom node init
+[INFO] [WallTime: 1473832480.793376] Current time 1473832480 792952060
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473832481.044411] Current time 1473832481 439848890
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473832481.294319] Current time 1473832481 293920993
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+...
+
+1473832481.044411 - 1473832480.793376 = 0.251035  \ Walltime delta's correlate to 1/4hz rate
+                                      = 0.249908  / but the "Current Time" via rospy.gettime() is way off ??
+
+... the encoder data has it's own timestamp, so the other stuff (Walltime, "Current Time", etc)
+    doesn't really matter.
+
+ 
+
+
+
+
+--- NOTES BEYOND HERE ----
+
+
+
+
+
+
+
+
+
+
+ 
+iqdean@ubilinux:~$ sudo /bin/bash
+[sudo] password for iqdean: 
+
+root@ubilinux:/home/iqdean# export PYTHONPATH=$PYTHONPATH:$(dirname $(find /usr/local -name mraa.py))
+root@ubilinux:/home/iqdean# source /opt/ros/indigo/setup.bash
+root@ubilinux:/home/iqdean# source /home/iqdean/catkin_ws/devel/setup.bash
+
+root@ubilinux:/home/iqdean# rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1473830484.073542] edbotodom node init
+[INFO] [WallTime: 1473830484.208479] Current time 1473830484 208074092
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473830484.459611] Current time 1473830484 459217071
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+[INFO] [WallTime: 1473830484.709426] Current time 1473830484 709028959
+OUT: X: 0.000000 Y: 0.000000 Heading: 0.000000 V: 0.000000 Omega: 0.000000
+
+
+4. automate the startup
+
+4.1 root@ubilinux:/home/iqdean# cat superuser.sh 
+export PYTHONPATH=$PYTHONPATH:$(dirname $(find /usr/local -name mraa.py))
+source /opt/ros/indigo/setup.bash
+source /home/iqdean/catkin_ws/devel/setup.bash
+
+
+4.2
+iqdean@ubilinux:~$ sudo /bin/bash
+root@ubilinux:/home/iqdean# which rosrun
+root@ubilinux:/home/iqdean# source superuser.sh
+root@ubilinux:/home/iqdean# which rosrun
+/opt/ros/indigo/bin/rosrun
+
+
+
+
+ 
+
