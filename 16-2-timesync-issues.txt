@@ -1,0 +1,176 @@
+After doing ROS NETWORK SETUP in 16-1-ros-networking.txt, the next time we power cycled the edison side,
+the date gets way out of sync... seems chrony & ubilinux dont get along and as a result, now git pull and
+git checkins on the robot side stop working... if the system clock is way off, ssl certificates for 
+https access stop working, so you cant authenticate with github side on edison/ubilinux side... the ac720
+side still works fine.
+
+TRYING TO FIGURE OUT HOW TO USE CHRONY taking way too much time... so on the robot side:
+
+a) uninstall chrony on robot side
+   $ sudo apt-get purge chrony
+
+b) install ntp
+   $ sudo apt-get install ntp
+   $ sudo apt-get install ntpdate
+
+iqdean@ubilinux:~$ dpkg -l | grep ntp
+ii  ntp                                1:4.2.6.p5+dfsg-2+deb7u6       i386         Network Time Protocol daemon and utility programs
+ii  ntpdate                            1:4.2.6.p5+dfsg-2+deb7u6       i386         client for setting system time from NTP servers
+ 
+c) iqdean@ubilinux:~$ date
+   Mon Sep 19 01:34:01 UTC 2016
+                        \________> timezone is off
+
+http://www.thegeekstuff.com/2010/09/change-timezone-in-linux   < from the command line
+
+iqdean@ubilinux:~$ cat /etc/localtime
+TZif2UTCTZif2UTC
+UTC0
+
+iqdean@ubilinux:~$ ls -l /usr/share/zoneinfo/US
+total 8
+lrwxrwxrwx 1 root root  20 Apr 22 14:11 Alaska -> ../America/Anchorage
+lrwxrwxrwx 1 root root  15 Apr 22 14:11 Aleutian -> ../America/Adak
+lrwxrwxrwx 1 root root  18 Apr 22 14:11 Arizona -> ../America/Phoenix
+lrwxrwxrwx 1 root root  18 Apr 22 14:11 Central -> ../America/Chicago
+lrwxrwxrwx 1 root root  13 Apr 22 14:11 Eastern -> ../posixrules
+lrwxrwxrwx 1 root root  23 Apr 22 14:11 East-Indiana -> ../America/Indianapolis
+-rw-r--r-- 1 root root 250 Apr 22 14:11 Hawaii
+lrwxrwxrwx 1 root root  18 Apr 22 14:11 Indiana-Starke -> ../America/Knox_IN
+lrwxrwxrwx 1 root root  18 Apr 22 14:11 Michigan -> ../America/Detroit
+lrwxrwxrwx 1 root root  17 Apr 22 14:11 Mountain -> ../America/Denver
+lrwxrwxrwx 1 root root  22 Apr 22 14:11 Pacific -> ../America/Los_Angeles
+lrwxrwxrwx 1 root root  22 Apr 22 14:11 Pacific-New -> ../America/Los_Angeles
+-rw-r--r-- 1 root root 250 Apr 22 14:11 Samoa
+
+iqdean@ubilinux:~$ cd /etc
+iqdean@ubilinux:/etc$ sudo ln -s /usr/share/zoneinfo/US/Pacific localtime
+iqdean@ubilinux:/etc$ cd ..
+iqdean@ubilinux:/$ ls -al /etc/localtime
+lrwxrwxrwx 1 root root 30 Sep 18 18:41 /etc/localtime -> /usr/share/zoneinfo/US/Pacific
+
+iqdean@iqdean-Peppy:~$ date
+Sun Sep 18 18:42:17 PDT 2016
+
+iqdean@ubilinux:/$ date
+Sun Sep 18 18:42:25 PDT 2016
+
+--- to sync robot clock from workstation ---
+
+iqdean@ubilinux:/$ sudo ntpdate -v 192.168.2.208
+18 Sep 18:47:19 ntpdate[3205]: ntpdate 4.2.6p5@1.2349-o Wed Oct 28 20:36:51 UTC 2015 (1)
+18 Sep 18:47:19 ntpdate[3205]: the NTP socket is in use, exiting
+
+
+---- ok, now see if github works again ??  
+
+iqdean@ubilinux:~/catkin_ws/src/edbot$ git pull            << KEWL, be back in business, i think?
+remote: Counting objects: 8, done.
+remote: Compressing objects: 100% (4/4), done.
+remote: Total 8 (delta 6), reused 6 (delta 4), pack-reused 0
+Unpacking objects: 100% (8/8), done.
+From https://github.com/iqdean/4_edbot-ros-pkg
+   71cc639..4dbf086  master     -> origin/master
+Merge made by the 'recursive' strategy.
+ src/diffdrv.py |    4 ++--
+ src/odom53.py  |   15 ++++++++-------
+ 2 files changed, 10 insertions(+), 9 deletions(-)
+
+
+iqdean@ubilinux:~/catkin_ws/src/edbot$ git log -n 4
+commit 3cc8c6087a4f83bd823ada2484307bc778afc27d
+Merge: bd5fe5c 4dbf086
+Author: Ike Dean <iad1046@gmail.com>
+Date:   Sun Sep 18 18:50:12 2016 -0700
+
+    Merge branch 'master' of https://github.com/iqdean/4_edbot-ros-pkg
+
+commit 4dbf08699d65a1eaa6b031c142b265d05c309d48
+Author: ike dean <iad1046@gmail.com>
+Date:   Sat Sep 17 22:28:27 2016 -0700
+
+    update robot params based measured values
+
+commit c608f8f03aaa9e8b5308381ec7af052f5a25eea8
+Author: ike dean <iad1046@gmail.com>
+Date:   Sat Sep 17 21:38:49 2016 -0700
+
+    update robot parameters based on measurements
+
+commit 71cc6394ae95cfe93cb4ec043f0c9d5c8d58d6e8
+Author: Ike Dean <iad1046@gmail.com>
+Date:   Wed Sep 14 18:54:33 2016 -0700
+
+    add code to publish odometry to ros tf & /odom
+
+
+---- after fixing ubu1404 static ip issues due to NetworkManger
+     and getting static ip address assignment to usb0 working:
+
+---- check #2: Power off the robot, Power off the notebook -----
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+====================================
+chrony time sync issue on edison ... ABORT trying to use chrony on robot side, it still on ac720 side
+====================================
+1. install chrony on both side
+
+On ac720, chrony works fine using the default /etc/chrony/chrony.conf file
+and the system clock / date are fine
+
+On the robot side, edison running ubilinux, not sure if there's a realtime clock and date is wrong
+so now, git hub don't work due to https certificate issues (cuz the system clock is so far off)
+
+
+On ac720 side:
+
+0. on ac720, no matter what i do, (tried /etc/network/interfaces & Network Manager), everytime I
+   plug the usb0 ethernet cable in, u endup with a different random IP address... I want this to be
+   a static ip address, so i don't have to 
+	a) keep changing the ROS Env settings in .bashrc ...
+	b) keep changing the /etc/chrony/chrony.conf settings on the robot side... to get chrony time
+           sync working, i'm having to point the robot side to the ac720 IP as the master time server
+ 
+   WORKAROUND: manually change the IP to 192.168.2.208 
+
+Debug on robot side
+
+iqdean@ubilinux:~$ sudo cat /etc/chrony/chrony.keys 
+1 tA1Lv8m2
+
+1. update /etc/chrony/crony.conf 
+   to point the robot side to ac720 master time server
+
+1.1 $ sudo service --status-all      < to see what services are running
+    $ sudo service chrony stop       < to stop the chrony service
+    $ sudo nano /etc/chrony/chrony.conf   < update config file
+
+#server 0.debian.pool.ntp.org offline minpoll 8
+#server 1.debian.pool.ntp.org offline minpoll 8
+#server 2.debian.pool.ntp.org offline minpoll 8
+#server 3.debian.pool.ntp.org offline minpoll 8
+server 192.168.2.208
+
+
+iqdean@ubilinux:~$ sudo ntpdate -s 192.168.2.208
+iqdean@ubilinux:~$ date
+Mon Sep 19 01:07:22 UTC 2016
+
+
+
+

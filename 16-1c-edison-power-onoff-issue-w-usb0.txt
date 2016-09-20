@@ -1,0 +1,28 @@
+16-1-edison-poweron-w-usb0-connected.txt
+
+$ sudo shutdown -h now         <- power down ... edison powers off even though main sw is still ON
+
+Now how do you power back on? ... 
+the usb0 eth cable also supplies power to edison
+so you can actually power it over usb
+
+Flipping the robot main power switch off and the back on doesn't do anything
+cuz edison is still getting power via usb0 cable from the usb hub or laptop
+
+in order to power edison back on, with the main still on, you have to unplug the
+usb0 cable from the notebook or hub (this removes USB PWR) and then plug the
+usb0 cable back in ... this powers edisons back on
+
+in addition to this, the usb0 eth i/f is also used for flashing the edison 
+board with os/firmware
+
+between the power issue and the os/fw update, trying to use usb0-ethernet i/f
+on a real robot is going to be a can of worms.
+
+right now, we can do the manual unplug/plug cable to power edison back on after
+a orderly shutdown, but in the end, we gonna need a different i/f between
+edison and other onboard compute systems... rasberry pi is sounding better 
+and better ea time i run into one of edison's quirks like this one
+
+
+

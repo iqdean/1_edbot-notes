@@ -1,0 +1,116 @@
+Ubu14.04 Network Manager static ip settings refuse to stick... everytime i plug in
+the usb0 cable, endup with a random ip address & then have to go to NetworkManager
+& manually reassign the static ip address already getting used in the ros env
+var setting... linux can be a real pain in the ass when the simplist things
+take days to figure out...
+
+
+
+http://askubuntu.com/questions/574102/unable-to-set-static-ip-on-ubuntu-14-10
+
+iqdean@iqdean-Peppy:~$ sudo -i
+[sudo] password for iqdean: 
+root@iqdean-Peppy:~# which nmcli
+/usr/bin/nmcli
+root@iqdean-Peppy:~# nmcli dev status
+DEVICE     TYPE              STATE        
+usb0       802-3-ethernet    connected    
+wlan0      802-11-wireless   connected   
+
+To disable Network Manager for your usb0, you can do the following.
+---
+Edit the Network Manager configuration file in /etc/NetworkManager, and set:
+
+In the terminal continue running:
+
+nano /etc/NetworkManager/NetworkManager.conf
+And write the following lines:
+
+[ifupdown]
+managed=false                   <<< THIS WAS ALREADY THERE, SO NOTHING GOT CHANGED???
+
+-----
+Then in /etc/network/interfaces, add information about the interface you want to disable Network Manager for.
+
+In the terminal continue running:
+
+nano /etc/network/interfaces
+And write the following lines:
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# eth0 not managed by Network Manager
+allow-hotplug usb0                < 1     one of these 3 lines seems to have done the trick
+iface usb0 inet static
+address 192.168.2.208
+netmask 255.255.255.0
+gateway 10.0.0.1                  < 2     cuz these weren't there on the edison side
+dns-nameservers 75.75.75.75       < 3     where static addresses work fine w/o these but then
+                                          ubilinux doesnt have the NetworkManager
+
+Now Network Manager automatically ignore any interfaces specified in file:
+
+/etc/network/interfaces
+
+And stop managing them.
+
+After rebooting, verify that Network Manager is successfully disabled for eth0:
+
+sudo -i
+nmcli dev status
+
+iqdean@iqdean-Peppy:~$ sudo nmcli dev status
+[sudo] password for iqdean: 
+DEVICE     TYPE              STATE        
+usb0       802-3-ethernet    unmanaged    
+wlan0      802-11-wireless   connected    
+
+---- 
+power off
+power on
+log in
+plugin usb0 cable to edison
+
+HMM finally, it seems usb0 ends up with the static ip assigned
+     via /etc/network/interfaces as expected... what a pain in the ass!!
+
+iqdean@iqdean-Peppy:~$ sudo nmcli dev status
+DEVICE     TYPE              STATE        
+usb0       802-3-ethernet    unmanaged    
+wlan0      802-11-wireless   connected    
+
+
+iqdean@iqdean-Peppy:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:402 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:402 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:32784 (32.7 KB)  TX bytes:32784 (32.7 KB)
+
+usb0      Link encap:Ethernet  HWaddr 1e:78:f9:3e:3a:87  
+          inet addr:192.168.2.208  Bcast:192.168.2.255  Mask:255.255.255.0
+          inet6 addr: fe80::1c78:f9ff:fe3e:3a87/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:6 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:72 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:392 (392.0 B)  TX bytes:10081 (10.0 KB)
+
+wlan0     Link encap:Ethernet  HWaddr 48:5a:b6:c4:41:af  
+          inet addr:10.0.0.53  Bcast:10.0.0.255  Mask:255.255.255.0
+          inet6 addr: 2601:204:c201:6847:4a5a:b6ff:fec4:41af/64 Scope:Global
+          inet6 addr: fe80::4a5a:b6ff:fec4:41af/64 Scope:Link
+          inet6 addr: 2601:204:c201:6847::8def/128 Scope:Global
+          inet6 addr: 2601:204:c201:6847:d576:3d94:f675:c6ed/64 Scope:Global
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:322 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:186 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:45866 (45.8 KB)  TX bytes:29471 (29.4 KB)
+
+

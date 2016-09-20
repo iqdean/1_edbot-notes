@@ -1,0 +1,96 @@
+Recap:
+
+edbot src/odometriclocalizer.py    reads wheel encoders
+      				   computes odometry based on wheel encoders & robot parmeters
+                                   publishes odometery on /odom topic
+                                   publishes transform of odom world frame & base_link fram on /tf topic
+
+edbot src/diffdrv.py               subscribes to /cmd_vel, drives motors
+
+
+WIP: validate odometry is working by visualizing odometry data feed from robot in RVIZ while its being driven
+     around to see how close to reality the data is and figure out what kind of calibration we gonna need.
+
+Preqs:
+Get muliti-machine ros network working
+a) network settings - 16-1-ros-network-conf.txt 
+b) clock sync using chrony and ntp    16-1 & 16-2
+c) get rqt robot steering & rviz visualization working
+
+1. According to the raw odometry, the robot can't drive in a straight line, its got an alignment problem and
+   steers to one side or another... over many meters, it ends up way off it's mark!!!
+
+2. you can see slop in the odometric localizer angle calculation if you wiggle the wheels in opposite direction 
+   this is due to the slop in the encoder to wheel connection due to the loose chain, combined with slop in worm gear
+
+--- 15-9-xxx.txt ---   
+hmm, this is turning out to be harder than it looks... now what... drive on floor and calibrate???
+
+something is not right about the odometry... if the rviz scale of 1m/cell is correct, things are moving
+way too fast compared to the actual wheel rotations... 
+
+check the robot parameters and odometry calculations!
+
+Measure circumference of wheel with string, then measure string w ruler:
+30 cm + 30 cm + 22.5 cm = 82.5 cm = 825mm 
+Circumference = PI*d , so  d = 825mm/3.14 = 262.605 mm = .2626m
+
+Measure Track Width:
+30cm + 16.8cm = 46.8cm = 468mm = .468m
+
+-----------------------------------------------------------------------------
+
+
+NOW, back to issue at hand: 
+
+See if changes to Robot Parameters make any diff on odometry via RVIZ
+
+A) ---- BKM: ROS, EDBOT NODES, RQT startup -----  (16-1a-ros-network-config.txt)
+
+4.1 On Robot side, start roscore     
+auto-starting new master
+process[master]: started with pid [3016]
+ROS_MASTER_URI=http://192.168.2.15:11311/
+
+4.1.1 start odometric localizer node
+iqdean@ubilinux:~$ roscd edbot/src
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ 
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ sudo /bin/bash
+[sudo] password for iqdean: 
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# source startOdomAsRoot 
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1474155418.384521] edbotodom node init
+
+4.1.2 start edbot diffdrv.py
+
+iqdean@ubilinux:~$ rosrun edbot src/diffdrv.py
+[INFO] [WallTime: 1474155480.474474] DiffDrv _init_: Starting with serial port: /dev/ttyMFD1, baud rate: 19200
+[INFO] [WallTime: 1474155480.498700] sdg._init_
+[INFO] [WallTime: 1474155480.500457] DiffDrv.Start: Starting
+[INFO] [WallTime: 1474155480.502076] sdg.Start: Starting serial gateway
+
+4.2 On Workstation side
+
+iqdean@iqdean-Peppy:~$ rostopic list
+/cmd_vel
+/odom
+/rosout
+/rosout_agg
+/tf
+
+iqdean@iqdean-Peppy:~$ rqt 
+Topic Monitor -> shows /odom & /tf running at 20hz
+Node Graph    -> edbotodom & diffdrv nodes both up and running   
+Robot Tools -> Steering > WORKS NOW!!! 
+
+$ rviz rviz
+
+B) observe x,y,z position in rviz tf & drive the robot 1m on rviz grid & observe the wheel rotation
+
+based on measured Robot parameters, 1 rev of wheel ( circumfrence = 825mm) should be ~.8 on rviz grid
+
+instead, i see the wheel rotates ~1/3 rev and odometry indicates movement of ~1m on rviz grid
+
+>> review / verify code that does odometery calculations
+
+

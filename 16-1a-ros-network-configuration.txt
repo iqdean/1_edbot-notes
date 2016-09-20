@@ -1,0 +1,187 @@
+ROS Network Configuration
+-------------------------
+Side Note:  Google anis koubaa ros - has lots of tutorials on ROS
+
+http://wiki.ros.org/turtlebot/Tutorials/indigo/Network%20Configuration
+
+Network Configuration Tutorial on Gaitech EDU website 
+http://edu.gaitech.hk/turtlebot/network-config-doc.html		
+
+
+1 Add following to ~./bashrc of workstation and robot:
+
+			Workstation <---- network ----> Robot
+			Acer C720         usb-eth       Edison
+			UBUNTU 14.04	  		UBILINUX
+
+ip usb0 eth i/f         192.168.2.208	  	  	192.168.2.15
+   	 	 					roscore runs on the robot side
+
+ROS_MASTER_URI=		http://IP_ROBOT:11311           http://localhost:11311
+ROS_IP=                 IP_WS				IP_ROBOT
+ROS_HOSTNAME=		IP_WS				IP_ROBOT
+
+Workstation side:
+Spec the usb0 static ip address in System Setting > Network 
+(/etc/network/interfaces doesn't work on ubu1404 side)
+
+Robot Side:
+Spec the usb0 static ip address in /etc/network/interfaces keep 
+                                                        
+auto usb0
+iface usb0 inet static		
+    address 192.168.2.15
+    netmask 255.255.255.0
+
+
+1.1 update edbot/src/startOdomAsRoot script with ROBOT side env variables to avoid
+    having to handtype these in
+
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ cat startOdomAsRoot 
+export PYTHONPATH=$PYTHONPATH:$(dirname $(find /usr/local -name mraa.py))
+source /opt/ros/indigo/setup.bash
+source /home/iqdean/catkin_ws/devel/setup.bash
+
+# ROS multimachine networking setup for robot side
+# roscore is running on the robot
+export ROS_MASTER_URI=http://localhost:11311
+export ROS_IP=192.168.2.15
+export ROS_HOSTNAME=192.168.2.15
+
+2 install ubuntu chrony on both Workstation and robot to keep clocks in sync
+
+$ sudo apt-get install chrony       < installs ok on both sides
+
+NOTE: Due to usb-eth network i/f AND wifi network i/f, both sides have 3 network i/fs
+      AND both sides have internet connection thru wifi which is what chrony uses to
+      sync clocks... this could be a problem in the field where there is no wifi 
+      internet connection... going to have to figure out another way to sync the clocks
+      when we get to that bridge
+
+ROBOT SIDE:
+
+iqdean@ubilinux:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:6 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:6 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:628 (628.0 B)  TX bytes:628 (628.0 B)
+
+usb0      Link encap:Ethernet  HWaddr 02:00:86:aa:b1:95  
+          inet addr:192.168.2.15  Bcast:192.168.2.255  Mask:255.255.255.0
+          inet6 addr: fe80::86ff:feaa:b195/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:1006 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:607 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:85428 (83.4 KiB)  TX bytes:80903 (79.0 KiB)
+
+wlan0     Link encap:Ethernet  HWaddr 78:4b:87:a6:98:77  
+          inet addr:10.0.0.157  Bcast:10.0.0.255  Mask:255.255.255.0
+          inet6 addr: 2601:204:c201:6847:7a4b:87ff:fea6:9877/64 Scope:Global
+          inet6 addr: fe80::7a4b:87ff:fea6:9877/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:3063 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:824 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:725873 (708.8 KiB)  TX bytes:71070 (69.4 KiB)
+
+
+WORKSTATION SIDE:
+
+iqdean@iqdean-Peppy:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:6447 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:6447 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:692765 (692.7 KB)  TX bytes:692765 (692.7 KB)
+
+usb0      Link encap:Ethernet  HWaddr 96:64:3c:e6:39:5c  
+          inet addr:192.168.2.208  Bcast:192.168.2.255  Mask:255.255.255.0
+          inet6 addr: fe80::9464:3cff:fee6:395c/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:613 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:1011 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:73321 (73.3 KB)  TX bytes:98390 (98.3 KB)
+
+wlan0     Link encap:Ethernet  HWaddr 48:5a:b6:c4:41:af  
+          inet addr:10.0.0.53  Bcast:10.0.0.255  Mask:255.255.255.0
+          inet6 addr: 2601:204:c201:6847:4a5a:b6ff:fec4:41af/64 Scope:Global
+          inet6 addr: fe80::4a5a:b6ff:fec4:41af/64 Scope:Link
+          inet6 addr: 2601:204:c201:6847::8def/128 Scope:Global
+          inet6 addr: 2601:204:c201:6847:f8bb:f0ed:14bf:7c74/64 Scope:Global
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:384409 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:182886 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:468612533 (468.6 MB)  TX bytes:31324616 (31.3 MB)
+
+3 source .bashrc on both sides to get env variables to stick
+
+iqdean@ubilinux:~$ env | grep ROS
+...
+ROS_MASTER_URI=http://localhost:11311
+ROS_HOSTNAME=192.168.2.15
+ROS_DISTRO=indigo
+ROS_IP=192.168.2.15
+ROS_ETC_DIR=/opt/ros/indigo/etc/ros
+
+iqdean@iqdean-Peppy:~$ env | grep ROS
+ROS_ROOT=/opt/ros/indigo/share/ros
+ROS_PACKAGE_PATH=/home/iqdean/catkin_ws/src:/opt/ros/indigo/share:/opt/ros/indigo/stacks
+ROS_MASTER_URI=http://192.168.2.15:11311
+ROS_HOSTNAME=192.168.2.208
+ROSLISP_PACKAGE_DIRECTORIES=/home/iqdean/catkin_ws/devel/share/common-lisp
+ROS_DISTRO=indigo
+ROS_IP=192.168.2.208
+ROS_ETC_DIR=/opt/ros/indigo/etc/ros
+
+4. See if it works
+
+4.1 On Robot side, start roscore     
+auto-starting new master
+process[master]: started with pid [3016]
+ROS_MASTER_URI=http://192.168.2.15:11311/
+
+4.1.1 start odometric localizer node
+iqdean@ubilinux:~$ roscd edbot/src
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ 
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ sudo /bin/bash
+[sudo] password for iqdean: 
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# source startOdomAsRoot 
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1474155418.384521] edbotodom node init
+
+4.1.2 start edbot diffdrv.py
+
+iqdean@ubilinux:~$ rosrun edbot src/diffdrv.py
+[INFO] [WallTime: 1474155480.474474] DiffDrv _init_: Starting with serial port: /dev/ttyMFD1, baud rate: 19200
+[INFO] [WallTime: 1474155480.498700] sdg._init_
+[INFO] [WallTime: 1474155480.500457] DiffDrv.Start: Starting
+[INFO] [WallTime: 1474155480.502076] sdg.Start: Starting serial gateway
+
+4.2 On Workstation side
+
+iqdean@iqdean-Peppy:~$ rostopic list
+/cmd_vel
+/odom
+/rosout
+/rosout_agg
+/tf
+
+iqdean@iqdean-Peppy:~$ rqt 
+Topic Monitor -> shows /odom & /tf running at 20hz
+Node Graph    -> edbotodom & diffdrv nodes both up and running   
+Robot Tools -> Steering > WORKS NOW!!! 
+
+>> Previously (in 15-9-xxxx.txt), this didn't work due to improper
+   networking configuration ? clock sync ? rosmaster running on the wrong side...
+   With the networking configuration setup above, this works great now!!
+

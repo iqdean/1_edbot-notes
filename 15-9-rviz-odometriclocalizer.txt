@@ -1,0 +1,133 @@
+09/16/2016 
+
+Use rviz to visualize tf /odom & /base_link frames being published from edbot
+odometriclocalizer to verify we got odometry is working
+
+Setup:
+
+ac-720 <-------- usb eth ---------------------> edison
+192.168.2.206					192.168.2.15
+ROS Indigo Desktop w rviz/rqt			ROS Indigo Core + ROSBridge Webserver
+
+$roscore 
+ROS_MASTER_URI=http://iqdean-Peppy:11311/	In ~/.bashrc 
+						# Source ROS Indigo Environment settings
+						source /opt/ros/indigo/setup.bash
+						source /home/iqdean/catkin_ws/devel/setup.bash
+						export ROS_MASTER_URI=http://192.168.2.206:11311 
+
+						logout/logback in
+
+						iqdean@ubilinux:~$ rostopic list
+						/rosout       \__ these 2 topics only show if
+						/rosout_agg   /   roscore is running somewhere on the network
+ON EDISION:  start odometriclocalizer
+----------
+iqdean@ubilinux:~$ sudo /bin/bash
+[sudo] password for iqdean: 
+iqdean@ubilinux:~$ roscd edbot/src
+
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# source startOdomAsRoot     << add export ROS_MASTER_URI here
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# export ROS_MASTER_URI=http://192.168.2.206:11311  << to avoid this
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1474073100.386185] edbotodom node init
+
+
+ON ac-720
+---------
+
+iqdean@iqdean-Peppy:~$ rostopic list
+/odom
+/rosout
+/rosout_agg
+/tf
+
+$ rviz rviz      <-- no tf data ??
+$ rostopic info /odom
+
+iqdean@iqdean-Peppy:~$ cat /etc/hosts
+127.0.0.1	localhost
+127.0.1.1	iqdean-Peppy
+192.168.2.15	ubilinux               << add this line
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+
+--- repeat above startup roscore on ac-720 and odometriclocalizer.py on edison ----
+
+iqdean@iqdean-Peppy:~$ rostopic list
+/odom
+/rosout
+/rosout_agg
+/tf
+
+iqdean@iqdean-Peppy:~$ rqt > Plugins > Topics > Topic Monitor 
+[x] /odom   14.35KB/s   20Hz  nav_msgs/Odometry
+...
+[x] /tf	     1.87KB/s   20Hz  tf/tfMessage
+
+iqdean@iqdean-Peppy:~$ rviz rviz      < see screenshots in 15-8-rviz-odometriclocalizer
+                                        we got visualization of /odom and /base_link in rviz
+					using odometriclocalizer node
+
+If we drive the robot, the /base_link should move relative to /odom tf frames
+
+ rqt > Plugins > Robot Tools > Robot Steering       < VERY KEWL, get GUI for sending /cmd_vel
+       	       	       	       	     		      see screenshots in 15-8-rviz-odometriclocalizer
+
+> Since we don't have edbot diffdrv node running yet, there's no node subscribing to /cmd_vel msgs yet <
+  so we need to start edbot diffdrv node on the robot side
+
+ON Edison
+----------
+iqdean@ubilinux:~$ rosrun edbot src/diffdrv.py
+[INFO] [WallTime: 1474075871.665220] DiffDrv _init_: Starting with serial port: /dev/ttyMFD1, baud rate: 19200
+[INFO] [WallTime: 1474075871.683361] sdg._init_
+[INFO] [WallTime: 1474075871.685092] DiffDrv.Start: Starting
+[INFO] [WallTime: 1474075871.686619] sdg.Start: Starting serial gateway
+
+ON AC-720  try to publish /cmd_vel via rqt gui 
+----------
+... nothing happens... rqt terminal reports the following warning: 
+
+[WARN] [WallTime: 1474076002.464212] Could not process inbound connection: [/rqt_gui_py_node_4910] is not a publisher of [/cmd_vel]. Topics are [['/rosout', 'rosgraph_msgs/Log']]{'message_definition': '# This expresses velocity in free space broken into its linear and angular parts.\nVector3  linear\nVector3  angular\n\n================================================================================\nMSG: geometry_msgs/Vector3\n# This represents a vector in free space. \n\nfloat64 x\nfloat64 y\nfloat64 z\n', 'callerid': '/rqt_gui_py_node_4910', 'tcp_nodelay': '0', 'md5sum': '9f195f881246fdfa2798d1d3eebca84a', 'topic': '/cmd_vel', 'type': 'geometry_msgs/Twist'}
+
+From AC720 Side:
+----------------
+
+iqdean@iqdean-Peppy:~$ rostopic pub -1 /cmd_vel geometry_msgs/Twist '{linear: {x: -0.250, y: 0, z: 0}, angular: {x: 0, y: 0, z: 0}}'
+publishing and latching message for 3.0 seconds
+
+Nothing happens ???
+
+From the Edison side   it works fine... on rviz you can see the /base_link moving away from /odom frame
+--------------------
+$ rostopic pub -1 /cmd_vel geometry_msgs/Twist '{linear: {x: -0.250, y: 0, z: 0}, angular: {x: 0, y: 0, z: 0}}'
+$ rostopic pub -1 /cmd_vel geometry_msgs/Twist '{linear: {x: +0.250, y: 0, z: 0}, angular: {x: 0, y: 0, z: 0}}'
+
+1. According to the raw odometry, the robot can't drive in a straight line, its got an alignment problem and
+   steers to one side or another... over many meters, it ends up way off it's mark!!!
+
+2. you can see slop in the odometric localizer angle calculation if you wiggle the wheels in opposite direction 
+   this is due to the slop in the encoder to wheel connection due to the loose chain, combined with slop in worm gear
+   
+hmm, this is turning out to be harder than it looks... now what... drive on floor and calibrate???
+
+something is not right about the odometry... if the rviz scale of 1m/cell is correct, things are moving
+way too fast compared to the actual wheel rotations... 
+
+check the robot parameters and odometry calculations!
+
+Measure circumference of wheel with string, then measure string w ruler:
+30 cm + 30 cm + 22.5 cm = 82.5 cm = 825mm 
+Circumference = PI*d , so  d = 825mm/3.14 = 262.605 mm = .2626m
+
+Measure Track Width:
+30cm + 16.8cm = 46.8cm = 468mm = .468m
+
+
+
