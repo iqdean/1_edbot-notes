@@ -1,0 +1,246 @@
+Mon Sep 19 23:46:03 PDT 2016   end-to-end check using ac720 + edison
+ 
+
+// xbox360 Game Controller
+//    |
+//   usb
+//    |  ac720
+// u1404 notebook  <---usb eth cable---> Robot ECU1 (Edison)
+//
+//    xbox inputs
+//       |
+//    npm* joystick                            roscore
+//       |
+//  roslibjoy.js  reads joystick
+//       |        & publishes
+//     /cmd_vel     /cmd_vel
+//       |
+//    npm* roslib  ---- websocket ----->  rosbridge-server
+//                                                |
+//                                             /cmd_vel      /tf   /odom
+//                                                |            ^    ^
+//                                                |            ^    ^
+//                                        edbot diffdrv.py     ^    ^
+//                                        edbot odometriclocalizer.py
+//
+
+------------------------------------------------------------------------------------
+Setup latest ver of LTS node & npm on ac720 u1404
+REF:      https://github.com/iqdean/node-notes/blob/master/1a-install-node-using-nvm-on-u1404.txt
+-------
+1.1 install nvm script:
+wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.32.0/install.sh | bash
+
+2. find latest LTS version of node from https://nodejs.org/en/     v4.5.0
+
+3. install v4.5.0 using nvm
+
+iqdean@iqdean-Peppy:~$ nvm install 4.5
+
+iqdean@iqdean-Peppy:~$ which node
+/home/iqdean/.nvm/versions/node/v4.5.0/bin/node
+iqdean@iqdean-Peppy:~$ node -v
+v4.5.0
+
+iqdean@iqdean-Peppy:~$ which npm
+/home/iqdean/.nvm/versions/node/v4.5.0/bin/npm
+iqdean@iqdean-Peppy:~$ npm -version
+2.15.9
+
+-----------------------------------------------------------------------------------
+Setup xbox360 drivers on ac720 
+REF: https://github.com/iqdean/node-joystick/blob/master/8-5-node-xbox-gamepad.txt
+
+install steamos-xpad-dkms  <- this updates xpad driver 
+                                    so dont need xboxdrv
+
+sudo add-apt-repository ppa:mdeslaur/steamos	ok
+sudo apt-get update				ok
+sudo apt-get install steamos-xpad-dkms		ok
+
+------------------------------------------------------------------------------------
+Install joystick utils
+
+sudo apt-get install joystick jstest-gtk        ok
+
+
+------------------------------------------------------------------------------------
+iqdean@iqdean-Peppy:~$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+udev            927M  4.0K  927M   1% /dev
+tmpfs           188M  1.2M  187M   1% /run
+/dev/sda1        13G  8.4G  3.7G  70% /                 < down to 3.7G free on acc720
+none            4.0K     0  4.0K   0% /sys/fs/cgroup
+none            5.0M     0  5.0M   0% /run/lock
+none            938M  144K  938M   1% /run/shm
+none            100M   28K  100M   1% /run/user
+
+--- clear google browser cache and del some big files from ~/.Downloads ---
+
+iqdean@iqdean-Peppy:~/Downloads$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+udev            927M  4.0K  927M   1% /dev
+tmpfs           188M  1.2M  187M   1% /run
+/dev/sda1        13G  7.5G  4.6G  63% /                 < now we up to 4.6G free 
+none            4.0K     0  4.0K   0% /sys/fs/cgroup
+none            5.0M     0  5.0M   0% /run/lock
+none            938M  144K  938M   1% /run/shm
+none            100M   32K  100M   1% /run/user
+
+--- ok, now verify 
+
+  acerC720 -usb XBox GC Adapter - wireless - xbox360 GC   
+
+ $ ls /dev/input                    <- no jsX 
+ 1. plug in usb Xbox GC Adapter
+ 2. push green X on xbox360 gc, associates ok w 1 LED
+ 3. ls /dev/input                   <-- now we got /dev/input/js0
+
+4. $ jstest-gtk, select /dev/input/js0   
+     get GUI indicator of all joystick buttons/axises
+     works ok
+
+--- now we need to get node app that reads joystick (/dev/input/js0) working ----
+
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github$ git clone https://github.com/iqdean/node-joystick.git
+
+joystick.js
+-----------
+// with steamos xpad driver installed
+// hp dm4  xbox360 shows up on id 1 (/dev/input/js1)
+// ac720   xbox360 shows up on id 0 (/dev/input/js0)
+//                                       id -deadzone-
+var joystick = new (require('joystick'))(0, 3500, 350);
+joystick.on('button', console.log);
+joystick.on('axis', console.log);
+
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/node-joystick$ node joystick.js
+{ time: 2578568,
+  value: 0,
+  number: 0,
+  init: true,
+  type: 'button',
+  id: 0 }
+...                        < enumeration of each button/axis on the game controller
+{ time: 2578608,
+  value: -32767,
+  number: 5,
+  init: true,
+  type: 'axis',
+  id: 0 }
+{ time: 2580744, value: -4219, number: 4, type: 'axis', id: 0 }   < pushing buttons/moving joysticks results in
+{ time: 2580752, value: -4897, number: 4, type: 'axis', id: 0 }     console messages... works
+{ time: 2580776, value: 0, number: 3, type: 'axis', id: 0 }
+{ time: 2580816, value: -5574, number: 4, type: 'axis', id: 0 }
+...
+
+--- ok, now get we got wireless joystick working ----
+Configure roslibjoy.js for acer C720
+-------------------------------------------------------------------------------------------------
+a) set ip address of rosbridge websocket server in roslibjoy.js
+   ------------------------------------------------------------
+$ nano roslibjoy.js
+
+var ros = new ROSLIB.Ros({
+    //url : 'ws://localhost:9090'
+    url : 'ws://192.168.2.15:9090'   // websocket of rosbridge-server on robot via usb eth
+    //url : 'ws://10.0.0.157:9090'       // websocket via wifi
+});
+
+b) set joystick device = /dev/input/js0       on acer it's js0, on hpdm4 its js1
+---------------------------------------------------------------------------------
+
+// Set a deadzone of +/-3500 (out of +/-32k) and a sensitivty of 350 to reduce signal noise in joystick axis
+// id = 1 means use /dev/input/js1      id  -deadzone-   
+// var joystick = new (require('joystick'))(1, 3500, 350);  << on hpdm4 joystick shows up as js1
+var joystick = new (require('joystick'))(0, 3500, 350);
+var ROSLIB = require('roslib');
+
+c) set /cmd_vel publish rate = 20hz     < was 10hz 
+-----------------------------------
+setInterval(publishToROS, 50);  // 1000ms = 1hz (debug), 100ms = 10hz, 50ms = 20hz
+
+d) Note: Joystick Button 4 (Left Brake) is saftey ... throttle won't work unless u have button 4 pushed
+
+----------------------------------------------------------------------------------------------------
+
+Verify joystick to  /cmd_vel works
+-----------------------------------
+
+192.168.2.208                                          192.168.2.15
+acer c720  <----------usb0 eth cable ----------------> edison
+
+edison side
+-----------
+t1 $ roslaunch rosbridge_server rosbridge_websocket.launch           <- roslaunch starts roscore if it's not alreay running
+...
+[INFO] [WallTime: 1474392378.778703] Rosbridge WebSocket server started on port 9090
+
+acer side
+---------
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/node-joystick$ node roslibjoy.js
+(node) util.debug is deprecated. Use console.error instead.
+DEBUG: ROSLib uses utf8 encoding by default.It would be more efficent to use ascii (if possible)
+safety :  enabled  throttle disabled
+Connected to websocket server.
+
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/node-joystick$ rostopic list
+/cmd_vel                                      <--- KEWL, we got node code publishing /cmd_vel topic now
+/rosout
+/rosout_agg
+
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/node-joystick$ rostopic echo /cmd_vel
+---
+linear: 
+  x: 0.0     <<  Push LB and move throttle and you can see x and z values changing 
+  y: 0.0
+  z: 0.0     <<
+angular: 
+  x: 0.0
+  y: 0.0
+  z: 0.0
+---
+linear: 
+  x: 0.0
+  y: 0.0
+  z: 0.0
+angular: 
+  x: 0.0
+  y: 0.0
+  z: 0.0
+---
+
+
+Final End-to-End Test
+----------------------
+
+edison:
+
+t1
+iqdean@ubilinux:~$ roslaunch rosbridge_server rosbridge_websocket.launch
+t2
+iqdean@ubilinux:~$ sudo /bin/bash
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# source startOdomAsRoot
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1474394155.010076] edbotodom node init
+t3
+iqdean@ubilinux:~$ rosrun edbot src/diffdrv.py
+[INFO] [WallTime: 1474394224.248121] DiffDrv _init_: Starting with serial port: /dev/ttyMFD1, baud rate: 19200
+[INFO] [WallTime: 1474394224.272194] sdg._init_
+[INFO] [WallTime: 1474394224.274092] DiffDrv.Start: Starting
+[INFO] [WallTime: 1474394224.275692] sdg.Start: Starting serial gateway
+
+acer c720:
+----------
+t1
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/node-joystick$ node roslibjoy.js
+(node) util.debug is deprecated. Use console.error instead.
+DEBUG: ROSLib uses utf8 encoding by default.It would be more efficent to use ascii (if possible)
+safety :  enabled  throttle disabled
+Connected to websocket server.
+
+t2
+$ rviz rviz
+  select Fixed Frame = /odom, drive with xbox360 gc and watch base_link move around the rviz grid map
+  while monitoring odometric position for rviz side-bar
+  see "Screenshot from 2016-09-20 11:17:39.png"

@@ -93,4 +93,23 @@ instead, i see the wheel rotates ~1/3 rev and odometry indicates movement of ~1m
 
 >> review / verify code that does odometery calculations
 
+FIX Wheel Encoder Resolution issue in odom53.py
+IS: 1024 cpr       \__ this is whats causing the issue observed above
+SHOULD BE: 4096 cpr/
+
+Verify linear and angular odometry & tf calculations using rviz:
+
+Linear:  
+Drive robot with linear cv only to 1m mark on RVIZ grid & 
+ verify rqt tf X position says ~1m and Y pos ~0            OK!!
+
+Make wheels spin ~1 Rev &
+ verify rqt tf delta X is ~854mm = ~.8m                    OK!!
+
+Angular:
+Drive robot with angular CAV = 1.0 rad/sec &
+ verify 180deg rotation on RVIZ grid takes ~3.14 sec	 OK!
+
+Drive robot with angular CAV = 0.5 rad/sec &
+ verify 180deg rotation on RVIZ grid takes ~6.28 sec     OK!
 
