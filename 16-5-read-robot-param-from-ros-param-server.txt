@@ -1,0 +1,235 @@
+
+1. Create roslaunch file to set some parameters on the ros parameters server
+
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/4_edbot-ros-pkg$ cat launch/robot_params.launch 
+
+<!-- 
+edbot robot parameters
+wheel_dia   .2626 m
+track_width .4680 m
+enc_cpr      4096 counts per wheel revolution
+-->
+
+<launch>
+  <group ns="edbot">
+    <param name="wheel_dia" value=".2626" />
+    <param name="track_width" value=".4680" />
+    <param name="enc_cpr" value="4096" />
+  </group>
+</launch>
+
+2. use roslaunch to run the edbot launch/robot_params.launch file 
+> roslaunch with launch nodes and set parameters on the Parameter Server
+
+t1:
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/4_edbot-ros-pkg$ roslaunch launch/robot_params.launch 
+...
+
+3. use rosparam from the command line to view/dump/reset parameter values from the parameter server
+
+t2:
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/4_edbot-ros-pkg$ rosparam help
+rosparam is a command-line tool for getting, setting, and deleting parameters from the ROS Parameter Server.
+
+Commands:
+	rosparam set	set parameter
+	rosparam get	get parameter
+	rosparam load	load parameters from file
+	rosparam dump	dump parameters to file
+	rosparam delete	delete parameter
+	rosparam list	list parameter names
+
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/4_edbot-ros-pkg$ rosparam list
+/edbot/enc_cpr
+/edbot/track_width
+/edbot/wheel_dia
+/rosdistro
+/roslaunch/uris/host_iqdean_peppy__41606
+/rosversion
+/run_id
+
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/4_edbot-ros-pkg$ rosparam get /edbot/enc_cpr
+4096
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/4_edbot-ros-pkg$ rosparam get /edbot/track_width
+0.468
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/4_edbot-ros-pkg$ rosparam get /edbot/wheel_dia
+0.2626
+
+4 === to access parameters from python code, use rospy
+
+http://wiki.ros.org/rospy_tutorials/Tutorials/Parameters
+
+You can also specify a default value if the parameter doesn't exist:
+
+rospy.get_param('foo', 'default_value')
+
+
+4.1 update odometriclocalizer.py to read robot params from parameter server
+
+--------
+
+    def __init__(self):
+
+        rospy.init_node('edbotodom')
+        rospy.loginfo("edbotodom node init")
+
+        # subscriptions and publications
+	self._OdometryTransformBroadcaster = tf.TransformBroadcaster()
+	self._OdometryPublisher = rospy.Publisher("odom", Odometry, queue_size=10)
+
+        # setup storage for current(t0) and last(t1) periodic samples
+        self._t0 = edspi53.MotorEncoders()    # of time stamped wheel encoder data
+        self._t1 = edspi53.MotorEncoders()
+
+        self._spi = edspi53.Spi()   # instance Spi() class to read samples of 
+        self._spi.start()           #   time stamped wheel encoder data using libspi52.so
+    
+        #wd = .2626
+        #tw = .4680
+        #cpr = 4096
+        wd = rospy.get_param('/edbot/wheel_dia', .2626)
+        tw = rospy.get_param('/edbot/track_width', .4680)
+        cpr = rospy.get_param('/edbot/enc_cpr', 1024)      # set default to wrong value to test code
+        
+        self._odom = odom53.Odom(wd,tw,cpr)  # instance Odom() class to compute odometry
+
+        self._t0 = self._spi.rdEncoders()   # equalize t0 & t1 before periodic updates in 
+        self._t1 = self._spi.rdEncoders()   # case we r starting w non-zero encoder counts
+
+        self._cnt = 20;
+
+--------
+
+Without running robot_params.launch file (no parameters on parameter server, so use default values):
+-----------------------------------------
+iqdean@ubilinux:~/catkin_ws/src/edbot/src$ sudo /bin/bash
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# source startOdomAsRoot 
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1474505429.762144] edbotodom node init
+Robot Params: wd: 0.262600 tw: 0.468000 cpr: 1024           << cpr = 1024, so default values got loaded  OK
+k1_dpc: 0.000805646709798 k2_rpc: 0.001721467328627
+
+1st - Run $ roslaunch edbot robot_params.launch
+--------------------------------------------
+started roslaunch server http://192.168.2.15:39491/
+
+SUMMARY
+========
+
+PARAMETERS
+ * /edbot/enc_cpr: 4096
+ * /edbot/track_width: 0.468
+ * /edbot/wheel_dia: 0.2626
+ * /rosdistro: indigo
+ * /rosversion: 1.11.20
+--------------------------------------------
+started roslaunch server http://192.168.2.15:39491/
+
+SUMMARY
+========
+
+
+Then start odometriclocalizer node
+-----------------------------------
+
+root@ubilinux:/home/iqdean/catkin_ws/src/edbot/src# rosrun edbot src/odometriclocalizer.py
+[INFO] [WallTime: 1474505889.638691] edbotodom node init
+Robot Params: wd: 0.262600 tw: 0.468000 cpr: 4096           << now params getting rd from ros parameter service
+k1_dpc: 0.000201411677449 k2_rpc: 0.000430366832157            cuz cpr = 4096 & not incorrect default value
+
+
+------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+==== background on roslaunch and rosparameters and ros node vs ros topic names and ros namespaces =====
+
+http://wiki.ros.org/roslaunch
+roslaunch is a tool for easily launching multiple ROS nodes locally and remotely via SSH, 
+as well as setting parameters on the Parameter Server. 
+
+https://cse.sc.edu/~jokane/agitr/agitr-letter-param.pdf
+
+1. Setting Parameters onto the ROS Parameter Server
+
+1.1 from command line using rosparam
+
+rosparam set /duck_colors/huey red
+rosparam set /duck_colors/dewey blue
+rosparam set /duck_colors/louie green
+rosparam set /duck_colors/webby pink
+
+
+1.2 from within a launch file that feeds roslaunch
+ 
+Another very common method for setting parameters is to do so within a launch file.
+
+For example, this launch
+file fragment is equivalent to the rosparam set commands on page 107:
+
+<group ns="duck_colors">
+       <param name="huey" value="red" />
+       <param name="dewey" value="blue" />
+       <param name="louie" value="green" />
+       <param name="webby" value="pink" />
+</group>
+
+http://dougsbots.blogspot.com/2012/09/ros-launch-files-and-parameters.html
+http://answers.ros.org/question/11728/namespace-and-remapping/
+
+So: Use the private NodeHandle for getting parameters and a "normal" NodeHandle for creating topics/services. 
+
+That should clean up a lot of your problems.
+
+
+--- need to have a consistent naming schema -----
+Right Now we got:
+
+pkg  name    edbot 	      edbot		< $ catkin_create_pkg edbot <dep1> <dep2> <etc>
+file_name    diffdrv.py	      odometriclocalizer.py      < $ rosrun edbot src/file_name.py
+node name    diffdrv	      edbotodom                  < rospy.init_node('edbotodom')
+
+Note: 
+      You can remap node topic names when you start the node
+
+6.4.1 Creating remappings
+There are two ways create remappings when starting a node. 
+
+For example, to run a turtlesim instance that publishes its pose data on a topic
+called /tim instead of /turtle1/pose, use a command like this:
+
+rosrun turtlesim turtlesim_node turtle1/pose:=tim
+
+To remap names within a launch file, use a remap element:
+<remap from="original-name" to="new-name" />
+
+Subscribe to topic from node_name = turtle1, turtle2, turtle3  ...
+
+http://wiki.ros.org/ROS/Tutorials/WritingPublisherSubscriber(python)
+
+def listener():
+
+    # In ROS, nodes are uniquely named. If two nodes with the same
+    # node are launched, the previous one is kicked off. The
+    # anonymous=True flag means that rospy will choose a unique
+    # name for our 'listener' node so that multiple listeners can
+    # run simultaneously.
+
+    rospy.init_node('listener', anonymous=True)
+
+    rospy.Subscriber("chatter", String, callback)
+
+==== ok, lets setup a launch file to load some parameters onto ros parameter server ====
+
+https://cse.sc.edu/~jokane/agitr/agitr-letter-launch.pdf
+http://wiki.ros.org/roslaunch/XML
+
