@@ -1,4 +1,38 @@
 ---- BKM edbot rbc startup: ------
+
+             xbox360 gc
+                |wireless     
+            wlgc adapter
+                |usb
+Assumes:    acer-c720 <---- usb0 eth ----> robot
+            192.168.2.208                 192.168.2.15
+
+t1 on robot
+---------
+ssh iqdean@192.168.2.15
+
+$ roscd edbot/src
+$ sudo /bin/bash
+$ source startOdomAsRoot
+$ roslaunch edbot edbot_rbc.launch
+
+t2 on acer
+---------
+iqdean@iqdean-Peppy:~$ cd acer-c720/2016/00-github/node-joystick
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/node-joystick$ node roslibjoy.js
+
+To Drive: Hold Left Brake Button (Saftey) Pushed, use Right Joystick to drive
+
+t3 on acer
+----------
+$ rviz rviz       <-- to visualize odometry of base_link relative to world /odom frame
+                      as you drive the robot around using xbox360 game controller
+
+
+
+
+
+
 edbot/launch/edbot_rbc.launch
 ----------------------------------
 <!--
