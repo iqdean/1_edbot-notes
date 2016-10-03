@@ -1,0 +1,238 @@
+---- BKM edbot rbc startup: ------
+
+             xbox360 gc
+                |wireless     
+            wlgc adapter
+                |usb
+            192.168.2.208                 192.168.2.15
+Assumes:    acer-c720 <---- usb0 eth ----> robot
+                |
+            10.42.0.1 <- acer hotspot
+	    	|
+               wifi
+                |			 
+	    hp-dm4
+
+hmm, can't wifi to hardwired 192.xxx.xxx.xxx so try:
+a) use acer wifi i/f as hotspot
+
+On Acer,
+with usb0 connected 
+with wifi connected, 
+got to network
+settings, select USE AS HOTSPOT, turns off wifi &
+Network Name: iqdean-Peppy
+Security:     WEP
+Key:          485509638a
+
+b)   change wired network static ip's to the 10.4.x.x network
+     of the hotspot 
+
+in /etc/network/interfaces
+
+b.1) on edison  /etc/network/interfaces  usb0	192.168.2.15 -> 10.42.0.15
+
+auto usb0
+iface usb0 inet static
+address 10.42.0.15					<
+netmask 255.255.255.0
+gateway 10.42.0.1					<
+
+b.1.1) on edsion    /etc/hosts
+
+iqdean@ubilinux:~$ cat /etc/hosts
+127.0.0.1	localhost
+#10.0.0.157	ubilinux
+#192.168.2.15	ubilinux				< maybe this is why it takes so long to
+10.42.0.15      ubilinux				< ssh to edison now???
+::1		localhost ip6-localhost ip6-loopback
+fe00::0		ip6-localnet
+ff00::0		ip6-mcastprefix
+ff02::1		ip6-allnodes
+ff02::2		ip6-allrouters
+
+b.1.2) on edison	/home/iqdean/.bashrc
+
+
+
+
+
+
+b.2) on acer  /etc/network/interfaces	usb0	192.168.2.208 -> 10.42.0.208
+
+allow-hotplug usb0
+iface usb0 inet static
+address 10.42.0.208		<
+netmask 255.255.255.0
+gateway 10.42.0.1		<
+
+b.2.1) on acer  /etc/hosts
+
+iqdean@iqdean-Peppy:~$ cat /etc/hosts
+127.0.0.1	localhost
+127.0.1.1	iqdean-Peppy
+#192.168.2.15	ubilinux	<
+10.42.0.15      ubilinux	<
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+
+b.2.3) on acer	/home/iqdean/.bashrc
+
+export ROS_MASTER_URI=http://192.168.2.15:11311
+export ROS_IP=192.168.2.208
+export ROS_HOSTNAME=192.168.2.208
+
+
+
+b.3) shutdown -h edison, wait for it to shutdown, then uplug from usb hub
+     unplug usb0 cable from acer and replug
+
+>>> SIDETRACK in 17-2-xxxx.txt <<<
+edison fails to boot after the network ip change cuz ntpd won't start quick
+enough so the watchdog timer resets it and we get stuck in a loop
+>>> see 17-2-xxx.txt for fix <<<
+
+on acer, $ ifconfig    usb0 inet addr:10.42.0.208
+on robot $ ifconfig    usb0 inet addr:10.42.0.15
+
+b.4) enable wlan0 hotspot on acer
+
+iqdean@iqdean-Peppy:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:708 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:708 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:59335 (59.3 KB)  TX bytes:59335 (59.3 KB)
+
+usb0      Link encap:Ethernet  HWaddr 22:21:5d:b4:e8:63  
+          inet addr:10.4.0.208  Bcast:10.4.0.255  Mask:255.255.255.0
+          inet6 addr: fe80::2021:5dff:feb4:e863/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:646 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:894 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:72210 (72.2 KB)  TX bytes:82828 (82.8 KB)
+
+wlan0     Link encap:Ethernet  HWaddr 48:5a:b6:c4:41:af  
+          inet addr:10.42.0.1  Bcast:10.42.0.255  Mask:255.255.255.0
+          inet6 addr: fe80::4a5a:b6ff:fec4:41af/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:2830 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:1982 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:1393164 (1.3 MB)  TX bytes:338088 (338.0 KB)
+
+see if robot can ping the wlan0 10.42.0.1 
+
+
+c) connect hp dm4 to SSID = iqdean-Peppy
+   can you ping robot from hp dm4?		NOT!!
+
+AFTER WASTING 2 DAYS ON TRYING TO GET UBUNTU to UBUNTU Hotspot working
+the conclusion is that Ubuntu 14.04 Hotspot support is CRAP and doesn't work
+worth a shit... 
+
+PLAN B: Research &  Buy a Portable Wifi Router/AP/Hotspot for use on the robot
+
+
+
+
+
+
+
+
+
+
+iqdean@iqdean-Peppy:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:3480 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:3480 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:340542 (340.5 KB)  TX bytes:340542 (340.5 KB)
+
+usb0      Link encap:Ethernet  HWaddr 22:2c:cd:5c:e2:24  
+          inet addr:192.168.2.208  Bcast:192.168.2.255  Mask:255.255.255.0   <-- 192.168.2.x network
+          inet6 addr: fe80::202c:cdff:fe5c:e224/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:31884 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:32092 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:3073382 (3.0 MB)  TX bytes:4842888 (4.8 MB)
+
+wlan0     Link encap:Ethernet  HWaddr 48:5a:b6:c4:41:af  
+          inet addr:10.42.0.1  Bcast:10.42.0.255  Mask:255.255.255.0     <-- 10.42.0.1 network
+          inet6 addr: fe80::4a5a:b6ff:fec4:41af/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:88207 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:54808 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:84191766 (84.1 MB)  TX bytes:11719092 (11.7 MB)
+
+--- Linux Network Bridge ----
+http://www.microhowto.info/howto/bridge_traffic_between_two_or_more_ethernet_interfaces_on_linux.html
+http://www.microhowto.info/howto/persistently_bridge_traffic_between_two_or_more_ethernet_interfaces_on_debian.html
+https://wiki.linuxfoundation.org/networking/bridge
+Sample setup
+
+The basic setup of a bridge is done like:
+
+ # ifconfig eth0 0.0.0.0
+ # ifconfig eth1 0.0.0.0
+ # brctl addbr mybridge
+ # brctl addif mybridge eth0
+ # brctl addif mybridge eth1 
+ # ifconfig mybridge up
+This will set the host up as a pure bridge, it will not have an IP address for itself, 
+so it can not be remotely accessed (or hacked) via TCP/IP.
+
+Optionally you can configure the virtual interface mybridge to take part in your network. 
+It behaves like one interface (like a normal network card). Exactly that way you configure 
+it, replacing the previous command with something like:
+
+ # ifconfig mybridge 192.168.100.5 netmask 255.255.255.0
+
+If you want your bridge to automatically get its IP address from the ADSL modem via DHCP 
+(or a similar configuration), do this:
+
+ # ifconfig eth0 0.0.0.0
+ # ifconfig eth1 0.0.0.0
+ # brctl addbr mybridge
+ # brctl addif mybridge eth0
+ # brctl addif mybridge eth1 
+ # dhclient mybridge
+
+If you do this many times, you may end up with lots of dhclient processes. Either kill them 
+impolitely or learn about omshell(1).
+
+
+
+t1 on robot
+---------
+ssh iqdean@192.168.2.15
+
+$ roscd edbot/src
+$ sudo /bin/bash
+$ source startOdomAsRoot
+$ roslaunch edbot edbot_rbc.launch
+
+t2 on acer
+---------
+iqdean@iqdean-Peppy:~$ cd acer-c720/2016/00-github/node-joystick
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/node-joystick$ node roslibjoy.js
+
+To Drive: Hold Left Brake Button (Saftey) Pushed, use Right Joystick to drive
+
+t3 on acer
+----------
+$ rviz rviz       <-- to visualize odometry of base_link relative to world /odom frame
+                      as you drive the robot around using xbox360 game controller

@@ -1,0 +1,222 @@
+
+  inet <--wlan0--> acer720 <-----usb0-------> edison
+
+
+acer
+----
+/etc/network/interfaces
+
+
+iqdean@iqdean-Peppy:~$ sudo cat /etc/network/interfaces
+
+# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+#allow-hotplug usb0        << comment out whole stanza
+#iface usb0 inet static       so usb0 gets managed by
+#address 192.168.2.1          NetworkManager
+#netmask 255.255.255.0
+#gateway 10.0.0.1
+
+#gateway 10.0.0.53
+
+
+---right now, when you unplug/plug usb0, it gets a IP 192.168.2.209 ---
+
+1. name the usbo wired connection using nm-connection-editor:   edison-usb-eth
+REF:
+https://major.io/2015/03/29/share-a-wireless-connection-via-ethernet-in-gnome-3-14/
+
+1.1 open network manager > wired > Options > IPV4 Settings Method > Shared to other Computers
+
+2. Unplug/plug usb0 ... you have to get NM to reconnect... on regular ubuntu desktop
+   you can do this by clicking on the wired connection name in the NM drop down, but 
+   since u1404 Gnome desktop's NM is all f'd up, it doesnt display connection names
+   for wired connections, only wireless, you have to physically unplug/plug usb0 cable
+   to force a reconnect
+REF:
+http://askubuntu.com/questions/359856/share-wireless-internet-connection-through-ethernet
+
+2.1 $ifconfig
+
+iqdean@iqdean-Peppy:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:1700 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:1700 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:151850 (151.8 KB)  TX bytes:151850 (151.8 KB)
+
+usb0      Link encap:Ethernet  HWaddr 42:78:87:86:90:92                      usb0 IP =
+          inet addr:10.42.0.1  Bcast:10.42.0.255  Mask:255.255.255.0    <--- 10.42.0.1
+          inet6 addr: fe80::4078:87ff:fe86:9092/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:44 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:0 (0.0 B)  TX bytes:7481 (7.4 KB)
+
+wlan0     Link encap:Ethernet  HWaddr 48:5a:b6:c4:41:af  
+          inet addr:10.0.0.53  Bcast:10.0.0.255  Mask:255.255.255.0
+          inet6 addr: 2601:204:c201:6847:4a5a:b6ff:fec4:41af/64 Scope:Global
+          inet6 addr: fe80::4a5a:b6ff:fec4:41af/64 Scope:Link
+          inet6 addr: 2601:204:c201:6847::8def/128 Scope:Global
+          inet6 addr: 2601:204:c201:6847:f0d1:c2d2:d1a6:fa18/64 Scope:Global
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:5447 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:3814 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:1379990 (1.3 MB)  TX bytes:685679 (685.6 KB)
+
+On the client computer (which in my case is edison):
+
+Go to "Edit Connections..." and assign a "Manual" Method. 
+Assign an IP address on the same subnetwork (10.42.0.15 for example) 
+Ex: 
+IP :		10.42.0.15     \ static ip on same subnet as acer usb0
+Netmask: 	255.255.255.0  /
+Gateway:        10.42.0.1      \ Gateway & DNS of client = ip of acer usb0
+DNS:            10.42.0.1      /
+
+Edison has
+wlan0  10.0.0.157   < auto connects to home wifi
+usb0   192.168.2.15 < static ip 
+
+$ ssh iqdean@10.0.0.157
+
+/etc/network/interfaces
+------------------------
+auto lo
+iface lo inet loopback
+
+auto usb0
+iface usb0 inet static
+address 10.42.0.15
+netmask 255.255.255.0
+gateway 10.42.0.1
+dns-nameservers 10.42.0.1
+
+auto wlan0
+iface wlan0 inet dhcp
+wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+
+/etc/wpa_supplicant/wpa_supplicant.conf
+---------------------------------------
+ctrl_interface=DIR=/var/run/wpa_supplicant
+
+network={
+  ssid="Dean1046"
+  key_mgmt=WPA-PSK
+  pairwise=CCMP TKIP
+  group=CCMP TKIP WEP104 WEP40
+  eap=TTLS PEAP TLS
+  psk="9167690912"
+  id_str="HomeNetwork"
+}
+
+$ sudo ifdown usb0
+$ sudo ifup usb0
+$ ifconfig
+
+iqdean@ubilinux:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:140 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:140 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:14456 (14.1 KiB)  TX bytes:14456 (14.1 KiB)
+
+usb0      Link encap:Ethernet  HWaddr 02:00:86:aa:b1:95  
+          inet addr:10.42.0.15  Bcast:10.42.0.255  Mask:255.255.255.0
+          inet6 addr: fe80::86ff:feaa:b195/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:868 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:222 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:119128 (116.3 KiB)  TX bytes:30089 (29.3 KiB)
+
+wlan0     still connected...
+
+$ sudo ifdown wlan0
+--- kills the term ---
+
+start new term:
+$ ssh iqdean@10.42.0.15    
+
+iqdean@ubilinux:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:140 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:140 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:14456 (14.1 KiB)  TX bytes:14456 (14.1 KiB)
+
+usb0      Link encap:Ethernet  HWaddr 02:00:86:aa:b1:95  
+          inet addr:10.42.0.15  Bcast:10.42.0.255  Mask:255.255.255.0
+          inet6 addr: fe80::86ff:feaa:b195/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:868 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:222 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:119128 (116.3 KiB)  TX bytes:30089 (29.3 KiB)
+
+iqdean@ubilinux:~$ wget http://date.jsontest.com
+--2016-09-25 23:26:31--  http://date.jsontest.com/
+Resolving date.jsontest.com (date.jsontest.com)... 216.58.194.211, 2607:f8b0:4005:804::2013
+Connecting to date.jsontest.com (date.jsontest.com)|216.58.194.211|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 100 [application/json]
+Saving to: `index.html'
+
+100%[======================================>] 100         --.-K/s   in 0s      
+
+2016-09-25 23:26:32 (2.23 MB/s) - `index.html' saved [100/100]
+
+iqdean@ubilinux:~$ cat index.html 
+{
+   "time": "06:26:32 AM",
+   "milliseconds_since_epoch": 1474871192098,
+   "date": "09-26-2016"
+}
+
+KEWL!!! 3 days later, we got a working config... ubu network manger is junk
+  /etc/network/interfaces             NM                  NM
+        Static                        IPV4>Shared         home internet
+        edison <-------------usb0--------------> Acer <---wlan0 
+address        10.42.0.15             10.42.0.1           10.0.0.53
+netmask       255.255.255.0          255.255.255.0        255.255.255.0
+gateway         10.42.0.1             These get           10.0.0.1
+dns-nameservers 10.42.0.1             autoassigned        75.75.75.75
+                                      by NM
+
+
+NOTE: With a USB-Eth Adapter, this is how you can share your notebook
+      wifi internet connection to the Rpi over ethernet:
+
+
+ inet <--wlan0--> acer <--usb-eth[<-- eth cable -->]raspberry pi
+
+
+
+
+===== hmm, for the robot wifi , we got the opposite of this ====
+
+ hp <--wlan0 --> acer <---usb0 ---> edison
+
+                               NM                       NM
+etc/network/interfaces         IPV4>Manual              Hotspot
+ edison <--------------- usb0 -----------> Acer <------ wlan0 
+ 192.168.2.15                   192.168.2.1         10.42.0.1 
+ 255.255.255.0                 255.255.255.0
+ 192.168.2.1                    10.42.0.1
+   \___ this won't chg             \___ this needs to change to match wlan0 ip address 
+        as long ip on           
+        acer side stays          
+        the same

@@ -1,0 +1,26 @@
+AFTER WASTING 2 DAYS ON TRYING TO GET UBUNTU to UBUNTU Hotspot working
+the conclusion is that Ubuntu 14.04 Hotspot support is CRAP and doesn't work
+worth a shit... 
+
+PLAN B: Research &  Buy a Portable Wifi Router/AP/Hotspot for use on the robot
+
+TL-WR802N Portable router with multiple operating modes, designed for home and travel
+
+Use the Wireless Router Mode to establish dedicated robot Wifi network:
+
+
+                     AcerC720
+                        |
+		     usb2_port
+                        |
+edison <--- usb0----> usb2Hub <-- usbEth[ <--network cable -> ] TL-WR802 <--> robot wifi ssid
+  ^        cable      /   \       adapter                          ^ usb pwr
+  |                  /     \______________________________________/
+12V ---> 5V Reg ____/
+Bat
+
+
+On Acer C720, going to have to figure out how to add a route between
+usb0 network and usbEth network 
+
+

@@ -1,0 +1,74 @@
+Network changes in previous 17-1-xxx seq prevent edison from booting cuz of
+ntpd setup...
+
+pull the sdcard and hack all the /etc/rcX.d startup scripts to prevent
+ntpd from starting
+
+killing ntpd fixes the edison boot issue but now the robot clock isn't in sync
+cuz edison doesn't have a RTC ? RTC Battery ???
+
+---- 
+New Static Network IP assignments work for point to point usb0 eth now:
+
+Acer                  robot
+10.4.0.208            10.4.0.15
+no hotspot yet  
+
+--- verify ntpd isn't running ....
+
+iqdean@ubilinux:~$ service --status-all
+ [ + ]  avahi-daemon
+ [ - ]  bootlogs
+ [ ? ]  bootmisc.sh
+ [ ? ]  checkfs.sh
+ [ ? ]  checkroot-bootclean.sh
+ [ - ]  checkroot.sh
+ [ + ]  cron
+ [ + ]  dbus
+ [ ? ]  galileod.sh
+ [ - ]  hostapd
+ [ - ]  hostname.sh
+ [ ? ]  hwclock.sh
+ [ ? ]  killprocs
+ [ ? ]  kmod
+ [ - ]  motd
+ [ ? ]  mountall-bootclean.sh
+ [ ? ]  mountall.sh
+ [ ? ]  mountdevsubfs.sh
+ [ ? ]  mountkernfs.sh
+ [ ? ]  mountnfs-bootclean.sh
+ [ ? ]  mountnfs.sh
+ [ ? ]  mtab.sh
+ [ ? ]  networking
+ [ - ]  ntp		<<< ntp isn't running
+ [ - ]  procps
+ [ ? ]  rc.local
+ [ - ]  rmnologin
+ [ - ]  rsync
+ [ + ]  rsyslog
+ [ ? ]  sendsigs
+ [ + ]  ssh
+ [ - ]  sudo
+ [ + ]  udev
+ [ ? ]  udev-mtab
+ [ ? ]  udhcpd
+ [ ? ]  umountfs
+ [ ? ]  umountnfs.sh
+ [ ? ]  umountroot
+ [ - ]  urandom
+
+iqdean@ubilinux:~$ date
+Fri Dec 31 16:09:55 PST 1999			<< date is all messed up cuz no working RTC on edison !!!
+
+iqdean@ubilinux:~$ sudo ntpdate 10.4.0.208	<< set hwclock from acer c720 running chrony
+[sudo] password for iqdean: 
+22 Sep 18:44:43 ntpdate[2195]: step time server 10.4.0.208 offset 527909654.526719 sec
+
+iqdean@ubilinux:~$ date
+Thu Sep 22 18:44:47 PDT 2016
+
+Hmm, appears you really don't need ntpd running on the robot side, just sync the hw clock each time u
+boot... once we get to working networking setup, we can try adding ntpdate <IP_of_acer> to /etc/rc.local
+and see if that works
+
+---
