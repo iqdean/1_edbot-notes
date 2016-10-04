@@ -1,0 +1,234 @@
+Sun Oct  2 17:49:21 PDT 2016
+
+RECAP
+======
+
+17-edbot_rbc_launch.txt
+
+---- BKM edbot rbc startup: ------
+
+             xbox360 gc
+                |wireless     
+            wlgc adapter
+                |usb
+Assumes:    acer-c720 <---- usb0 eth ----> robot
+            192.168.2.208                 192.168.2.15
+
+t1 on robot
+---------
+ssh iqdean@192.168.2.15
+
+$ roscd edbot/src
+$ sudo /bin/bash
+$ source startOdomAsRoot
+$ roslaunch edbot edbot_rbc.launch
+
+t2 on acer
+---------
+iqdean@iqdean-Peppy:~$ cd acer-c720/2016/00-github/node-joystick
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/node-joystick$ node roslibjoy.js
+
+To Drive: Hold Left Brake Button (Saftey) Pushed, use Right Joystick to drive
+
+t3 on acer
+----------
+$ rviz rviz       <-- to visualize odometry of base_link relative to world /odom frame
+                      as you drive the robot around using xbox360 game controller
+----------------------------------------------------------------------------------------------
+
+
+Networking Config1:    (17-4-shware-wifi-inet-over-usb-eth.txt)
+--------------------
+ to allow edison to get at internet via usb0 (to acer c720) thru wlan0 (acer c720 wifi link to home network)
+
+       onboard                                 onboard
+          |                                        |
+  /etc/network/interfaces             NM           |       NM
+        Static                        IPV4>Shared  |       home internet
+        edison <-------------usb0--------------> Acer <---wlan0 
+address        10.42.0.15             10.42.0.1           10.0.0.53
+netmask       255.255.255.0          255.255.255.0        255.255.255.0
+gateway         10.42.0.1                                 10.0.0.1
+dns-nameservers 10.42.0.1                                 75.75.75.75
+                    /\                     /\                 /\
+                manually assigned       auto assigned      auto assigned
+                static IP               by ubu             by dhcp in home wifi gateway
+                                        NetworkManager
+
+NOTE: With a USB-Eth Adapter, this is how you can share your notebook
+      wifi internet connection to the Rpi over ethernet:
+
+
+ inet <--wlan0--> acer <--usb-eth[<-- eth cable -->]raspberry pi
+
+Network Config 2   (17-3-edbot-acer-hotspot-networking.txt)
+-----------------  No internet access, robot has it's own dedicated wifi network for use with ROS
+
+This is what we need for testing odometery using xbox wireless game adapter on Acer being driven from HP DM4
+
+ -----------------onboard----------------------       --- off board ---
+
+                           XBOX WLGC <--- wireless------ xbox game controller
+                               |
+ edison <---- USB0 ---------> Acer <------wlan0--------> HP DM4 
+ 10.42.0.15         10.42.0.20     10.42.0.1                         
+ rosmaster
+
+From HP DM4:  (after connecting to edbot hotspot ap)
+
+t1 to edison
+---------
+ssh iqdean@10.42.2.15
+
+$ roscd edbot/src
+$ sudo /bin/bash
+$ source startOdomAsRoot
+$ roslaunch edbot edbot_rbc.launch
+
+t2 to acer
+---------
+ssh iqdean@10.42.0.1     <--? will this work ?
+ssh iqdean@10.42.0.20    <--?
+
+iqdean@iqdean-Peppy:~$ cd acer-c720/2016/00-github/node-joystick
+iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/node-joystick$ node roslibjoy.js
+
+t3 to hpdm4
+------------
+$ rviz rviz
+
+- drive with xbox gc
+- observe robot odometry in rviz on hpdm4
+
+                               NM                        NM
+etc/network/interfaces         IPV4>Manual               Hotspot
+ edison <--------------- usb0 -----------> Acer <-------- wlan0   --------> HP DM4
+  10.42.0.15                    10.42.0.10       10.42.0.1              10.42.0.xx <- will get auto assigned
+ 255.255.255.0                 255.255.255.0                                            by acer hotspot
+  10.42.0.10                    10.42.0.1        
+  10.42.0.10
+
+==== start lab =====
+
+1) reconfigure edison/acer/hpdm4 networking - make sure everyone can ping everyone else
+   REF: 17-3-edbot-acer-hotspot-networking.txt
+
+edison 
+
+1.1 /etc/network/interfaces
+1.2 /etc/hosts
+1.3 /home/iqdean/.bashrc
+1.4 /catkin_ws/src/edbot/src/startOdomAsRoot
+
+acer
+2.1 /etc/NetworkManager/NetworkManager.conf 
+2.2 /etc/network/interfaces
+2.3 /home/iqdean/.bashrc
+2.4 On Acer, make wlan0 a hotspot
+-----------------------------
+Network Manager Icon > Wifi Settings > Wireless > Use as Hotspot > Turn On
+Netowork Name: iqdean-Peppy
+Securty Type:  WEP
+Security Key:  72885c773d
+
+HP DM4
+connect to Hotspot on Acer  (use Network Manager, select wifi network ssid, add pw, connect)
+HP DM4 gets asssigned IP = 10.42.0.?? by Acer720 Hotspot
+ 
+$ ping 10.42.0.1
+$ ping 10.42.0.15  
+$ ping 10.42.0.10   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2) install ros indigo on HP DM4
+
+iqdean@hpdm4:~/Downloads$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+udev            2.9G  4.0K  2.9G   1% /dev
+tmpfs           592M  1.2M  591M   1% /run
+/dev/sda3        14G  7.3G  5.6G  57% /
+none            4.0K     0  4.0K   0% /sys/fs/cgroup
+none            5.0M     0  5.0M   0% /run/lock
+none            2.9G  184K  2.9G   1% /run/shm
+none            100M   36K  100M   1% /run/user
+/dev/sda2       583G  174G  409G  30% /media/8C365D65365D5176
+
+
+REF: http://wiki.ros.org/indigo/Installation/Ubuntu
+
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net --recv-key 0xB01FA116
+sudo apt-get update
+
+Desktop Install: ROS, rqt, rviz, and robot-generic libraries
+sudo apt-get install ros-indigo-desktop
+...
+0 upgraded, 594 newly installed, 0 to remove and 3 not upgraded.
+Need to get 168 MB of archives.
+After this operation, 816 MB of additional disk space will be used.
+Do you want to continue? [Y/n] Y
+
+Before you can use ROS, you will need to initialize rosdep. 
+rosdep enables you to easily install system dependencies for source you want to compile 
+and is required to run some core components in ROS.
+
+sudo rosdep init
+rosdep update
+
+Setup Environment:
+echo "source /opt/ros/indigo/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+
+iqdean@hpdm4:~$ env | grep ROS
+ROS_ROOT=/opt/ros/indigo/share/ros
+ROS_PACKAGE_PATH=/opt/ros/indigo/share:/opt/ros/indigo/stacks
+ROS_MASTER_URI=http://localhost:11311
+ROSLISP_PACKAGE_DIRECTORIES=
+ROS_DISTRO=indigo
+ROS_ETC_DIR=/opt/ros/indigo/etc/ros
+
+iqdean@hpdm4:~$ which roscore
+/opt/ros/indigo/bin/roscore
+
+rosinstall is a frequently used command-line tool in ROS that is distributed separately. 
+It enables you to easily download many source trees for ROS packages with one command.
+
+sudo apt-get install python-rosinstall
+
+iqdean@hpdm4:~$ sudo apt-get clean
+iqdean@hpdm4:~$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+udev            2.9G  4.0K  2.9G   1% /dev
+tmpfs           592M  1.2M  591M   1% /run
+/dev/sda3        14G  7.9G  5.0G  62% /
+none            4.0K     0  4.0K   0% /sys/fs/cgroup
+none            5.0M     0  5.0M   0% /run/lock
+none            2.9G  3.9M  2.9G   1% /run/shm
+none            100M   32K  100M   1% /run/user
+/dev/sda2       583G  174G  409G  30% /media/8C365D65365D5176
+
+--------- test ros install -------
+
+$ roscore
+$ rostopic list
+$ rqt
+$ rviz rviz
+
+-------- end ros install ----------
+
+

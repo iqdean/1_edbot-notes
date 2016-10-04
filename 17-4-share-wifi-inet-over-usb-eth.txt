@@ -6,6 +6,9 @@ acer
 ----
 /etc/network/interfaces
 
+<<<<<<<< THIS SETUP REQUIRES NetworkManager to manage the usb0 eth adapter >>>>>>>>
+         so you can't use statically assigned IP Addresses
+
 
 iqdean@iqdean-Peppy:~$ sudo cat /etc/network/interfaces
 
