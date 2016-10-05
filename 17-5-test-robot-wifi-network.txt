@@ -71,14 +71,14 @@ This is what we need for testing odometery using xbox wireless game adapter on A
                            XBOX WLGC <--- wireless------ xbox game controller
                                |
  edison <---- USB0 ---------> Acer <------wlan0--------> HP DM4 
- 10.42.0.15         10.42.0.20     10.42.0.1                         
+ 10.42.0.15         10.42.0.10     10.42.0.1                         
  rosmaster
 
 From HP DM4:  (after connecting to edbot hotspot ap)
 
 t1 to edison
 ---------
-ssh iqdean@10.42.2.15
+ssh iqdean@10.42.0.15
 
 $ roscd edbot/src
 $ sudo /bin/bash
@@ -88,7 +88,7 @@ $ roslaunch edbot edbot_rbc.launch
 t2 to acer
 ---------
 ssh iqdean@10.42.0.1     <--? will this work ?
-ssh iqdean@10.42.0.20    <--?
+ssh iqdean@10.42.0.10    <--?
 
 iqdean@iqdean-Peppy:~$ cd acer-c720/2016/00-github/node-joystick
 iqdean@iqdean-Peppy:~/acer-c720/2016/00-github/node-joystick$ node roslibjoy.js
@@ -116,14 +116,69 @@ etc/network/interfaces         IPV4>Manual               Hotspot
 edison 
 
 1.1 /etc/network/interfaces
+
+# edision J16 <--- usb cable ---> ubu1404
+auto usb0
+iface usb0 inet static
+address 10.42.0.15
+netmask 255.255.255.0
+gateway 10.42.0.10
+dns-nameservers 10.42.0.10
+
 1.2 /etc/hosts
+127.0.0.1       localhost
+10.42.0.15      ubilinux
+::1             localhost ip6-localhost ip6-loopback
+fe00::0         ip6-localnet
+ff00::0         ip6-mcastprefix
+ff02::1         ip6-allnodes
+ff02::2         ip6-allrouters
+
 1.3 /home/iqdean/.bashrc
+# ROS multimachine networking setup for robot side
+# roscore is running on the robot
+export ROS_MASTER_URI=http://localhost:11311
+export ROS_IP=10.42.0.15  
+export ROS_HOSTNAME=10.42.0.15
+
 1.4 /catkin_ws/src/edbot/src/startOdomAsRoot
+# ROS multimachine networking setup for robot side
+# roscore is running on the robot
+export ROS_MASTER_URI=http://localhost:11311
+export ROS_IP=10.42.0.15  
+export ROS_HOSTNAME=10.42.0.15
 
 acer
-2.1 /etc/NetworkManager/NetworkManager.conf 
+2.1 /etc/NetworkManager/NetworkManager.conf     < No chgs
+[main]
+plugins=ifupdown,keyfile,ofono
+dns=dnsmasq
+
+no-auto-default=42:78:87:86:90:92,
+
+[ifupdown]
+managed=false
+
 2.2 /etc/network/interfaces
+# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+allow-hotplug usb0
+iface usb0 inet static
+address 10.42.0.10 
+netmask 255.255.255.0
+gateway 10.42.0.1
+
 2.3 /home/iqdean/.bashrc
+
+# ROS multimachine networking setup
+# roscore is running on robot, this is the workstation side
+export ROS_MASTER_URI=http://10.42.0.15:11311
+export ROS_IP=10.42.0.10
+export ROS_HOSTNAME=10.42.0.10
+
+
 2.4 On Acer, make wlan0 a hotspot
 -----------------------------
 Network Manager Icon > Wifi Settings > Wireless > Use as Hotspot > Turn On
@@ -131,16 +186,264 @@ Netowork Name: iqdean-Peppy
 Securty Type:  WEP
 Security Key:  72885c773d
 
+--- On Acer, we end up with:
+
+iqdean@iqdean-Peppy:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:977 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:977 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:83727 (83.7 KB)  TX bytes:83727 (83.7 KB)
+
+usb0      Link encap:Ethernet  HWaddr 66:63:a5:d1:12:e5  
+          inet addr:10.42.0.10  Bcast:10.42.0.255  Mask:255.255.255.0
+          inet6 addr: fe80::6463:a5ff:fed1:12e5/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:25 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:111 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:1838 (1.8 KB)  TX bytes:12592 (12.5 KB)
+
+wlan0     Link encap:Ethernet  HWaddr 48:5a:b6:c4:41:af  
+          inet addr:10.42.0.1  Bcast:10.42.0.255  Mask:255.255.255.0
+          inet6 addr: fe80::4a5a:b6ff:fec4:41af/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:5268 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:2806 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:6694568 (6.6 MB)  TX bytes:382712 (382.7 KB)
+
+iqdean@iqdean-Peppy:~$ route -e
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+10.42.0.0       *               255.255.255.0   U         0 0          0 usb0
+10.42.0.0       *               255.255.255.0   U         0 0          0 wlan0
+link-local      *               255.255.0.0     U         0 0          0 usb0
+
+
 HP DM4
 connect to Hotspot on Acer  (use Network Manager, select wifi network ssid, add pw, connect)
 HP DM4 gets asssigned IP = 10.42.0.?? by Acer720 Hotspot
- 
-$ ping 10.42.0.1
-$ ping 10.42.0.15  
-$ ping 10.42.0.10   
+
+Issue1:
+------
+The HP DM4 refuses to connecte to acer c720 hotspot... 
+??could be cuz i was using 1046-5 network and the HP wifi doesn't support 5Ghz band???
 
 
+Issue2:
 
+--- HMM, having both USB0 and WLAN0 on same 10.42.0.x results in a screwy routing table
+    where both usb0 and wlan0 endup being gateways so who knows which way the packets
+    are gonna endup going ?????
+
+the one time i did get hpdm4 to connect, i couldn ping 10.42.0.1 (acer hotspot) from hp ???
+
+=== Issue 1: REDO IP Addressing to keep usb0 and wlan0 on different networks
+
+Revert back to 17-3-xxx setup and see if it still works???
+
+                               NM IPV4>Manual
+                               via /etc/network          NM
+etc/network/interfaces             interfaces            Hotspot
+ edison <--------------- usb0 -----------> Acer <-------- wlan0   --------> HP DM4
+ 192.168.2.15                  192.168.2.1        10.42.0.1              10.42.0.xx <- will get auto assigned
+ 255.255.255.0                 255.255.255.0                                            by acer hotspot
+ 192.168.2.1                   10.42.0.1        
+
+Issue2: Make sure ur connected to Dean-1046 (& not Dean-1046-5) when u enable the hotspot ??? 
+        ??? not sure if this is gonna matter, but give it a shot ????
+
+
+On Acer: we got route table that makes sense... 
+- all traffic to 192.168.2.0 network goes in/out usb0 iface 
+- all traffic to 10.42.0.0   network goes in/out wlan0 iface
+
+iqdean@iqdean-Peppy:~$ route -e
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+10.42.0.0       *               255.255.255.0   U         0 0          0 wlan0
+192.168.2.0     *               255.255.255.0   U         0 0          0 usb0
+
+On HPDM4, see if we can connect to Acer Hotspot/AP (ssid= iqdean-Peppy, pw: 72885c773d)
+YES!!, HPDM4 connects to Acer Ok, gets IP=10.42.0.71 from acer hotspot
+
+From HPDM4:
+$ ping 10.42.0.1    OK
+$ ping 192.168.2.15 OK
+$ ping 192.168.2.1  Ok 
+
+From Acer
+$ ping 10.42.0.71   Ok
+
+From Edison:
+$ ping 10.42.0.1    Ok
+$ ping 10.42.0.71   DOESN'T WORK  ????
+
+On edison, none of the networking tools, like route or netstat don't work???
+>> it's trying to do dns lookup on the gateway and waiting for timeout, try running w -n option:
+
+iqdean@ubilinux:~$ route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.2.1     0.0.0.0         UG    0      0        0 usb0
+10.0.0.0        0.0.0.0         255.255.255.0   U     0      0        0 wlan0   <<< wifi on edison is on!!!
+192.168.2.0     0.0.0.0         255.255.255.0   U     0      0        0 usb0
+
+There's no route for the 10.42.0.x network...but ping 10.42.0.1 works, so that can't be the issue???
+
+$ sudo ifdown wlan0 
+
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.2.1     0.0.0.0         UG    0      0        0 usb0  <<< now route to wifi if is gone
+192.168.2.0     0.0.0.0         255.255.255.0   U     0      0        0 usb0
+
+
+iqdean@ubilinux:~$ sudo route add -net 10.42.0.0 netmask 255.255.255.0 dev usb0
+
+iqdean@ubilinux:~$ route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.2.1     0.0.0.0         UG    0      0        0 usb0
+10.42.0.0       0.0.0.0         255.255.255.0   U     0      0        0 usb0
+192.168.2.0     0.0.0.0         255.255.255.0   U     0      0        0 usb0
+
+iqdean@ubilinux:~$ ping 10.42.0.1
+PING 10.42.0.1 (10.42.0.1) 56(84) bytes of data.
+64 bytes from 10.42.0.1: icmp_req=1 ttl=64 time=0.367 ms
+64 bytes from 10.42.0.1: icmp_req=2 ttl=64 time=0.319 ms
+^C
+--- 10.42.0.1 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 999ms
+rtt min/avg/max/mdev = 0.319/0.343/0.367/0.024 ms
+iqdean@ubilinux:~$ ping 10.42.0.71
+PING 10.42.0.71 (10.42.0.71) 56(84) bytes of data.
+From 192.168.2.15 icmp_seq=1 Destination Host Unreachable
+From 192.168.2.15 icmp_seq=2 Destination Host Unreachable
+From 192.168.2.15 icmp_seq=3 Destination Host Unreachable
+^C
+--- 10.42.0.71 ping statistics ---
+5 packets transmitted, 0 received, +3 errors, 100% packet loss, time 4006ms
+pipe 3
+
+
+iqdean@ubilinux:~$ sudo route del -net 10.42.0.0 gw 0.0.0.0 netmask 255.255.255.0 dev usb0
+iqdean@ubilinux:~$ route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.2.1     0.0.0.0         UG    0      0        0 usb0
+192.168.2.0     0.0.0.0         255.255.255.0   U     0      0        0 usb0
+
+ON Acer:
+iqdean@iqdean-Peppy:~$ sudo route add default gw 10.42.0.1
+iqdean@iqdean-Peppy:~$ route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         10.42.0.1       0.0.0.0         UG    0      0        0 wlan0
+10.42.0.0       0.0.0.0         255.255.255.0   U     9      0        0 wlan0
+192.168.2.0     0.0.0.0         255.255.255.0   U     0      0        0 usb0
+
+On Edison:
+
+iqdean@ubilinux:~$ ping 10.42.0.1
+PING 10.42.0.1 (10.42.0.1) 56(84) bytes of data.
+64 bytes from 10.42.0.1: icmp_req=1 ttl=64 time=0.197 ms
+64 bytes from 10.42.0.1: icmp_req=2 ttl=64 time=0.333 ms
+^C
+
+iqdean@ubilinux:~$ ping 10.42.0.71
+PING 10.42.0.71 (10.42.0.71) 56(84) bytes of data.
+From 192.168.2.1 icmp_seq=1 Destination Port Unreachable
+From 192.168.2.1 icmp_seq=2 Destination Port Unreachable
+^C
+--- 10.42.0.71 ping statistics ---
+2 packets transmitted, 0 received, +2 errors, 100% packet loss, time 999ms
+
+
+Try adding 10.42.0.1 as default gateway on edison (since we can ping it ok)
+
+iqdean@ubilinux:~$ sudo route add default gw 10.42.0.1
+[sudo] password for iqdean: 
+SIOCADDRT: Network is unreachable
+iqdean@ubilinux:~$ 
+
+iqdean@iqdean-Peppy:~$ sudo iptables --list
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     udp  --  anywhere             anywhere             udp dpt:bootps
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:bootps
+ACCEPT     udp  --  anywhere             anywhere             udp dpt:domain
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:domain
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     all  --  anywhere             10.42.0.0/24         state RELATED,ESTABLISHED
+ACCEPT     all  --  10.42.0.0/24         anywhere            
+ACCEPT     all  --  anywhere             anywhere            
+REJECT     all  --  anywhere             anywhere             reject-with icmp-port-unreachable
+REJECT     all  --  anywhere             anywhere             reject-with icmp-port-unreachable
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination   
+
+iqdean@iqdean-Peppy:~$ sudo iptables -D FORWARD 4
+iqdean@iqdean-Peppy:~$ sudo iptables -D FORWARD 4
+
+iqdean@iqdean-Peppy:~$ sudo iptables -L
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     udp  --  anywhere             anywhere             udp dpt:bootps
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:bootps
+ACCEPT     udp  --  anywhere             anywhere             udp dpt:domain
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:domain
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     all  --  anywhere             10.42.0.0/24         state RELATED,ESTABLISHED
+ACCEPT     all  --  10.42.0.0/24         anywhere            
+ACCEPT     all  --  anywhere             anywhere            
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination   
+
+iqdean@ubilinux:~$ ping 10.42.0.1
+PING 10.42.0.1 (10.42.0.1) 56(84) bytes of data.
+64 bytes from 10.42.0.1: icmp_req=1 ttl=64 time=0.188 ms
+64 bytes from 10.42.0.1: icmp_req=2 ttl=64 time=0.168 ms
+^C
+--- 10.42.0.1 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 999ms
+rtt min/avg/max/mdev = 0.168/0.178/0.188/0.010 ms
+iqdean@ubilinux:~$ ping 10.42.0.71
+PING 10.42.0.71 (10.42.0.71) 56(84) bytes of data.
+64 bytes from 10.42.0.71: icmp_req=1 ttl=63 time=2.76 ms
+64 bytes from 10.42.0.71: icmp_req=2 ttl=63 time=6.30 ms
+64 bytes from 10.42.0.71: icmp_req=3 ttl=63 time=2.79 ms
+^C
+--- 10.42.0.71 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2004ms
+rtt min/avg/max/mdev = 2.760/3.952/6.306/1.665 ms
+
+LINUX IS A BITCH!!! .... it's the iptables rules for hotspot thats preventing edison from pinging
+hpdm4 connected thru hotspot gateway
+
+NOW, everything can ping everything else... GEESH... that took way longer than it should have!!!
+
+
+NOTE, when you turn off hotspot on acer, the iptables firewall rules change to:
+
+iqdean@iqdean-Peppy:~$ sudo iptables -L
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
 
 
 
