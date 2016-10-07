@@ -1,0 +1,226 @@
+With current networking setup (circa 17-6-bkm-blah-blah.txt),
+theres still some issues (linux is a bitch!):
+
+1. ssh iqdean@edison (either via wlan0 or via usb0), takes forever to connect
+
+> According to google, one reason this can happen is cuz dns lookups aren't working
+http://askubuntu.com/questions/246323/why-does-sshs-password-prompt-take-so-long-to-appear
+...
+To turn off reverse DNS lookups, add UseDNS no to /etc/ssh/sshd_config (you need to be root on the server; 
+remember to restart the SSH service afterwards).
+
+
+2. time is way off
+
+3. not sure due to which (1) or (2), access to github repos via home wifi (wlan0) doesn't work anymore
+
+==== to fix all this crap
+
+Right now, we don't got usb0 connected, but on edison, the usb0 networking setup is in effect:
+
+iqdean@ubilinux:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:140 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:140 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:14456 (14.1 KiB)  TX bytes:14456 (14.1 KiB)
+
+usb0      Link encap:Ethernet  HWaddr 02:00:86:aa:b1:95  
+          inet addr:192.168.2.15  Bcast:192.168.2.255  Mask:255.255.255.0
+          UP BROADCAST MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+wlan0     Link encap:Ethernet  HWaddr 78:4b:87:a6:98:77  
+          inet addr:10.0.0.157  Bcast:10.0.0.255  Mask:255.255.255.0
+          inet6 addr: 2601:204:c201:6847:7a4b:87ff:fea6:9877/64 Scope:Global
+          inet6 addr: fe80::7a4b:87ff:fea6:9877/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:9374 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:326 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:1216917 (1.1 MiB)  TX bytes:28658 (27.9 KiB)
+
+>>> we don't want usb0 networking config to be in effect if the usb0 cable isn't plugged in
+
+2 options: 
+
+a) make both usb0 and wlan0 manual... manually or via startup scripts, start the network config you want
+   depending on how things are setup... 
+   when acer is onboard, we want usb0 and no wlan0
+   when acer is offboard, we want wlan0 and no usb0
+
+----------------------------------------------------------------------------
+b) try allow-hotplug usb0  vs auto usb0  in edison /etc/network/interfaces    <<< THIS WORKS OK
+----------------------------------------------------------------------------
+WITHOUT usb0 cable connected between ACER AND EDISON:   (use this config when u want to get at
+-----------------------------------------------------    github using edison wifi network      )
+
+# this is for network over usb-ethernet
+# works great as point-to-point b/t edison & ubu notebook 
+# edision J16 <--- usb cable ---> ubu1404
+#auto usb0
+allow-hotplug usb0
+iface usb0 inet static
+address 192.168.2.15
+netmask 255.255.255.0
+gateway 192.168.2.1
+
+$ sudo /etc/init.d/networking restart
+
+$ ifconfig
+
+iqdean@ubilinux:~$ ifconfig
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:144 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:144 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:14772 (14.4 KiB)  TX bytes:14772 (14.4 KiB)
+
+wlan0     Link encap:Ethernet  HWaddr 78:4b:87:a6:98:77  
+          inet addr:10.0.0.157  Bcast:10.0.0.255  Mask:255.255.255.0
+          inet6 addr: 2601:204:c201:6847:7a4b:87ff:fea6:9877/64 Scope:Global
+          inet6 addr: fe80::7a4b:87ff:fea6:9877/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:10378 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:839 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:1309745 (1.2 MiB)  TX bytes:95686 (93.4 KiB)
+
+iqdean@ubilinux:~$ date
+Wed Oct  5 17:16:49 PDT 2016					<--- date is ok now
+
+iqdean@ubilinux:~/catkin_ws/src/edbot$ git status
+# On branch master
+# Your branch is ahead of 'origin/master' by 1 commit.
+
+iqdean@ubilinux:~/catkin_ws/src/edbot$ git push origin master     <--- git push from edison works now
+Username for 'https://github.com': iqdean
+Password for 'https://iqdean@github.com': 
+Counting objects: 11, done.
+Delta compression using up to 2 threads.
+Compressing objects: 100% (6/6), done.
+Writing objects: 100% (6/6), 514 bytes, done.
+Total 6 (delta 5), reused 0 (delta 0)
+remote: Resolving deltas: 100% (5/5), completed with 5 local objects.
+To https://github.com/iqdean/4_edbot-ros-pkg.git
+   d711a48..50872db  master -> master
+
+iqdean@ubilinux:~/catkin_ws/src/edbot$ exit
+logout
+Connection to 10.0.0.157 closed.
+
+iqdean@iqdean-Peppy:~$ ssh iqdean@10.0.0.157		<-- and now that dns works, the ssh delay issue is gone
+iqdean@10.0.0.157's password: 
+
+------------ ROBOT NETWORK ONLY, NO INTERNET ------------------------
+USE THIS CONFIG WHEN USING EDISON connected to ONBOARD ACER providing
+WIFI AP/Hotspot to allown HP DM4 to connect wirelessly 
+---------------------------------------------------------------------
+--- so, to avoid long ssh delays, when using ROBOT WIFI NETWORK WITHOUT INTERNET CONNECTION
+    we need to do 
+
+add UseDNS no to /etc/ssh/sshd_config    to all the machines in the ROS network ?or? just edison
+
+---- setup for the ROBOT NETWORK ----
+
+shutdown -h now and reboot the edison
+
+plug in acer <--usb0--> edsion usb cable
+
+On acer:
+
+iqdean@iqdean-Peppy:~$ ssh iqdean@192.168.2.15		<-- this takes forever now
+iqdean@192.168.2.15's password:
+
+iqdean@ubilinux:~$ route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.2.1     0.0.0.0         UG    0      0        0 usb0	<< no dns via default gateway
+10.0.0.0        0.0.0.0         255.255.255.0   U     0      0        0 wlan0
+192.168.2.0     0.0.0.0         255.255.255.0   U     0      0        0 usb0
+
+$ ssh iqdean@10.0.0.157     <--- this also takes forever
+
+<<<<<<<<<<<<<<< FIX for SSH TAKING FOREVER TO LOGIN >>>>>>>>>>>>>>>>>>
+                YOU ONLY HAVE TO DO THIS ON EDISON, which is the remote machine
+
+		OR ?? COULD HAVE U JUST STUCK THE ACER's IP in /etc/hosts on edison ??
+                      instead of screwing with /etc/ssh/sshd_config 
+
+--- on edison, update /etc/ssh/sshd_config ... add  	  UseDNS no 
+--- shutdown & reboot
+
+iqdean@iqdean-Peppy:~$ ssh iqdean@192.168.2.15
+iqdean@192.168.2.15's password:                    <--- and now ssh responds instantly!! issue resolved
+
+iqdean@ubilinux:~$ route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.2.1     0.0.0.0         UG    0      0        0 usb0
+10.0.0.0        0.0.0.0         255.255.255.0   U     0      0        0 wlan0
+192.168.2.0     0.0.0.0         255.255.255.0   U     0      0        0 usb0
+
+iqdean@ubilinux:~$ date
+Fri Dec 31 16:32:58 PST 1999			<-- but edison clock is way off with the usb0 network
+                                                    cuz there's not internet connection
+
+iqdean@ubilinux:~$ sudo ntpdate 192.168.2.1     <-- SO U HAVE TO MANUALLY SYNC THE CLOCK TO THE ACER MACHINE
+[sudo] password for iqdean:                         
+ 5 Oct 18:37:46 ntpdate[2056]: step time server 192.168.2.1 offset 529031048.537105 sec
+
+iqdean@ubilinux:~$ date
+Wed Oct  5 18:37:49 PDT 2016
+iqdean@ubilinux:~$ 
+
+
+GEESH, this networking stuff is turning into rabit hole and a time sink!!
+
+R WE THERE YET?            <--- not sure, we might have to sync the hpdm4 clock to ACER Machine also
+--------------                  to get all the clocks in sync... working without INTERNET IS GONNA BE 
+                                a PAIN IN THE ASS !!!
+
+--- on edison, kill wlan0       <- to simulate  
+--- on acer, 
+    start the hotspot/ap                even though we can ping edison from hpdm4 just fine
+    $ sudo iptables -D FORWARD 4   \___ rqt robot steering from hpdm4 won't work without this
+    $ sudo iptables -D FORWARD 4   /    
+
+--- on hpdm4 
+    connect to robot network
+t1  ssh to edison and start rbc    $ sudo -E /bin/bash
+                                   $ roslaunch edbot edbot_rbc.launch
+t2  $ rqt
+t3  $ rviz rviz
+
+drive robot using rqt robot steering    OK
+view tf in rviz                         Ok
+
+--- on acer
+dim the screen
+close the cover on the acer notebook
+
+--- on hp dm4
+
+drive robot using rqt robot steering    OK  \___ things still work from hpdm4 with acer lid closed
+view tf in rviz                         Ok  /
+
+--- shutdown seq from hpdm4
+
+t1  CTRL-C                     shutdown ros on robot
+    $ sudo shutdown -h now     power down edison  (wait for green led to turn off before removing Vbat)
+
+t2  CTRL-C
+t3  CTRL-C
+
+--- edison    power down by removing Vbat or turning off Power Supply
+--- Acer      open lid, switch off hotspot, power down notebook
+--- hpdm4     power down the notebook
