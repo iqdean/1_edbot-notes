@@ -1,0 +1,133 @@
+22-Sept-2016 
+Changed network settings on usb0 eth wired network & now edison refuses to boot...
+
+pull sdcard, move to ubuntu machine via usb sdcard reader...
+ 
+at 1st the card fails to mount... then eventally it automounts and i can access ubilinux rootfs
+
+
+unmount the card 
+$ sudo umount /media/37xxxxxbigNumxxxxxx
+
+do fsck.ext4 on it... ok
+
+iqdean@hpdm4:~$ sudo fsck.ext4 /dev/sdb1 -f
+e2fsck 1.42.9 (4-Feb-2014)
+Pass 1: Checking inodes, blocks, and sizes
+Pass 2: Checking directory structure
+Pass 3: Checking directory connectivity
+Pass 4: Checking reference counts
+Pass 5: Checking group summary information
+/dev/sdb1: 108841/972944 files (0.1% non-contiguous), 527748/3889280 blocks
+
+mount the card 
+
+$ sudo mount -t ext4 /dev/sdb1 /mnt/sdcard
+
+disable ntp startup in the init.d rc runlevels:
+
+PER README in the /etc/rc3.d dir, to prevent service from starting during boot
+rename the SXX file to KXX, not sure which runlevel the edison boots to, so do this
+for all 5 runlevels:
+
+iqdean@hpdm4:/mnt/sdcard/etc$ sudo find . -name "*ntp*"
+./logcheck/ignore.d.server/ntpdate
+./init.d/ntp
+./cron.daily/ntp                          
+./rc3.d/K02ntp                          < $ sudo mv S02ntp K02ntp
+./rc2.d/K02ntp							<
+./dhcp/dhclient-exit-hooks.d/ntpdate
+./dhcp/dhclient-exit-hooks.d/ntp
+./default/ntpdate
+./default/ntp
+./rc5.d/K02ntp							<
+./ntp.conf
+./rc4.d/K02ntp							<
+./network/if-up.d/ntpdate
+
+iqdean@hpdm4:/mnt/sdcard/etc$ 
+
+iqdean@hpdm4:~$ sudo umount /mnt/sdcard
+
+Connect edison usb serial console to notebook
+$ screen /dev/ttyUSB0 115200                       < CTRL-a \  y   to kill the screen session
+                                                   < CTRL-a d      to deattach but leave the session running
+
+Power on the robot and  
+see if edision boot gets past  [ ntp startup + watchdog reset ] loop
+AND IT WORKS!! ... we can log back in now ...
+
+...
+
+[info] Loading kernel module g_multi.
+[info] Loading kernel module uvcvideo.
+[info] Loading kernel module ftdi_sio.
+[ ok ] Activating lvm and md swap...done.
+[....] Checking file systems...fsck from util-linux 2.20.1
+dosfsck 3.0.13, 30 Jun 2012, FAT32, LFN
+/dev/mmcblk0p7: 4 files, 2676/16343 clusters
+done.
+[ ok ] Mounting local filesystems...done.
+[ ok ] Activating swapfile swap...done.
+[ ok ] Cleaning up temporary files....
+[ ok ] Setting kernel variables ...done.
+[....] Configuring network interfaces...Internet Systems Consortium DHCP Client 4.2.2
+Copyright 2004-2011 Internet Systems Consortium.
+All rights reserved.
+For info, please visit https://www.isc.org/software/dhcp/
+
+Listening on LPF/wlan0/78:4b:87:a6:98:77
+Sending on   LPF/wlan0/78:4b:87:a6:98:77
+Sending on   Socket/fallback
+DHCPREQUEST on wlan0 to 255.255.255.255 port 67
+DHCPDISCOVER on wlan0 to 255.255.255.255 port 67 interval 3
+DHCPREQUEST on wlan0 to 255.255.255.255 port 67
+DHCPOFFER from 10.0.0.1
+DHCPACK from 10.0.0.1
+bound to 10.0.0.157 -- renewal in 264295 seconds.
+done.
+[ ok ] Cleaning up temporary files....
+INIT: Entering runlevel: 2
+
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< before the ntpd was taking too long to start up  and watchdog timer was resetting edision
+                                          and it wasnt getting past here
+
+[info] Using makefile-style concurrent boot in runlevel 2.
+
+[ ok ] Starting enhanced syslogd: rsyslogd.
+Starting very small Busybox based DHCP server: Starting /usr/sbin/udhcpd...
+udhcpd.
+[ ok ] Starting periodic command scheduler: cron.
+[ ok ] Starting system message bus: dbus.
+[ ok ] Starting OpenBSD Secure Shell server: sshd.
+[ ok ] Starting Avahi mDNS/DNS-SD Daemon: avahi-daemon.
+[   48.636627] intel_scu_watchdog_evo: watchdog_stop
+Starting galileod
+
+Debian GNU/Linux 7 ubilinux ttyMFD2
+
+ubilinux login: 
+
+Last login: Fri Dec 31 16:03:40 PST 1999 on ttyMFD2
+Linux ubilinux 3.10.17-yocto-standard-r2 #7 SMP PREEMPT Thu Feb 26 09:57:06 UTC 2015 i686
+
+Welecome to Edbot Research Robot
+
+Edbot is powered by a Intel Edison board
+
+using a few       .~.       .~.
+Tux Penguins      /V\       /V\       & lots of python 
+from Debian      // \\     // \\      & c code           _,.--.
+Ubilinux        /(   )\   /(   )\    --..,_           .'`__ o  `;__,
+                 ^`~'^     ^`~'^       `'.'.       .'.'`  '---'`  ' 
+some               ______    ____         '.`-...-'.'
+Indigo Turtles    /      \  |  o |          `-...-'
+from ROS         |        |/ ___\|
+                 |_________/           
+                 |_|_| |_|_| 
+
+
+>>> and now we can get back to regualarly scheduled programming <<<<
+
+
+
