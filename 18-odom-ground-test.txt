@@ -1,0 +1,32 @@
+Previous: 17-9-bkm-edbot-robonet-startup.txt
+
+==== OK, now we ready for some off-bench onroad ground tests of odometry to see what kind of calibration we need =====
+
+1. Do full backup of edison image to github
+
+1.1 sync notes and code changes to github from BOTH 
+    ACER - 17-x notes on final bkm for 3 machine ros network (edison, acer, hp)  <- this took way too long to find working
+    HPDM4 (this 17-x note & roslibjoy.js changes)                                   solution!!!
+
+2. charge battery
+
+3. find metric measuring tape
+
+4. do rudimentry check of odometry:
+
+   4.1 mark robot starting point
+   4.2 drive fwd till tf says 1m & mark robot stoping point
+   4.3 measure distance
+
+TF     Actual
+--     ------
+PI*Wd  ?
+1m     ?
+2m     ?
+
+Draw coordiate frame on garage floor with chalk:
+Put robot on 0,0
+Rotate till TF says 90 deg, measure how far it actually rotated
+
+Drive around on garage floor in everywhich direction and then come back to the 0,0 in rviz /odom
+- see how far off we are to the real world 0,0 mark on the floor ?

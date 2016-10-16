@@ -1,0 +1,123 @@
+With everything off:
+
+EDISON - Robot Base Controller, ROSMASTER running edbot odometry & diffdrv nodes 
+
+0. connect usb0 cable to robot only, not to acer
+1. power on robot
+
+ACER - onboard workstation, robot wifi AP, 
+       not running any ros nodes, but does have ros installed and is part of the rosnetwork
+       (will be running intel realsense 3D depth camera)
+
+2. power on acer & login
+2.1 connect usb0 cable to acer .... usb0 networking cfg rqs hotplug event
+    - wait for usb0 network config to happen ($ ifconfig)
+2.2 enable robot wifi using acer hotspot AP on wlan0 
+    - in ubuntu, to enable hotspot on a wlan, you have to be connected to a wifi network
+      - make sure acer is connected to 2.4Ghz wifi network 
+      - after connecting to a wifi network (which is LAME, what if there isn't a wifi network?)
+        Rt-clk Network Manager Icon in top panel, select wifi setting, USE AS HOTSPOT
+2.3 once the acer hotspot AP is up and running
+    - to confirm, you can use $ ifconfig  & check the IP Address of wlan0
+      once the hotspot AP is up and running, wlan0 IP will be 10.42.0.1
+
+2.4 now you can close the lid on the acer and/or if you leave it open, the display
+    with turn off (to save battery) after a few minutes
+
+HPDM4 - offboard stationary workstation, will be used to run rqt, rviz,
+      - connects to robot network via robot wifi AP on acer
+      - not running any ros nodes yet, but does have ros installed and is part of the rosnetwork
+      - can publish /cmd_vel to robot using rqt robot steering plugin, monitor tf via rviz, etc
+
+3. power on HPDM4
+
+3.1 connect it Acer wifi hotspot/AP (ssid = iadean-Peppy)
+
+3.2 t1: ssh to edison and start edbot_rbc.launch file
+
+$ ssh iqdean@192.168.2.15
+iqdean@ubilinux:~$ sudo -E /bin/bash
+root@ubilinux:~# roslaunch edbot edbot_rbc.launch
+
+3.3 t2: $ rqt          Plugins > Robot Tools > Robot Steering
+3.4 t3: $ rviz rviz    Fixed Frame = /odom, Add Plugins: Grid & TF
+
+Based on driving around with rqt robot steering and odometry visualization with rviz:
+- max linear  /cmd_vel 	~ +/- .5 m/s
+- max angular /cmd_val  ~ +/- 1  rad/s
+
+iqdean@hpdm4:~/u1404/DEV-SW/github/node-joystick$ emacs roslibjoy.js &
+
+// Set a deadzone of +/-3500 (out of +/-32k) and a sensitivty of 350 to reduce signal noise in joystick axis
+// id = 1 means use /dev/input/js1      id  -deadzone-
+var joystick = new (require('joystick'))(1, 3500, 350);
+var ROSLIB = require('roslib');
+
+...
+
+var CV_SF = 0.50;  // fullscale joystick inputs result in   +/- 0.50 m/s   linear velocity
+var CAV_SF= 1.00;   // fullscale joystick inputs result in  +/- 1.0  rad/s angular velocity
+
+var ros = new ROSLIB.Ros({
+    //url : 'ws://localhost:9090'
+    url : 'ws://192.168.2.15:9090'   // websocket of rosbridge-server on robot via usb0 eth
+    //url : 'ws://10.0.0.157:9090'       // websocket via wifi
+});
+
+=== after disconnecting HPDM4 from acer hotspot 
+    & closing lid on acer notebook and letting it sit for an hour
+    the acer hotspot wifi network goes 'out of range'               hmm, is this cuz we disconnected?
+
+UBUNTU NETWORK MANAGER IS A PIECE OF CRAP... to get things working again:
+acer: turn off wifi, turn on, connect to Dean1046, enable hotspot
+hp  : turn off wifi, turn on, and now it find iadean-Peppy and reconnects to it
+- ssh to robot, start edbot_rbc.launch
+- get xbox360 game controller working
+plug in wireless game adapter to usb, push big green x on xbox360, it associates ok
+iqdean@hpdm4:~/u1404/DEV-SW/github/node-joystick$ ls -al /dev/input/js*
+crw-r--r--  1 root root 13, 0 Oct  7 09:12 /dev/input/js0       <- before plugging in only got js0
+crw-rw-r--+ 1 root root 13, 1 Oct  7 11:21 /dev/input/js1       <- after plugging in, we got js1, this is xbox game ctrlr
+launch roslibjoy.js to send /cmd_vel to robot from joystick
+iqdean@hpdm4:~/u1404/DEV-SW/github/node-joystick$ node roslibjoy.js
+(node) util.debug is deprecated. Use console.error instead.
+DEBUG: ROSLib uses utf8 encoding by default.It would be more efficent to use ascii (if possible)
+safety :  enabled  throttle disabled
+Connected to websocket server.
+safety :  disabled  throttle engaged      DRIVES WITH JOYSTICK OK 
+safety :  enabled  throttle disabled      $ rviz rviz            <-- Segfaults, close terminal open a new term & it starts ok 
+safety :  disabled  throttle engaged      OBSERVE ODOMETERY W RVIZ OK
+safety :  enabled  throttle disabled
+
+==== OK, now we ready for some off-bench onroad ground tests of odometry to see what kind of calibration we need =====
+
+1. Do full backup of edison image to github                 done
+
+1.1 sync notes and code changes to github from BOTH         done
+    ACER - 17-x notes on final bkm for 3 machine ros network (edison, acer, hp)  <- this took way too long to find working
+    HPDM4 (this 17-x note & roslibjoy.js changes)                                   solution!!!
+
+2. charge battery                                           done
+
+3. find metric measuring tape
+
+4. do rudimentry check of odometry:
+
+   4.1 mark robot starting point
+   4.2 drive fwd till tf says 1m & mark robot stoping point
+   4.3 measure distance
+
+TF     Actual
+--     ------
+PI*Wd  ?
+1m     ?
+2m     ?
+
+Draw coordiate frame on garage floor with chalk:
+Put robot on 0,0
+Rotate till TF says 90 deg, measure how far it actually rotated
+
+Drive around on garage floor in everywhich direction and then come back to the 0,0 in rviz /odom
+- see how far off we are to the real work 0,0 mark on the floor ?
+
+
+ 
