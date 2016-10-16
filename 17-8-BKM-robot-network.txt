@@ -4,7 +4,7 @@ ROBOT NETWORK - take 3
    |------------------- onboard --------------------| --- offboard ----|
    edison  <--------- usb0 ----------> acer <--- wlan0 AP ----------> HPDM4
 
-
+   M1                                   M2                                M3    <- 3 machine network
 
                                NM IPV4>Manual
                                via /etc/network          NM
@@ -102,7 +102,7 @@ export ROS_IP=192.168.2.1
 export ROS_HOSTNAME=192.168.2.1
 
 2.2 make sure ur connected to Dean-1046 (2.4Ghz only) and not Dean-1046-5 (5Ghz) 
-
+    why? cuz hpdm4 notebook wifi only supports 2.4Ghz and not 5Ghz
 
 2.2.1 On Acer, make wlan0 a hotspot ap
       -----------------------------
@@ -123,9 +123,24 @@ NOTE: iptables are different when not using hotspot ap feature
     sudo iptables --list
 
 3. On HPDM4
-================== BKM ROBOT STARTUP ==========================================================
+
+3.0 installed ros indigo
+
+3.1 Configure ROS NETWORK ENV SETTINGS in ~./bashrc
+
+# added for ros indigo
+source /opt/ros/indigo/setup.bash
+
+# ROS multimachine networking setup
+# rosmaster is running on edison robot, this is stationary workstation
+export ROS_MASTER_URI=http://192.168.2.15:11311         <  ip of edison
+export ROS_IP=10.42.0.71                                \_ ip of hpdm4
+export ROS_HOSTNAME=10.42.0.71                          /
+
+3.2 ================== BKM ROBOT STARTUP ==============================
 --- on hpdm4 
-    connect to robot network
+    connect to robot wifi hotspot ssid being srcd by acer
+
 t1  ssh to edison and start rbc    $ sudo -E /bin/bash
                                    $ roslaunch edbot edbot_rbc.launch
 t2  $ rqt
@@ -140,10 +155,10 @@ close the cover on the acer notebook
 
 --- on hp dm4
 
-drive robot using rqt robot steering    OK  \___ things still work from hpdm4 with acer lid closed
-view tf in rviz                         Ok  /
+drive robot using rqt robot steering    OK  \___ things still work from hpdm4
+view tf in rviz                         Ok  /    with acer lid closed
 
-================== BKM ROBOT SHUTDOWN ==========================================================
+3.4 ================== BKM ROBOT SHUTDOWN ===================================
 --- shutdown seq from hpdm4
 
 t1  CTRL-C                     shutdown ros on robot
@@ -152,12 +167,11 @@ t1  CTRL-C                     shutdown ros on robot
 t2  CTRL-C
 t3  CTRL-C
 
-
 --- edison    power down by removing Vbat or turning off Power Supply
 --- Acer      open lid, switch off hotspot, power down notebook
 --- hpdm4     power down the notebook
 
-=================================================================================================
+===========================================================================
 
 --- Final networking tidbit... 
 
