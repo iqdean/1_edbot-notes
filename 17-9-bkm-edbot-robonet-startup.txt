@@ -90,13 +90,14 @@ safety :  enabled  throttle disabled
 
 ==== OK, now we ready for some off-bench onroad ground tests of odometry to see what kind of calibration we need =====
 
-1. Do full backup of edison image to github
+1. Do full backup of edison image to github                 done
 
-1.1 sync notes and code changes to github from BOTH 
+1.1 sync notes and code changes to github from BOTH         done
     ACER - 17-x notes on final bkm for 3 machine ros network (edison, acer, hp)  <- this took way too long to find working
     HPDM4 (this 17-x note & roslibjoy.js changes)                                   solution!!!
 
-2. charge battery
+2. charge battery                                           done
+
 3. find metric measuring tape
 
 4. do rudimentry check of odometry:
